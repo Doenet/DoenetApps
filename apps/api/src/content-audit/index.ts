@@ -11,3 +11,4 @@
  */
 
 export * from "./content-audit";
+export * from "./content-audit.schema";
