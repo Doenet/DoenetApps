@@ -246,10 +246,10 @@ export function filterViewableContent(
 ) {
   const visibilityOptions: (
     | { ownerId: Uint8Array }
-    | { isPublic: boolean }
+    | { visibility: { in: ["public", "unlisted"] } }
     | { sharedWith: { some: { userId: Uint8Array } } }
     | { owner: { isLibrary: boolean } }
-  )[] = [{ isPublic: true }];
+  )[] = [{ visibility: { in: ["public", "unlisted"] } }];
 
   if (loggedInUserId) {
     visibilityOptions.push({ ownerId: loggedInUserId });
@@ -284,7 +284,7 @@ export function viewableContentWhere(
 ) {
   let visibilityOptions = Prisma.sql`
       content.ownerId = ${loggedInUserId}
-      OR content.isPublic = TRUE
+      OR content.visibility <> 'private'
       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
   `;
 

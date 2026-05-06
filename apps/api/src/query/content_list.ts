@@ -337,8 +337,13 @@ export async function getSharedContent({
         isDeletedOn: null,
 
         OR: [
-          { isPublic: true },
-          { sharedWith: { some: { userId: loggedInUserId } } },
+          { visibility: "public" },
+          {
+            AND: [
+              { visibility: "private" },
+              { sharedWith: { some: { userId: loggedInUserId } } },
+            ],
+          },
         ],
       },
       select: returnContentSelect({}),
@@ -349,10 +354,11 @@ export async function getSharedContent({
     if (
       !(
         preliminaryParent.parent &&
-        (preliminaryParent.parent.isPublic ||
-          preliminaryParent.parent.sharedWith.findIndex((cs) =>
-            isEqualUUID(cs.userId, loggedInUserId),
-          ) !== -1)
+        (preliminaryParent.parent.visibility === "public" ||
+          (preliminaryParent.parent.visibility === "private" &&
+            preliminaryParent.parent.sharedWith.findIndex((cs) =>
+              isEqualUUID(cs.userId, loggedInUserId),
+            ) !== -1))
       )
     ) {
       preliminaryParent.parent = null;
@@ -369,8 +375,13 @@ export async function getSharedContent({
       // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
       isDeletedOn: null,
       OR: [
-        { isPublic: true },
-        { sharedWith: { some: { userId: loggedInUserId } } },
+        { visibility: "public" },
+        {
+          AND: [
+            { visibility: "private" },
+            { sharedWith: { some: { userId: loggedInUserId } } },
+          ],
+        },
       ],
     },
     select: returnContentSelect({ includeOwnerDetails: true }),
@@ -388,15 +399,25 @@ export async function getSharedContent({
         ownerId,
         parent: {
           AND: [
-            { isPublic: false },
-            { sharedWith: { none: { userId: loggedInUserId } } },
+            { visibility: { not: "public" } },
+            {
+              OR: [
+                { visibility: { not: "private" } },
+                { sharedWith: { none: { userId: loggedInUserId } } },
+              ],
+            },
           ],
         },
         // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
         isDeletedOn: null,
         OR: [
-          { isPublic: true },
-          { sharedWith: { some: { userId: loggedInUserId } } },
+          { visibility: "public" },
+          {
+            AND: [
+              { visibility: "private" },
+              { sharedWith: { some: { userId: loggedInUserId } } },
+            ],
+          },
         ],
       },
       select: returnContentSelect({ includeOwnerDetails: true }),
