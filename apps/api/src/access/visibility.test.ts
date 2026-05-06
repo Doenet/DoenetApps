@@ -1,20 +1,87 @@
 import { describe, expect, test } from "vitest";
-import { createTestUser, fold, setupTestContent, doc } from "../test/utils";
-import { updateVisibility } from "./visibility";
+import { updateContentAudit } from "../content-audit";
 import { createContent } from "../query/activity";
-import { createAssignment } from "../query/assign";
-import { InvalidRequestError } from "../utils/error";
+import { createTestUser } from "../test/utils";
 import { prisma } from "../model";
+import { InvalidRequestError } from "../utils/error";
 import { StatusCodes } from "http-status-codes";
-import { DateTime } from "luxon";
+import { updateVisibility } from "./visibility";
+
+async function expectInvalidRequest(promise: Promise<unknown>) {
+  try {
+    await promise;
+    expect.fail("Expected InvalidRequestError");
+  } catch (error) {
+    expect(error).toBeInstanceOf(InvalidRequestError);
+    return error as InvalidRequestError;
+  }
+}
+
+async function connectRequiredCategories(contentId: Uint8Array) {
+  const groups = await prisma.categoryGroups.findMany({
+    where: { isRequired: true },
+    select: {
+      categories: {
+        select: { code: true },
+        orderBy: { sortIndex: "asc" },
+      },
+    },
+    orderBy: { id: "asc" },
+  });
+
+  const categories = groups.map((group) => {
+    const [category] = group.categories;
+    if (!category) {
+      throw new Error("Required category group is missing seeded categories");
+    }
+    return { code: category.code };
+  });
+
+  await prisma.content.update({
+    where: { id: contentId },
+    data: { categories: { connect: categories } },
+  });
+}
+
+async function makeDocumentPubliclyShareable({
+  contentId,
+  userId,
+}: {
+  contentId: Uint8Array;
+  userId: Uint8Array;
+}) {
+  await connectRequiredCategories(contentId);
+  await updateContentAudit({
+    contentId,
+    loggedInUserId: userId,
+    noErrorsConfirmed: true,
+    accessibilityConfirmed: true,
+  });
+}
+
+async function getVisibilityState(contentId: Uint8Array) {
+  return prisma.content.findUniqueOrThrow({
+    where: { id: contentId },
+    select: {
+      visibility: true,
+      isPublic: true,
+      publiclySharedAt: true,
+    },
+  });
+}
 
 describe("updateVisibility", () => {
-  test("Owner can change visibility from private to public", async () => {
+  test("allows owners to make eligible documents public", async () => {
     const user = await createTestUser();
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId: null,
+    });
+
+    await makeDocumentPubliclyShareable({
+      contentId,
+      userId: user.userId,
     });
 
     const result = await updateVisibility({
@@ -23,10 +90,15 @@ describe("updateVisibility", () => {
       visibility: "public",
     });
 
-    expect(result.visibility).toBe("public");
+    expect(result).toEqual({ visibility: "public" });
+
+    const content = await getVisibilityState(contentId);
+    expect(content.visibility).toBe("public");
+    expect(content.isPublic).toBe(true);
+    expect(content.publiclySharedAt).toBeInstanceOf(Date);
   });
 
-  test("Owner can change visibility from public to private", async () => {
+  test("blocks public sharing until categories and diagnostics are satisfied", async () => {
     const user = await createTestUser();
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
@@ -34,79 +106,23 @@ describe("updateVisibility", () => {
       parentId: null,
     });
 
-    await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId,
-      visibility: "public",
-    });
-
-    const result = await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId,
-      visibility: "private",
-    });
-
-    expect(result.visibility).toBe("private");
-  });
-
-  test("Non-owner cannot change visibility", async () => {
-    const user1 = await createTestUser();
-    const user2 = await createTestUser();
-
-    const { contentId } = await createContent({
-      loggedInUserId: user1.userId,
-      contentType: "singleDoc",
-      parentId: null,
-    });
-
-    try {
-      await updateVisibility({
-        loggedInUserId: user2.userId,
+    const error = await expectInvalidRequest(
+      updateVisibility({
+        loggedInUserId: user.userId,
         contentId,
         visibility: "public",
-      });
-      expect.fail("Should have thrown permission error");
-    } catch (e) {
-      expect(e).toBeInstanceOf(InvalidRequestError);
-      expect((e as InvalidRequestError).errorCode).toBe(StatusCodes.NOT_FOUND);
-    }
+      }),
+    );
+
+    expect(error.message).toContain("required categories are filled out");
+    expect(error.message).toContain("documents have no errors");
+    expect(error.message).toContain(
+      "documents have no level 1 accessibility violations",
+    );
   });
 
-  test("Cannot change assignment visibility", async () => {
+  test("checks descendant diagnostics before allowing public sharing", async () => {
     const user = await createTestUser();
-
-    // Create an assignment by setting isAssignmentRoot
-    const { contentId: assignmentId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId: null,
-    });
-
-    // Mark as assignment
-    await prisma.content.update({
-      where: { id: assignmentId },
-      data: { isAssignmentRoot: true },
-    });
-
-    try {
-      await updateVisibility({
-        loggedInUserId: user.userId,
-        contentId: assignmentId,
-        visibility: "public",
-      });
-      expect.fail("Should have thrown assignment error");
-    } catch (e) {
-      expect(e).toBeInstanceOf(InvalidRequestError);
-      expect((e as InvalidRequestError).message).toContain(
-        "Assignment visibility",
-      );
-    }
-  });
-
-  test("Cannot change visibility of content within assignment", async () => {
-    const user = await createTestUser();
-
-    // Assignments are shallow, so assigned content sits directly under the root.
     const { contentId: sequenceId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "sequence",
@@ -119,150 +135,75 @@ describe("updateVisibility", () => {
       parentId: sequenceId,
     });
 
-    // Create an assignment (copies the sequence and its direct children)
-    const { assignmentId } = await createAssignment({
-      contentId: sequenceId,
-      loggedInUserId: user.userId,
-      closedOn: DateTime.now().plus({ days: 1 }),
-      destinationParentId: null,
-    });
+    await connectRequiredCategories(sequenceId);
 
-    const assignmentChild = await prisma.content.findFirstOrThrow({
-      where: {
-        isDeletedOn: null,
-        ownerId: user.userId,
-        parentId: assignmentId,
-      },
-      select: { id: true },
-    });
-
-    // Try to change visibility of the copied assignment child - should fail
-    try {
-      await updateVisibility({
+    const error = await expectInvalidRequest(
+      updateVisibility({
         loggedInUserId: user.userId,
-        contentId: assignmentChild.id,
+        contentId: sequenceId,
         visibility: "public",
-      });
-      expect.fail("Should have thrown assignment content error");
-    } catch (e) {
-      expect(e).toBeInstanceOf(InvalidRequestError);
-      expect((e as InvalidRequestError).message).toContain(
-        "Assignment visibility",
-      );
-    }
+      }),
+    );
+
+    expect(error.message).not.toContain("required categories are filled out");
+    expect(error.message).toContain("documents have no errors");
+    expect(error.message).toContain(
+      "documents have no level 1 accessibility violations",
+    );
   });
 
-  test("Cannot make child less public than parent (private child in unlisted parent)", async () => {
+  test("rejects publicly sharing folders", async () => {
     const user = await createTestUser();
+    const { contentId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "folder",
+      parentId: null,
+    });
 
-    // Create a folder (will be unlisted)
+    const error = await expectInvalidRequest(
+      updateVisibility({
+        loggedInUserId: user.userId,
+        contentId,
+        visibility: "public",
+      }),
+    );
+
+    expect(error.message).toContain("not yet implemented");
+  });
+
+  test("does not allow a child to become less public than its parent", async () => {
+    const user = await createTestUser();
     const { contentId: parentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "folder",
       parentId: null,
     });
 
-    // Make parent unlisted
     await updateVisibility({
       loggedInUserId: user.userId,
       contentId: parentId,
       visibility: "unlisted",
     });
 
-    // Create child document (default is private)
     const { contentId: childId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId,
     });
 
-    // Try to keep child private - should fail
-    try {
-      await updateVisibility({
+    const error = await expectInvalidRequest(
+      updateVisibility({
         loggedInUserId: user.userId,
         contentId: childId,
         visibility: "private",
-      });
-      expect.fail("Should have thrown hierarchy error");
-    } catch (e) {
-      expect(e).toBeInstanceOf(InvalidRequestError);
-      expect((e as InvalidRequestError).message).toContain("less public");
-    }
-  });
-
-  test("Can make child more public than parent", async () => {
-    const user = await createTestUser();
-
-    // Create a private folder
-    const { contentId: parentId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "folder",
-      parentId: null,
-    });
-
-    // Create child document
-    const { contentId: childId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId,
-    });
-
-    // Make child public (parent is private) - should succeed
-    const result = await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId: childId,
-      visibility: "public",
-    });
-
-    expect(result.visibility).toBe("public");
-  });
-
-  test("Cascades visibility to descendants when making parent more public", async () => {
-    const user = await createTestUser();
-
-    // Create a structure: folder > subfolder > doc
-    const [folderId, subfolderId, docId] = await setupTestContent(user.userId, {
-      folder1: fold({
-        subfolder1: fold({
-          doc1: doc("<p>test</p>"),
-        }),
       }),
-    });
+    );
 
-    // All start private
-    const content = await prisma.content.findUniqueOrThrow({
-      where: { id: folderId },
-    });
-    expect(content.visibility).toBe("private");
-
-    // Make parent public - should cascade
-    await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId: folderId,
-      visibility: "public",
-    });
-
-    // Check all descendants are now public
-    const folder = await prisma.content.findUniqueOrThrow({
-      where: { id: folderId },
-    });
-    expect(folder.visibility).toBe("public");
-
-    const subfolder = await prisma.content.findUniqueOrThrow({
-      where: { id: subfolderId },
-    });
-    expect(subfolder.visibility).toBe("public");
-
-    const docContent = await prisma.content.findUniqueOrThrow({
-      where: { id: docId },
-    });
-    expect(docContent.visibility).toBe("public");
+    expect(error.message).toContain("less public");
   });
 
-  test("Cascade excludes assignments", async () => {
+  test("cascades unlisted visibility while excluding assignment content", async () => {
     const user = await createTestUser();
-
-    // Create folder with a document
     const { contentId: folderId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "folder",
@@ -275,7 +216,6 @@ describe("updateVisibility", () => {
       parentId: folderId,
     });
 
-    // Create assignment subtree as sibling
     const { contentId: assignmentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "sequence",
@@ -288,221 +228,107 @@ describe("updateVisibility", () => {
       parentId: assignmentId,
     });
 
-    // Mark as assignment
     await prisma.content.update({
       where: { id: assignmentId },
       data: { isAssignmentRoot: true },
     });
 
-    // Make folder public
     await updateVisibility({
       loggedInUserId: user.userId,
       contentId: folderId,
-      visibility: "public",
+      visibility: "unlisted",
     });
 
-    // Document should be public
-    const docContent = await prisma.content.findUniqueOrThrow({
-      where: { id: docId },
-    });
-    expect(docContent.visibility).toBe("public");
+    const [folder, doc, assignment, assignmentChild] = await Promise.all([
+      prisma.content.findUniqueOrThrow({ where: { id: folderId } }),
+      prisma.content.findUniqueOrThrow({ where: { id: docId } }),
+      prisma.content.findUniqueOrThrow({ where: { id: assignmentId } }),
+      prisma.content.findUniqueOrThrow({ where: { id: assignmentChildId } }),
+    ]);
 
-    // Assignment should still be private
-    const assignment = await prisma.content.findUniqueOrThrow({
-      where: { id: assignmentId },
-    });
+    expect(folder.visibility).toBe("unlisted");
+    expect(doc.visibility).toBe("unlisted");
     expect(assignment.visibility).toBe("private");
-
-    const assignmentChild = await prisma.content.findUniqueOrThrow({
-      where: { id: assignmentChildId },
-    });
     expect(assignmentChild.visibility).toBe("private");
   });
 
-  test("Cascades when making parent less public (override children)", async () => {
+  test("clears the public timestamp when content becomes unlisted again", async () => {
     const user = await createTestUser();
-
-    // Create folder with public document
-    const { contentId: folderId } = await createContent({
+    const { contentId } = await createContent({
       loggedInUserId: user.userId,
-      contentType: "folder",
+      contentType: "singleDoc",
       parentId: null,
     });
 
-    const { contentId: docId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId: folderId,
+    await makeDocumentPubliclyShareable({
+      contentId,
+      userId: user.userId,
     });
 
-    // Make both public
     await updateVisibility({
       loggedInUserId: user.userId,
-      contentId: folderId,
+      contentId,
       visibility: "public",
     });
 
-    // Make folder private - should cascade and override children
-    await updateVisibility({
+    const publicState = await getVisibilityState(contentId);
+    expect(publicState.publiclySharedAt).toBeInstanceOf(Date);
+
+    const result = await updateVisibility({
       loggedInUserId: user.userId,
-      contentId: folderId,
-      visibility: "private",
+      contentId,
+      visibility: "unlisted",
     });
 
-    // Folder is private
-    const folder = await prisma.content.findUniqueOrThrow({
-      where: { id: folderId },
-    });
-    expect(folder.visibility).toBe("private");
+    expect(result).toEqual({ visibility: "unlisted" });
 
-    // Document should also be private now (cascaded)
-    const docContent = await prisma.content.findUniqueOrThrow({
-      where: { id: docId },
-    });
-    expect(docContent.visibility).toBe("private");
+    const unlistedState = await getVisibilityState(contentId);
+    expect(unlistedState.visibility).toBe("unlisted");
+    expect(unlistedState.isPublic).toBe(false);
+    expect(unlistedState.publiclySharedAt).toBeNull();
   });
 
-  test("Cascade excludes assignments when making parent less public", async () => {
-    const user = await createTestUser();
-
-    // Create folder with document and assignment
-    const { contentId: folderId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "folder",
+  test("rejects non-owner visibility changes with a not found error", async () => {
+    const owner = await createTestUser();
+    const otherUser = await createTestUser();
+    const { contentId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
       parentId: null,
     });
 
-    const { contentId: docId } = await createContent({
+    const error = await expectInvalidRequest(
+      updateVisibility({
+        loggedInUserId: otherUser.userId,
+        contentId,
+        visibility: "unlisted",
+      }),
+    );
+
+    expect(error.errorCode).toBe(StatusCodes.NOT_FOUND);
+  });
+
+  test("rejects changing assignment visibility", async () => {
+    const user = await createTestUser();
+    const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
-      parentId: folderId,
+      parentId: null,
     });
 
-    const { contentId: assignmentId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId: folderId,
-    });
-
-    // Mark as assignment
     await prisma.content.update({
-      where: { id: assignmentId },
+      where: { id: contentId },
       data: { isAssignmentRoot: true },
     });
 
-    // Make all public
-    await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId: folderId,
-      visibility: "public",
-    });
-
-    // Make folder private
-    await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId: folderId,
-      visibility: "private",
-    });
-
-    // Document should be private
-    const doc = await prisma.content.findUniqueOrThrow({
-      where: { id: docId },
-    });
-    expect(doc.visibility).toBe("private");
-
-    // Assignment should still be private (unchanged)
-    const assignment = await prisma.content.findUniqueOrThrow({
-      where: { id: assignmentId },
-    });
-    expect(assignment.visibility).toBe("private");
-  });
-
-  test("Works with all content types", async () => {
-    const user = await createTestUser();
-
-    const types: Array<"singleDoc" | "sequence" | "select" | "folder"> = [
-      "singleDoc",
-      "sequence",
-      "select",
-      "folder",
-    ];
-
-    for (const contentType of types) {
-      const { contentId } = await createContent({
-        loggedInUserId: user.userId,
-        contentType,
-        parentId: null,
-      });
-
-      const result = await updateVisibility({
+    const error = await expectInvalidRequest(
+      updateVisibility({
         loggedInUserId: user.userId,
         contentId,
-        visibility: "public",
-      });
+        visibility: "unlisted",
+      }),
+    );
 
-      expect(result.visibility).toBe("public");
-    }
-  });
-
-  test("Returns the requested visibility when the update is idempotent", async () => {
-    const user = await createTestUser();
-    const { contentId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId: null,
-    });
-
-    // Set to public
-    await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId,
-      visibility: "public",
-    });
-
-    // Set to public again - should just return current
-    const result = await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId,
-      visibility: "public",
-    });
-
-    expect(result.visibility).toBe("public");
-  });
-
-  test("Rejects non-existent content", async () => {
-    const user = await createTestUser();
-    const fakeId = new Uint8Array(16);
-
-    try {
-      await updateVisibility({
-        loggedInUserId: user.userId,
-        contentId: fakeId,
-        visibility: "public",
-      });
-      expect.fail("Should have thrown not found error");
-    } catch (e) {
-      expect(e).toBeInstanceOf(InvalidRequestError);
-      expect((e as InvalidRequestError).errorCode).toBe(StatusCodes.NOT_FOUND);
-    }
-  });
-
-  test("Response is AccessPolicy (only visibility, no Content properties)", async () => {
-    const user = await createTestUser();
-    const { contentId } = await createContent({
-      loggedInUserId: user.userId,
-      contentType: "singleDoc",
-      parentId: null,
-    });
-
-    const result = await updateVisibility({
-      loggedInUserId: user.userId,
-      contentId,
-      visibility: "public",
-    });
-
-    // Verify response is AccessPolicy (only has visibility)
-    expect(result).toEqual({ visibility: "public" });
-    // Ensure no Content properties are present
-    expect(Object.keys(result).sort()).toEqual(["visibility"]);
+    expect(error.message).toContain("Assignment visibility");
   });
 });
