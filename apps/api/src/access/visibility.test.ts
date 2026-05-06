@@ -121,6 +121,31 @@ describe("updateVisibility", () => {
     );
   });
 
+  test("treats trashed content as not found", async () => {
+    const user = await createTestUser();
+    const { contentId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { isDeletedOn: new Date() },
+    });
+
+    const error = await expectInvalidRequest(
+      updateVisibility({
+        loggedInUserId: user.userId,
+        contentId,
+        visibility: "unlisted",
+      }),
+    );
+
+    expect(error.errorCode).toBe(StatusCodes.NOT_FOUND);
+    expect(error.message).toBe("Content not found");
+  });
+
   test("checks descendant diagnostics before allowing public sharing", async () => {
     const user = await createTestUser();
     const { contentId: sequenceId } = await createContent({
