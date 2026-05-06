@@ -12,7 +12,8 @@ import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { fromUUID } from "../utils/uuid";
 import { getLibraryAccountId, maskLibraryUserInfo } from "./curate";
 import { PartialContentClassification, UserInfo } from "../types";
-import { getAllCategories, getClassificationInfo } from "./classification";
+import { getClassificationInfo } from "./classification";
+import { getAllCategories } from "../categories";
 import { getAuthorInfo } from "./user";
 
 export async function searchSharedContent({

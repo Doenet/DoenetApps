@@ -8,7 +8,7 @@ import {
 } from "../utils/permissions";
 import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { Content } from "../types";
-import { getAllCategories } from "./classification";
+import { getAllCategories } from "../categories";
 import { sanitizeQuery } from "../utils/search";
 import { Prisma } from "@prisma/client";
 import {

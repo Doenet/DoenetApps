@@ -15,7 +15,7 @@ import {
   searchMyContentOrLibraryContent,
 } from "./content_list";
 import { processContent, returnContentSelect } from "../utils/contentStructure";
-import { getAllCategories } from "./classification";
+import { getAllCategories } from "../categories";
 import { getAllLicenses } from "./license";
 import { InvalidRequestError } from "../utils/error";
 

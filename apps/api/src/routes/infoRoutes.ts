@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllCategories } from "../query/classification";
+import { getAllCategories } from "../categories";
 import {
   getAllDoenetmlVersions,
   getContentDescription,
