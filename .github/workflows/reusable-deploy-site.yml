@@ -1,0 +1,67 @@
+name: Reusable - Deploy Doenet Site to Amazon S3
+
+on:
+  workflow_call:
+    inputs:
+      deploy_ref:
+        description: Git ref or SHA to deploy
+        required: true
+        type: string
+      aws_region:
+        description: AWS region for S3 and CloudFront
+        required: true
+        type: string
+      gha_role:
+        description: GitHub Actions role ARN
+        required: true
+        type: string
+      aws_account_id:
+        description: AWS account ID for bucket naming
+        required: true
+        type: string
+      env_name:
+        description: Deployment environment name
+        required: true
+        type: string
+      build_mode:
+        description: Site build mode
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.deploy_ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: ${{ inputs.gha_role }}
+          role-session-name: site
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Build the site
+        run: |
+          npm ci
+          cd apps/web && npm run build -- --mode ${{ inputs.build_mode }}
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync --delete apps/web/dist s3://${{ inputs.env_name }}-site-${{ inputs.aws_account_id }}-${{ inputs.aws_region }}
+
+      - name: Invalidate CloudFront cache
+        run: |
+          id=$(aws ssm get-parameter --name "/${{ inputs.env_name }}/app/DistributionId" --query "Parameter.Value" --output text)
+          aws cloudfront create-invalidation --distribution-id $id --paths "/blog/*" "/_astro/*"

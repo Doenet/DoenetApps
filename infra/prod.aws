@@ -1,0 +1,33 @@
+PROJECT=doenet
+FARGATE_CLUSTER=prod
+AWS_REGION=us-east-2
+TEMPLATE_BUCKET=doenet-cf-prod
+SSO_ACCOUNT_NAME=CSE-doenet-prod
+SAM_CONFIG_ENV=prod
+
+declare -g -A STACKS
+STACKS['prod-doenet-networking']='networking'
+STACKS['prod-doenet-repositories']='repositories'
+STACKS['prod-doenet-common']='service-common'
+STACKS['prod-doenet-mysql']='rds'
+STACKS['prod-doenet']='service'
+STACKS['prod-doenet-frontend']='s3-hosted-stackset'
+STACKS['prod-discourse-forums']='discourse-forums-ec2'
+STACKS['prod-doenet-ses']='ses'
+
+declare -g -a STACK_ORDER
+STACK_ORDER=(
+    prod-doenet-ses
+    prod-doenet-networking
+    prod-doenet-repositories
+    prod-doenet-common
+    prod-doenet-mysql
+    prod-doenet
+    prod-doenet-frontend
+)
+
+declare -g -a SAM_STACKS
+SAM_STACKS=(
+)
+
+declare -g -A DOCKER_IMAGES

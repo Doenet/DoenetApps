@@ -1,0 +1,183 @@
+
+<section>
+  <title>Illustrations of mathematical answers</title>
+
+  <introduction>
+    Examples showing different types of <tag>answer</tag> tags involving math
+  </introduction>
+
+  <part>
+    <title>The simplest answer</title>
+
+    <p>What is <math>x+x</math>? <answer>2x</answer></p>
+
+  </part>
+
+  <part>
+    <title>Adding a short description or label</title>
+
+    <p>The simplest answer triggers a warning, as there is no information for screen readers to give about the answer blank. You can fix that by adding either a <tag>shortDescription</tag> (accessed only by screen readers) or a <tag>label</tag> (both visible and accessed by screen readers).</p>
+
+    <p>
+      <answer>
+        <label>
+          What is <math>x+x</math>?
+        </label>
+        2x
+      </answer>
+    </p>
+
+    <p>What is <math>x+x</math>?
+      <answer>
+        <shortDescription>x+x</shortDescription>
+        2x
+      </answer>
+    </p>
+
+    <p>This is equivalent to the last one, but just adds an <tag>award</tag> for clarity.</p>
+
+    <p>What is <math>x+x</math>?
+      <answer>
+        <shortDescription>x+x</shortDescription>
+        <award>2x</award>
+      </answer>
+    </p>
+
+    
+
+  </part>
+
+  <part>
+    <title>Symbolic equality</title>
+
+    <p>The above answers actually accept <math>x+x</math>
+      as a correct answer, as it is mathematical equivalent to <math>2x</math>. To require exact answers, specify the <attr>symbolicEquality</attr> attribute.</p>
+    
+    <p>What is <math>x+x</math>?
+      <answer symbolicEquality>
+        <shortDescription>x+x</shortDescription>
+        <award>2x</award>
+      </answer>
+    </p>
+    
+  </part>
+
+  <part>
+    <title>Specifying partial credit options</title>
+
+    <p>
+      Compute the integral <m>\int x^2\, dx</m>
+    </p>
+    <p>
+      <answer>
+        <shortDescription>integral of x-squared</shortDescription>
+        <award>x^3/3 + c</award>
+        <award>x^3/3 + C</award>
+        <award credit="0.5">x^3/3</award>
+      </answer>
+    </p>
+      
+  </part>
+
+  <part>
+    <title>Partial credit for unordered list</title>
+
+    <p>Let <m>f(x) = (x-2)(x+5)</m>. Solve <math>f(x) = 0</math>. If more than one answer, separate by commas.</p>
+
+    <p><m>x=</m> 
+      <answer unorderedCompare matchPartial>
+        <shortDescription>solve f(x)=0</shortDescription>
+        <award>2, -5</award>
+      </answer>
+    </p>
+      
+  </part>
+
+  <part>
+    <title>Allowing answers in a range</title>
+
+    <answer>
+      <mathInput name="n">
+        <label>Enter a number between 2 and 7</label>
+      </mathInput>
+      <award><when>2 <= $n <= 7</when></award>
+    </answer>
+  </part>
+
+
+  <part>
+    <title>Specifying an interval</title>
+
+    <graph aspectRatio="10" displayYAxis="false" fixAxes showBorder="false">
+      <shortDescription>
+        A graph of a line segment on the x-axis from the point -2 to the point 5.
+        At the point -2 is an open circle.
+        At the point 5 is a closed circle.
+      </shortDescription>
+      <xLabel>x</xLabel>
+      <lineSegment fixed endpoints="(-2,0) (5,0)" />
+      <endpoint fixed open>(-2,0)</endpoint>
+      <endpoint fixed open="false">(5,0)</endpoint>
+    </graph>
+
+    <p>What is the interval shown above?
+      <answer>
+        <mathInput name="interval">
+          <shortDescription>Enter interval</shortDescription>
+        </mathInput>
+        <award><when>
+          <subsetOfReals>$interval</subsetOfReals> =
+          <subsetOfReals>(-2,5]</subsetOfReals>
+        </when></award>
+      </answer>
+    </p>
+
+    <p>The above answer will accept different ways to express the interval, including:
+      <ul>
+        <li><m>(-2,5]</m></li>
+        <li><m>-2 < x \le 5</m></li>
+        <li><m>x \in (-2,5]</m></li>
+        
+      </ul>
+    </p>
+
+  </part>
+
+  <part>
+    <title>Dynamic number of answers</title>
+
+    <p>Let <m>f(x) = (x-2)(x+5)</m>. Solve <math>f(x) = 0</math>.</p>
+
+    <p>How many solutions are there? 
+      <mathInput name="n">
+        <shortDescription>number of solutions</shortDescription>
+      </mathInput>
+    </p>
+
+    <p>The solutions are
+      <repeatForSequence from="1" to="$n" valueName="i" name="r">
+        <m>x = </m>
+        <mathInput name="v">
+          <shortDescription>answer number $i</shortDescription>
+        </mathInput>
+      </repeatForSequence>.
+    </p>
+
+    <setup>
+      <collect from="$r" componentType="mathInput" name="c" />
+      <mathList name="values" extend="$c.value" />
+    </setup>
+    
+    <p>
+      <answer unorderedCompare matchPartial>
+        <award><when>
+          $values = <mathList>2 -5</mathList>
+        </when></award>
+      </answer>
+    </p>
+      
+  </part>
+
+
+  
+</section>

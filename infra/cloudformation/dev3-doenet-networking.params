@@ -1,0 +1,66 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "S3TemplateBucket",
+    "ParameterValue": "doenet-cf-dev/dev3-doenet"
+  },
+  {
+    "ParameterKey": "VPCNetworkPrefix",
+    "ParameterValue": "10.130.0"
+  },
+  {
+    "ParameterKey": "CreateZoneA",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "CreateZoneB",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "CreateZoneC",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "CreateNatGateway",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableInspection",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "UseTGW",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "ConfigureAsHubVpc",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "TransitGatewayId",
+    "ParameterValue": "none"
+  },
+  {
+    "ParameterKey": "DomainNameServers",
+    "ParameterValue": "not set"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "Z0066937J8QHRAL9H84P"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "dev3.doenet.org"
+  },
+  {
+    "ParameterKey": "SecurityZoneId",
+    "ParameterValue": "not set"
+  },
+  {
+    "ParameterKey": "SecurityVpcEndpointServiceName",
+    "ParameterValue": "not set"
+  }
+]

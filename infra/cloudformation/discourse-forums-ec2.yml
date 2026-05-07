@@ -1,0 +1,330 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "EC2 Instance in an Autoscaling group"
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Environment Configuration
+      - Label:
+          default: EC2 Configuration
+        Parameters:
+          - EnvironmentName
+          - ServiceName
+          - InstanceType
+          - AmiId
+          - VolumeSize
+      - Label:
+          default: Networking Configuration
+        Parameters:
+          - VPC
+          - SubnetId
+          - AvailabilityZone
+          - AdminSecurityGroup
+          - EcsInstanceSecurityGroup
+          - DnsZone
+          - HostedZoneId
+          - PublicLoadBalancerHttpsListener
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    Default: opcenter
+  ServiceName:
+    Type: String
+    Description: The primary function of this EC2 instance (PowerDns, Wiki, DuoProxy, etc)
+  InstanceType:
+    Description: The EC2 instance type
+    Type: String
+    Default: t3a.medium
+  VolumeSize:
+    Type: String
+    Default: 30
+  SubnetId:
+    Type: String
+    Description: The subnet into which the instance should be deployed. Almost always, you'll want to use a private subnet.
+  AvailabilityZone:
+    Type: String
+    Default: us-east-1a
+    Description: The AZ of the SubnetId
+  VPC:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /dev3/VPC
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0689a3ce09bf1872e
+    Description: "ami-0689a3ce09bf1872e -- us-east-2,noble,24.04,arm64,20260320.  Use the Cananical image locator to find official images: https://cloud-images.ubuntu.com/locator/"
+  AdminSecurityGroup:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /dev3/AdminSecurityGroup
+  EcsInstanceSecurityGroup:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /dev3/EcsInstanceSecurityGroup
+  PublicLoadBalancerHttpsListener:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/dev3/PublicLoadBalancerHttpsListener"
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W9
+          - id: W27
+          - id: W29
+          - id: W5
+            reason: Need outbound to the world, all protocols + all ports.
+          - id: W42
+            reason: Need outbound to the world, all protocols + all ports.
+          - id: W40
+            reason: Communication with package repos fails
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Enable access to necessary ports
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref AdminSecurityGroup
+          Description: permit all traffic from Admin security group
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "10.0.0.0/8"
+          Description: permit web traffic from internal
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref EcsInstanceSecurityGroup
+          Description: permit Web traffic from load balancer
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+          Description: permit all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ServiceName}-instance-sg"
+
+  SecurityGroupIngressSelfReference:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref SecurityGroup
+      Description: permit all traffic within the security group
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3010
+    Properties:
+      TerminationPolicies:
+        - OldestLaunchTemplate
+        - OldestInstance
+      HealthCheckType: EC2
+      AvailabilityZones:
+        - !Ref AvailabilityZone
+      MixedInstancesPolicy:
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId: !Ref LaunchTemplate
+            Version: !GetAtt LaunchTemplate.LatestVersionNumber
+          Overrides:
+            - InstanceType: !Ref InstanceType
+      MinSize: "1"
+      MaxSize: "1"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ServiceName}-${EnvironmentName}"
+          PropagateAtLaunch: true
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: 0
+        MinSuccessfulInstancesPercent: 100
+        WaitOnResourceSignals: true
+        PauseTime: PT15M
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            - config
+        config:
+          files:
+            /root/launch-config-ubuntu.sh:
+              content: !Sub |
+                #!/bin/bash -ex
+                echo "hello world!" > hello.txt
+                exit 0
+              mode: "000700"
+              owner: root
+              group: root
+
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                umask=0
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.LaunchTemplate.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchTemplate --configsets default --region ${AWS::Region}
+                runas=root
+              mode: "000400"
+              owner: root
+              group: root
+            /lib/systemd/system/cfn-hup.service:
+              content: |
+                [Unit]
+                Description=cfn-hup daemon
+
+                [Service]
+                Type=simple
+                ExecStart=/opt/aws/bin/cfn-hup
+                Restart=always
+
+                [Install]
+                WantedBy=multi-user.target
+              mode: "000400"
+              owner: root
+              group: root
+
+          commands:
+            01_run_launch_config:
+              command: /root/launch-config-ubuntu.sh
+              cwd: /root
+            02_enable_cfn_hup:
+              command: systemctl enable cfn-hup.service
+            03_start_cfn_hup:
+              command: systemctl start cfn-hup.service
+
+    Properties:
+      LaunchTemplateData:
+        ImageId: !Ref AmiId
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
+        BlockDeviceMappings:
+          - DeviceName: /dev/sda1
+            Ebs:
+              DeleteOnTermination: true
+              VolumeSize: !Ref VolumeSize
+              VolumeType: gp2
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            apt-get update
+            installPkgs() {
+                apt-get install -y python3 python3-setuptools python3-virtualenv python3-pip python-is-python3 unzip
+            }
+            # unattended upgrades may be running at time of cloud init
+            # which will cause init to fail, so we try to avoid it by 
+            # disabling unattended upgrades and also sleeping for 60 seconds
+            # if a dpkg happened to still be running
+            systemctl stop unattended-upgrades.service
+            installPkgs || sleep 60 && installPkgs 
+            systemctl start unattended-upgrades.service
+
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            ./aws/install
+
+            virtualenv /opt/aws/virtualvenv
+            source /opt/aws/virtualvenv/bin/activate
+            pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            pip install "setuptools<82"
+
+            export PATH=/opt/aws/bin:$PATH
+            cfn-init -v --configsets=default \
+                --region ${AWS::Region} --stack ${AWS::StackName} \
+                --resource LaunchTemplate
+
+            TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+            INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+            aws cloudformation signal-resource \
+                --stack-name ${AWS::StackName} \
+                --logical-resource-id AutoScalingGroup \
+                --unique-id $INSTANCE_ID \
+                --status SUCCESS \
+                --region ${AWS::Region}
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: signal-waitcondition
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: cloudformation:SignalResource
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref EC2Role
+
+# Settings to verify: HealthCheckPath, ports, and the path pattern
+# Note that the discourse server needs to respond on a non-root context (I guessed '/discourse' below)
+
+#  TargetGroup:
+#    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+#    Properties:
+#      HealthCheckEnabled: true
+#      HealthCheckIntervalSeconds: 10
+#      HealthCheckPath: '/discourse'
+#      HealthCheckProtocol: HTTP
+#      HealthCheckPort: '8080'
+#      HealthCheckTimeoutSeconds: 5
+#      HealthyThresholdCount: 2
+#      UnhealthyThresholdCount: 3
+#      TargetType: instance
+#      Name: !Sub '${ServiceName}'
+#      Port: 8080
+#      Protocol: HTTP
+#      VpcId: !Ref VPC
+#      TargetGroupAttributes:
+#        - Key: "stickiness.enabled"
+#          Value: 'true'
+#        - Key: "deregistration_delay.timeout_seconds"
+#          Value: '15'
+#
+#  ServiceHttpsListenerRule:
+#    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+#    Properties:
+#      Actions:
+#        - Type: forward
+#          TargetGroupArn: !Ref TargetGroup
+#      Conditions:
+#        - Field: path-pattern
+#          Values:
+#            - '/discourse*'
+#      ListenerArn: !Ref PublicLoadBalancerHttpsListener
+#      Priority: 2

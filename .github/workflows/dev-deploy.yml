@@ -1,0 +1,55 @@
+name: Dev Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: Git ref or SHA to deploy
+        required: false
+        type: string
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: dev-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy-backend:
+    uses: ./.github/workflows/reusable-deploy-backend.yml
+    with:
+      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      aws_region: us-east-2
+      ecr_repository: dev3/doenet
+      ecs_cluster: dev3
+      ecs_service: doenet-FARGATE
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      sns_topic: arn:aws:sns:us-east-2:568298704244:dev3-critical-cloudwatch-notifications
+      tag_name: latest
+    secrets: inherit
+
+  deploy-frontend:
+    uses: ./.github/workflows/reusable-deploy-frontend.yml
+    with:
+      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      aws_region: us-east-1
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      aws_account_id: "568298704244"
+      env_name: dev3
+      build_mode: dev3
+    secrets: inherit
+
+  deploy-site:
+    uses: ./.github/workflows/reusable-deploy-site.yml
+    with:
+      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      aws_region: us-east-1
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      aws_account_id: "568298704244"
+      env_name: dev3
+      build_mode: dev3
+    secrets: inherit

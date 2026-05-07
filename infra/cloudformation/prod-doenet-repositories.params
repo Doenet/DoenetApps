@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "S3Bucket",
+    "ParameterValue": "prod-doenet"
+  },
+  {
+    "ParameterKey": "AccessKeySerial",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "GitHubRepos",
+    "ParameterValue": "repo:Doenet/DoenetTools:main,repo:cqnykamp/DoenetTools:*"
+  }
+]

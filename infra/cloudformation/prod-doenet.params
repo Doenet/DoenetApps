@@ -1,0 +1,138 @@
+[
+  {
+    "ParameterKey": "RedshiftSecretArn",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "DomainNames",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "doenet"
+  },
+  {
+    "ParameterKey": "S3AppBucket",
+    "ParameterValue": "/prod/S3Bucket"
+  },
+  {
+    "ParameterKey": "CloudMapPrivateNamespace",
+    "ParameterValue": "/prod/CloudMapPrivateNamespace"
+  },
+  {
+    "ParameterKey": "Priority",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "EcsLaunchType",
+    "ParameterValue": "FARGATE"
+  },
+  {
+    "ParameterKey": "HealthCheckUrl",
+    "ParameterValue": "/"
+  },
+  {
+    "ParameterKey": "UseLbForService",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3a.small"
+  },
+  {
+    "ParameterKey": "ECSAMI",
+    "ParameterValue": "/aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id"
+  },
+  {
+    "ParameterKey": "ImageUrl",
+    "ParameterValue": "350646758180.dkr.ecr.us-east-2.amazonaws.com/prod/doenet:main"
+  },
+  {
+    "ParameterKey": "TaskDefIncludesFile",
+    "ParameterValue": "s3://doenet-cf-prod/prod-doenet/prod-doenet-taskdef-includes.yml"
+  },
+  {
+    "ParameterKey": "TaskRoleIncludesFile",
+    "ParameterValue": "s3://doenet-cf-prod/prod-doenet/service-taskrole-includes.yml"
+  },
+  {
+    "ParameterKey": "ContainerPort",
+    "ParameterValue": "3000"
+  },
+  {
+    "ParameterKey": "ContainerMemory",
+    "ParameterValue": "2048"
+  },
+  {
+    "ParameterKey": "ContainerCpu",
+    "ParameterValue": "1024"
+  },
+  {
+    "ParameterKey": "HealthCheckGracePeriod",
+    "ParameterValue": "600"
+  },
+  {
+    "ParameterKey": "MaxCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MinCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "SecurityGroup",
+    "ParameterValue": "/prod/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "PrivateSubnets",
+    "ParameterValue": "/prod/PrivateSubnets"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/prod/VPC"
+  },
+  {
+    "ParameterKey": "EnvironmentKmsKey",
+    "ParameterValue": "/prod/EnvironmentKmsKey"
+  },
+  {
+    "ParameterKey": "EcsCluster",
+    "ParameterValue": "/prod/EcsCluster"
+  },
+  {
+    "ParameterKey": "LoadBalancerListener",
+    "ParameterValue": "/prod/LoadBalancerHttpsListener"
+  },
+  {
+    "ParameterKey": "EfsFileSystemId",
+    "ParameterValue": "/prod/EfsFileSystemId"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/prod/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/prod/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "LoadBalancerDnsName",
+    "ParameterValue": "/prod/LoadBalancerDnsName"
+  },
+  {
+    "ParameterKey": "LoadBalancerHostedZoneId",
+    "ParameterValue": "/prod/LoadBalancerHostedZoneId"
+  },
+  {
+    "ParameterKey": "RestrictedCIDRs",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "PathPattern",
+    "ParameterValue": "/api"
+  }
+]

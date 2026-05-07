@@ -1,0 +1,62 @@
+name: Update ECS Cluster
+description: Force a deployment on an ECS cluster
+inputs:
+  github-actions-role:
+    description: The AWS role to assume for GitHub Actions
+    required: true
+  role-session-name:
+    description: The session tag to apply to the role session
+    required: true
+  aws-region:
+    description: The AWS region of the target ECR registry
+    required: true
+  ecs-cluster:
+    description: The ECS Cluster that contains the service
+    required: true
+  ecs-service:
+    description: The target ECS Service
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        audience: sts.amazonaws.com
+        role-to-assume: ${{ inputs.github-actions-role }}
+        role-session-name: ${{ inputs.role-session-name }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
+        verbose: false
+        arch: amd64
+
+    - name: Force ECS service deployment
+      id: vars
+      shell: bash
+      run: |
+        if aws ecs list-clusters | \
+            grep -q ${{ inputs.ecs-cluster }}; then
+          echo "cluster \"${{ inputs.ecs-cluster }}\" exists"
+        else
+          echo "cluster \"${{ inputs.ecs-cluster }}\" does not exist"
+          exit 0
+        fi
+
+        if aws ecs list-services \
+            --cluster ${{ inputs.ecs-cluster }} | \
+              grep -q ${{ inputs.ecs-service }}; then
+          echo "service \"${{ inputs.ecs-service }}\" exists"
+        else
+          echo "service \"${{ inputs.ecs-service }}\" does not exist"
+          exit 0
+        fi
+
+        aws ecs update-service \
+            --cluster  ${{ inputs.ecs-cluster }} \
+            --service ${{ inputs.ecs-service }} \
+            --force-new-deployment

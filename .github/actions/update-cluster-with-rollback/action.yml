@@ -1,0 +1,162 @@
+name: Update ECS Cluster
+description: Force a deployment on an ECS cluster
+inputs:
+  github-actions-role:
+    description: The AWS role to assume for GitHub Actions
+    required: true
+  role-session-name:
+    description: The session tag to apply to the role session
+    required: true
+  aws-region:
+    description: The AWS region of the target ECR registry
+    required: true
+  ecs-cluster:
+    description: The ECS Cluster that contains the service
+    required: true
+  ecs-service:
+    description: The target ECS Service
+    required: true
+  tag-name:
+    description: The image tag to deploy (e.g. "latest" or "main")
+    required: true
+  timeout-minutes:
+    description: Minutes to wait for deployment to stabilize
+    required: false
+    default: "5"
+  sns-topic-arn:
+    description: SNS topic ARN to notify when tasks fail to start
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        audience: sts.amazonaws.com
+        role-to-assume: ${{ inputs.github-actions-role }}
+        role-session-name: ${{ inputs.role-session-name }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
+        verbose: false
+        arch: amd64
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Force ECS service deployment and monitor
+      shell: bash
+      run: |
+        CLUSTER="${{ inputs.ecs-cluster }}"
+        SERVICE="${{ inputs.ecs-service }}"
+        SNS_TOPIC="${{ inputs.sns-topic-arn }}"
+        TIMEOUT_SECS=$(( ${{ inputs.timeout-minutes }} * 60 ))
+
+        if ! aws ecs list-clusters | grep -q "$CLUSTER"; then
+          echo "cluster \"$CLUSTER\" does not exist"
+          exit 0
+        fi
+        echo "cluster \"$CLUSTER\" exists"
+
+        if ! aws ecs list-services --cluster "$CLUSTER" | grep -q "$SERVICE"; then
+          echo "service \"$SERVICE\" does not exist"
+          exit 0
+        fi
+        echo "service \"$SERVICE\" exists"
+
+        LIGHTS_PARAMETER="/${CLUSTER}/${SERVICE%%-*}/lights"
+        if LIGHTS=$(aws ssm get-parameter --name "$LIGHTS_PARAMETER" --query 'Parameter.Value' --output text 2>/dev/null); then
+          if [[ "$LIGHTS" == "off" ]]; then
+            echo "lights for service \"$SERVICE\" are off; exiting"
+            exit 0
+          fi
+          echo "lights for service \"$SERVICE\" are on; proceeding"
+        else
+          echo "lights parameter \"$LIGHTS_PARAMETER\" not found; proceeding"
+        fi
+
+        # 0) Get the SHA256 of the currently running image via the running task
+        HAS_PREVIOUS_IMAGE=false
+        RUNNING_TASK_ARNS=$(aws ecs list-tasks \
+          --cluster "$CLUSTER" \
+          --service-name "$SERVICE" \
+          --desired-status RUNNING \
+          --query 'taskArns' --output text)
+
+        if [[ -n "$RUNNING_TASK_ARNS" ]]; then
+          OLDEST_TASK_ARN=$(aws ecs describe-tasks \
+            --cluster "$CLUSTER" --tasks $RUNNING_TASK_ARNS \
+            --query 'tasks | sort_by(@, &startedAt) | [0].taskArn' --output text)
+          CURRENT_DIGEST=$(aws ecs describe-tasks \
+            --cluster "$CLUSTER" --tasks $RUNNING_TASK_ARNS \
+            --query 'tasks | sort_by(@, &startedAt) | [0].containers[0].imageDigest' --output text)
+          echo "Oldest running task: $OLDEST_TASK_ARN"
+          echo "Current image SHA256: $CURRENT_DIGEST"
+          HAS_PREVIOUS_IMAGE=true
+        else
+          echo "No running tasks found; skipping image digest introspection."
+        fi
+
+        # Force new deployment
+        aws ecs update-service \
+          --cluster "$CLUSTER" \
+          --service "$SERVICE" \
+          --force-new-deployment > /dev/null
+        echo "Deployment triggered. Monitoring for up to ${{ inputs.timeout-minutes }} minutes..."
+
+        # 1) Monitor deployment status
+        DEADLINE=$(( $(date +%s) + TIMEOUT_SECS ))
+        NOTIFIED_TASKS=""
+
+        DEPLOYMENT_UNSUCCESSFUL=false
+        while ! $DEPLOYMENT_UNSUCCESSFUL; do
+          NOW=$(date +%s)
+          if (( NOW >= DEADLINE )); then
+            echo "ERROR: Deployment did not stabilize within ${{ inputs.timeout-minutes }} minutes."
+            DEPLOYMENT_UNSUCCESSFUL=true
+          fi
+
+          DEPLOYMENT_STATUS=$(aws ecs describe-services \
+            --cluster "$CLUSTER" --services "$SERVICE" \
+            --query "services[0].deployments[?status=='PRIMARY'] | [0].rolloutState" --output text)
+          echo "Deployment rollout state: $DEPLOYMENT_STATUS"
+
+          if [[ "$DEPLOYMENT_STATUS" == "COMPLETED" ]]; then
+            echo "Deployment completed successfully."
+            exit 0
+
+          elif [[ "$DEPLOYMENT_STATUS" == "FAILED" ]]; then
+            echo "ERROR: Deployment rollout failed."
+            DEPLOYMENT_UNSUCCESSFUL=true
+          fi
+
+          sleep 15
+        done
+
+        # Deployment failed or timed out. We will rollback the specified tag to the previous image.
+
+        if [[ "$HAS_PREVIOUS_IMAGE" == true ]]; then
+          echo "Attempting to rollback to previous image digest: $CURRENT_DIGEST"
+
+          docker pull "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@$CURRENT_DIGEST"
+          docker tag "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@$CURRENT_DIGEST" "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.tag-name }}"
+          docker push "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.tag-name }}"
+
+          aws ecs update-service \
+              --cluster  ${{ inputs.ecs-cluster }} \
+              --service ${{ inputs.ecs-service }} \
+              --force-new-deployment
+
+        else 
+          echo "No previous image found; skipping rollback step."
+        fi
+
+        aws sns publish --topic-arn "${{ inputs.sns-topic-arn }}" --message "Failed to deploy ${SERVICE} to ${CLUSTER}" --subject "Deployment Failure"
+
+        # Exit
+        exit 1

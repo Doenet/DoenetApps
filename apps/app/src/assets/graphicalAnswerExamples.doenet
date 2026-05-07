@@ -1,0 +1,247 @@
+<section>
+  <title>Illustrations of graphical answers</title>
+
+  <introduction>
+    Examples showing different types of <tag>answer</tag> tags involving graphs
+  </introduction>
+
+  <part>
+    <title>Move point to quadrant</title>
+
+    <p>Move the point to the second quadrant.</p>
+
+    <graph>
+      <shortDescription>
+      A graph of a movable point, with coordinates <number extend="$P.x" />, <number extend="$P.y" />
+      </shortDescription>
+      <point name="P">(0,0)</point>
+    </graph>
+
+    <p><answer>
+      <award><when>$P.x < 0 and $P.y > 0</when></award>
+    </answer>
+    </p>
+  </part>
+
+ 
+  <part>
+    <title>Maxima of a function</title>
+
+    <graph fixAxes>
+      <shortDescription>
+        A graph of a function that increases until x equals negative 7,
+        then decreases until x equals negative 2
+        then increases until x equals 4
+        and then decreases.
+        Two movable points are shown,
+        with coordinates <number extend="$A.x" />, <number extend="$A.y" />,
+        and with coordinates <number extend="$B.x" />, <number extend="$B.y" />.
+      </shortDescription>
+      <function name="f" maxima="(-7,1) (4,4)" minima="(-2,-5)" />
+
+      <point styleNumber="2" name="A">
+        (4,7)
+        <attractTo>
+          $f.maxima
+          $f.minima
+        </attractTo>
+      </point>
+      
+      <point styleNumber="2" name="B">
+        (6,7)
+        <attractTo>
+          $f.maxima
+          $f.minima
+        </attractTo>
+      </point>
+      
+    </graph>
+
+    <p>Move the <text>$A.styleDescriptionWithNoun<text>s</text></text> to the maxima of the function</p>
+
+    <answer matchPartial unorderedCompare>
+      <award><when><pointList>$A $B</pointList> = $f.maxima</when></award>
+    </answer>
+  </part>
+
+  <part>
+    <title>Draw function with prescribed maxima</title>
+
+    <p>
+      Move the points so that the below function has a local maximum at
+      <m>x = <number name="maxLocation">-2</number></m>,
+      a local minimum of <m>y= <number name="minValue">-5</number></m>,
+      and no other local extrema.
+    </p>
+    <graph>
+      <shortDescription>A graph of a function through five movable points</shortDescription>
+      <point name="P1">
+        (-8,-5)
+        <attractTo name="attract">
+          <line>x=$maxLocation</line>
+          <line>y=$minValue</line>
+        </attractTo>
+      </point>
+      <point name="P2">
+        (-4,-1)
+        <attractTo extend="$attract"/>
+      </point>
+      <point name="P3">
+        (-1,1)
+        <attractTo extend="$attract"/>
+      </point>
+      <point name="P4">
+        (3,3)
+        <attractTo extend="$attract"/>
+      </point>
+      <point name="P5">
+        (7,4)
+        <attractTo extend="$attract"/>
+      </point>
+
+      <function name="f" through="$P1 $P2 $P3 $P4 $P5" />
+      
+    </graph>
+
+    <!-- Note: the `<boolean>`s below make sure each piece is simply
+    either true or false despite the match partial directive -->
+
+    <answer name="ans">
+      <award matchPartial><when>
+        <boolean>$f.numMaxima = 1 and $f.maximumLocations[1]=$maxLocation</boolean>
+        and
+        <boolean> $f.numMinima = 1 and $f.minimumValues[1] = $minValue</boolean>
+      </when></award>
+    </answer>
+
+    <feedback condition="$f.numMaxima < 1" updateWith="$ans">
+      <p>The function needs to have a local maximum</p>
+    </feedback>
+    <feedback condition="$f.numMaxima > 1" updateWith="$ans">
+      <p>The function must have only one local maximum</p>
+    </feedback>
+    <feedback condition="$f.numMaxima = 1 and $f.maximumLocations[1]!=$maxLocation" updateWith="$ans">
+      <p>The function correctly has one local maximum, but it is not in the correct location.</p>
+    </feedback>
+    <feedback condition="$f.numMaxima = 1 and $f.maximumLocations[1]=$maxLocation" updateWith="$ans">
+      <p>Good job. The function correctly has one local maximum in the correct location.</p>
+    </feedback>
+
+    
+    <feedback condition="$f.numMinima < 1" updateWith="$ans">
+      <p>The function needs to have a local minimum</p>
+    </feedback>
+    <feedback condition="$f.numMinima > 1" updateWith="$ans">
+      <p>The function must have only one local minimum</p>
+    </feedback>
+    <feedback condition="$f.numMinima = 1 and $f.minimumValues[1]!=$minValue" updateWith="$ans">
+      <p>The function correctly has one local minimum, but it does not have the correct value.</p>
+    </feedback>
+    <feedback condition="$f.numMinima = 1 and $f.minimumValues[1]=$minValue" updateWith="$ans">
+      <p>Looks good. The function correctly has one local minimum with the correct value.</p>
+    </feedback>
+    
+      
+  </part>
+
+  <part>
+    <title>Sketch solution to differential equation</title>
+
+    <setup>
+      <number name='a'>8</number>
+      <number name='y0'>1</number>
+      <number name="zeroFixed" fixed>0</number>
+      <styleDefinition styleNumber="2" markerStyle="circle" markerSize="3" />
+    </setup>
+    
+    <p>Let <m>y(t)</m> be the solution to the differential equation
+    <md>
+      <mrow>\frac{dy}{dt} &= $a - y</mrow>
+      <mrow>y(0) &= 1</mrow>
+    </md>
+    </p>
+    
+    <p>Move the points and adjust the slopes so that the $C.styleDescription curve is a qualitative sketch of the solution <m>y(t)</m>.</p>
+    
+    <graph aspectRatio="50/35" xmin="-2" xmax="18" ymin="-11" ymax="11" fixAxes name="wt" identicalAxisScales size="large">
+      <shortDescription>
+        A graph of a function through two movable points,
+        where the slope of the function at each point can be adjusted
+        by changing a line segment at the point
+      </shortDescription>
+      
+      <xLabel>t</xLabel>
+      <yLabel>y</yLabel>
+       
+        <point name="P1" x="$zeroFixed" y="4" styleNumber="2" layer="2" hide="$ansSketch.creditAchieved=1">
+          <attractTo threshold="0.5"><point>(0, $y0)</point></attractTo>
+        </point>
+    
+        <point name="P1slope" x="-1" y="-1" hide>
+          <constrainTo><regionHalfPlane boundaryValue="-0.01" greaterThan="false" /></constrainTo>
+          <constrainTo><circle /></constrainTo>
+        </point>
+    
+        <point name="P2" x="10" y="1" styleNumber="2" layer="2" hide="$ansSketch.creditAchieved=1">
+          <constrainTo><regionHalfPlane boundaryValue="5" /></constrainTo>
+          <constrainTo><regionHalfPlane boundaryValue="15" greaterThan="false" /></constrainTo>
+          <attractTo><line>y=$a</line></attractTo>
+        </point>
+    
+        <point name="P2slope" x="-1" y="-1" hide>
+          <constrainTo><regionHalfPlane boundaryValue="-0.01" greaterThan="false" /></constrainTo>
+          <constrainTo><circle radius="0.7$P2.x" /></constrainTo>
+          <attractTo><line>y=0</line></attractTo>
+        </point>
+    
+        <curve name="C" through="$P1 $P2" extrapolateForward styleNumber="2" layer="2" draggable="$ansSketch.creditAchieved < 1">
+          <bezierControls alwaysVisible>
+            <controlVectors><vector>
+              (0.5 <math fixed extend="$P2.x" /> $P1slope.x,
+              0.5 <math fixed extend="$P2.x" /> $P1slope.y)
+            </vector></controlVectors>
+            <controlVectors><vector>$P2slope</vector></controlVectors>
+          </bezierControls>
+        </curve>
+    
+    </graph>
+    
+    
+    <answer name="ansSketch">
+      <award><when>
+        $P1.y = $y0 and
+        $P2.y = $a and
+        $P2slope.y = 0 and
+        $P1slope.y/$P1slope.x > 2
+      </when></award>
+    </answer>
+    
+    <feedback condition="$P1.y != $y0" updateWith="$ansSketch">
+      The initial condition is not correct.
+    </feedback>
+    
+    <feedback condition="$P1.y = $y0 and $P1slope.y/$P1slope.x <=0" updateWith="$ansSketch">
+      The solution should start out increasing.
+    </feedback>
+    
+    <feedback condition="$P1.y = $y0 and $P1slope.y/$P1slope.x > 0 and $P1slope.y/$P1slope.x <= 2" updateWith="$ansSketch">
+      The solution should start by increasing more rapidly.
+    </feedback>
+    
+    <feedback condition="$P1.y = $y0 and $P1slope.y/$P1slope.x > 2 and not ($P2.y = $a and $P2slope.y = 0)" updateWith="$ansSketch">
+      The solution's behavior for large values of <m>t</m> is incorrect.
+    </feedback>
+    
+    <feedback condition="$ansSketch.creditAchieved = 1">
+      <p>Good job! The $C.styleDescription curve qualitatively represents the solution <m>y(t)</m>.</p>
+      <ol>
+        <li>It starts at the initial condition <m>y(0)=$y0</m>.</li>
+        <li>It begins by increasing rapidly.</li>
+        <li>It asymptotes to <m>y=$a</m> as <m>t</m> increases.</li>
+      </ol>
+    </feedback>
+      
+  </part>
+
+ 
+</section>

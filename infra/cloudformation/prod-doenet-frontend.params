@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/prod/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/prod/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "doenet-cf-prod"
+  },
+  {
+    "ParameterKey": "TemplateS3Key",
+    "ParameterValue": "prod-doenet/s3-hosted.yml"
+  },
+  {
+    "ParameterKey": "LoadBalancerDnsName",
+    "ParameterValue": "/prod/LoadBalancerDnsName"
+  },
+  {
+    "ParameterKey": "AppServiceName",
+    "ParameterValue": "app"
+  },  
+  {
+    "ParameterKey": "SiteServiceName",
+    "ParameterValue": "site"
+  }
+]

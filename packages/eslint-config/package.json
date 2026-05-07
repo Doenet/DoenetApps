@@ -1,0 +1,12 @@
+{
+  "name": "@doenet-tools/eslint-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  }
+}

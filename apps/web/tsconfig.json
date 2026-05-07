@@ -1,0 +1,14 @@
+{
+  "extends": [
+    "../../configs/typescript/tsconfig.react.json",
+    "astro/tsconfigs/strict"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "tsBuildInfoFile": "../../.tsbuildinfo/apps/web.tsbuildinfo",
+    "types": ["vite/client"]
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}

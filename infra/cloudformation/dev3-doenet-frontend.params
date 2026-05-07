@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/dev3/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/dev3/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "doenet-cf-dev"
+  },
+  {
+    "ParameterKey": "TemplateS3Key",
+    "ParameterValue": "dev3-doenet/s3-hosted.yml"
+  },
+  {
+    "ParameterKey": "LoadBalancerDnsName",
+    "ParameterValue": "/dev3/LoadBalancerDnsName"
+  },
+  {
+    "ParameterKey": "AppServiceName",
+    "ParameterValue": "app"
+  },  
+  {
+    "ParameterKey": "SiteServiceName",
+    "ParameterValue": "site"
+  }
+]

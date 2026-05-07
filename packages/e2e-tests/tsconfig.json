@@ -1,0 +1,18 @@
+{
+  "extends": "../../configs/typescript/tsconfig.react.json",
+  "compilerOptions": {
+    "composite": true,
+    // Cypress tests are not compiled by tsc, so we set noEmit to true.
+    // Cypress will use ts-node to compile the tests on the fly.
+    "noEmit": true,
+    "sourceMap": true,
+    "types": ["node", "cypress", "cypress-axe"],
+    "tsBuildInfoFile": "../../.tsbuildinfo/packages/e2e-tests.tsbuildinfo"
+  },
+  "include": ["**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ]
+}

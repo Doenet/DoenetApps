@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: main
+    branches: ["main"]
   pull_request:
     branches: ["*"]
 
@@ -16,19 +16,16 @@ jobs:
 
     steps:
       # Checkout repo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Setup Node with caching
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: ".nvmrc"
           cache: npm
 
       # Install dependencies once
       - run: npm ci
-
-      # Generate TS types for Prisma
-      - run: npm run prisma:generate --workspace server
 
       # -----------------------------
       # Format check
@@ -45,14 +42,8 @@ jobs:
       # -----------------------------
       # Build
       # -----------------------------
-      - name: Build client
-        run: npm run build --workspace client
-
-      - name: Build server
-        run: npm run build --workspace server
-
-      - name: Build blog
-        run: npm run build --workspace blog
+      - name: Build
+        run: npm run build
 
       # -----------------------------
       # Start MySQL + Test server
@@ -62,11 +53,11 @@ jobs:
           sudo /etc/init.d/mysql start
           mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
 
-      - run: npm run prisma:migrate-dev --workspace server
-      - run: npm run prisma:seed --workspace server
+      - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
+      - run: npm run prisma:seed --workspace @doenet-tools/api
 
       - name: Test server
-        run: npm test --workspace server
+        run: npm test --workspace @doenet-tools/api
 
   # -----------------------------
   # E2E Tests (Grouped)
@@ -75,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         test-group: [group1, group2, group3, group4]
 
@@ -87,28 +79,26 @@ jobs:
       GITHUB_CLIENT_SECRET: ci-test-client-secret
       SESSION_SECRET: ci-test-session-secret
       MAGIC_LINK_SECRET: ci-test-magic-link-secret
-      LOGIN_CALLBACK_ROOT: http://localhost:8000/
-      CONFIRM_SIGNIN_URL: http://localhost:8000/signIn
-      CONSOLE_LOG_EMAIL: "true"
+      APP_URL: http://localhost:8000
+      EMAIL_SES_REGION: us-east-1
+      EMAIL_SES_FROM_ADDRESS: noreply@example.com
+      MOCK_SIGNIN_EMAIL: "true"
       # Enable test features for CI
-      ALLOW_TEST_LOGIN: "true"
-      ADD_TEST_APIS: "true"
+      ENABLE_TEST_AUTH_BYPASS: "true"
+      ENABLE_TEST_ROUTES: "true"
 
     steps:
       # Checkout repo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Setup Node with caching
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: ".nvmrc"
           cache: npm
 
       # Install dependencies
       - run: npm ci
-
-      # Generate TS types for Prisma
-      - run: npm run prisma:generate --workspace server
 
       # Start MySQL
       - name: Start MySQL
@@ -116,17 +106,16 @@ jobs:
           sudo /etc/init.d/mysql start
           mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
 
-      - run: npm run prisma:migrate-dev --workspace server
-      - run: npm run prisma:seed --workspace server
+      - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
+      - run: npm run prisma:seed --workspace @doenet-tools/api
 
-      # Build shared workspace (required dependency for client and server)
-      - name: Build shared
-        run: npm run build --workspace shared
+      - name: Build shared package
+        run: npm run build --workspace @doenet-tools/shared
 
       # Start server in background (port 3000)
       - name: Start server
         run: |
-          npm run dev --workspace server > /tmp/server.log 2>&1 &
+          npm run dev --workspace @doenet-tools/api > /tmp/server.log 2>&1 &
           echo $! > /tmp/server.pid
         env:
           NODE_ENV: development
@@ -134,7 +123,7 @@ jobs:
       # Start client dev server in background (port 8000)
       - name: Start client
         run: |
-          npm run dev --workspace client > /tmp/client.log 2>&1 &
+          npm run dev --workspace @doenet-tools/app > /tmp/client.log 2>&1 &
           echo $! > /tmp/client.pid
         env:
           NODE_ENV: production
@@ -153,21 +142,21 @@ jobs:
 
       # Run Cypress e2e tests (grouped)
       - name: Run Cypress e2e tests
-        run: npm run test:${{ matrix.test-group }} --workspace tests-cypress
+        run: npm run test:${{ matrix.test-group }} --workspace @doenet-tools/e2e-tests
 
       # Upload screenshots and videos on failure
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-screenshots
-          path: tests-cypress/cypress/screenshots
+          path: packages/e2e-tests/cypress/screenshots
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-videos
-          path: tests-cypress/cypress/videos
+          path: packages/e2e-tests/cypress/videos
           if-no-files-found: ignore
 
   # Separate job for brittle tests
@@ -182,31 +171,30 @@ jobs:
       GITHUB_CLIENT_SECRET: ci-test-client-secret
       SESSION_SECRET: ci-test-session-secret
       MAGIC_LINK_SECRET: ci-test-magic-link-secret
-      LOGIN_CALLBACK_ROOT: http://localhost:8000/
-      CONFIRM_SIGNIN_URL: http://localhost:8000/signIn
-      CONSOLE_LOG_EMAIL: "true"
-      ALLOW_TEST_LOGIN: "true"
-      ADD_TEST_APIS: "true"
+      APP_URL: http://localhost:8000
+      EMAIL_SES_REGION: us-east-1
+      EMAIL_SES_FROM_ADDRESS: noreply@example.com
+      MOCK_SIGNIN_EMAIL: "true"
+      ENABLE_TEST_AUTH_BYPASS: "true"
+      ENABLE_TEST_ROUTES: "true"
 
     strategy:
+      fail-fast: false
       matrix:
         test-group: [brittle1, brittle2, brittle3]
 
     steps:
       # Checkout repo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Setup Node with caching
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: ".nvmrc"
           cache: npm
 
       # Install dependencies
       - run: npm ci
-
-      # Generate TS types for Prisma
-      - run: npm run prisma:generate --workspace server
 
       # Start MySQL
       - name: Start MySQL
@@ -214,17 +202,16 @@ jobs:
           sudo /etc/init.d/mysql start
           mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
 
-      - run: npm run prisma:migrate-dev --workspace server
-      - run: npm run prisma:seed --workspace server
+      - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
+      - run: npm run prisma:seed --workspace @doenet-tools/api
 
-      # Build shared workspace
-      - name: Build shared
-        run: npm run build --workspace shared
+      - name: Build shared package
+        run: npm run build --workspace @doenet-tools/shared
 
       # Start server in background
       - name: Start server
         run: |
-          npm run dev --workspace server > /tmp/server.log 2>&1 &
+          npm run dev --workspace @doenet-tools/api > /tmp/server.log 2>&1 &
           echo $! > /tmp/server.pid
         env:
           NODE_ENV: development
@@ -232,7 +219,7 @@ jobs:
       # Start client dev server in background
       - name: Start client
         run: |
-          npm run dev --workspace client > /tmp/client.log 2>&1 &
+          npm run dev --workspace @doenet-tools/app > /tmp/client.log 2>&1 &
           echo $! > /tmp/client.pid
         env:
           NODE_ENV: production
@@ -251,62 +238,62 @@ jobs:
 
       # Run brittle tests with aggressive retry (grouped)
       - name: Run Brittle Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: npm run test:${{ matrix.test-group }} --workspace tests-cypress
+          command: npm run test:${{ matrix.test-group }} --workspace @doenet-tools/e2e-tests
 
       # Upload screenshots and videos on failure
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: brittle-cypress-screenshots
-          path: tests-cypress/cypress/screenshots
+          path: e2e-tests/cypress/screenshots
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: brittle-cypress-videos
-          path: tests-cypress/cypress/videos
+          path: e2e-tests/cypress/videos
           if-no-files-found: ignore
 
   component-tests:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         test-group: [group1, group2, group3, group4]
 
     steps:
       # Checkout repo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Setup Node with caching
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: ".nvmrc"
           cache: npm
 
       # Install dependencies
       - run: npm ci
 
-      # Build shared workspace (required by client)
-      - name: Build shared workspace
-        run: npm run build --workspace shared
+      - name: Build shared package
+        run: npm run build --workspace @doenet-tools/shared
 
       # Run component tests (grouped)
       - name: Run component tests
-        run: npm run test:${{ matrix.test-group }} --workspace client
+        run: npm run test:${{ matrix.test-group }} --workspace @doenet-tools/app
 
       # Upload artifacts on failure
       - name: Upload test artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: component-test-artifacts
           path: |
-            client/cypress/screenshots/
-            client/cypress/videos/
+            apps/app/cypress/screenshots/
+            apps/app/cypress/videos/
           retention-days: 7

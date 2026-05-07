@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: zone within a VPC template
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+
+  S3TemplateBucket:
+    Description: The name of the S3 bucket for stack templates
+    Type: String
+
+  VPC:
+    Description: The VPC id
+    Type: String
+
+  VpcCidrBlock:
+    Description: The VPC CIDR block
+    Type: String
+
+  VpcIpv6CidrBlock:
+    Description: The VPC IPv6 CIDR block
+    Type: String
+
+  InternetGateway:
+    Description: The InternetGateway id
+    Type: String
+
+  EgressOnlyInternetGateway:
+    Description: The EgressOnlyInternetGateway id
+    Type: String
+
+  AvailabilityZone:
+    Description: The availability zone letter identifier (ex. 'a')
+    Type: String
+    AllowedValues:
+      - a
+      - b
+      - c
+
+  PublicNetworkAcl:
+    Description: The public network ACL id
+    Type: String
+
+  PrivateNetworkAcl:
+    Description: The private network ACL id
+    Type: String
+
+  CreateNatGateway:
+    Description: Create a nat gateway so that private subnets have internet access
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
+
+Conditions:
+  ShouldCreateNatGateway: !Equals [true, !Ref "CreateNatGateway"]
+
+Resources:
+  Subnets:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - subnets.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !Ref "VPC"
+        VpcCidrBlock: !Ref VpcCidrBlock
+        VpcIpv6CidrBlock: !Ref VpcIpv6CidrBlock
+        AvailabilityZone: !Ref "AvailabilityZone"
+        CreateNatGateway: !Ref "CreateNatGateway"
+
+  Routes:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - routes.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !Ref "VPC"
+        InternetGateway: !Ref "InternetGateway"
+        PublicSubnet: !GetAtt "Subnets.Outputs.PublicSubnet"
+        PrivateSubnet: !GetAtt "Subnets.Outputs.PrivateSubnet"
+        NatGateway:
+          !If [ShouldCreateNatGateway, !GetAtt "Subnets.Outputs.NatGateway", ""]
+        AvailabilityZone: !Ref "AvailabilityZone"
+        CreateNatGateway: !Ref "CreateNatGateway"
+        EgressOnlyInternetGateway: !Ref "EgressOnlyInternetGateway"
+
+  PublicSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !GetAtt "Subnets.Outputs.PublicSubnet"
+      NetworkAclId: !Ref "PublicNetworkAcl"
+
+  PrivateSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !GetAtt "Subnets.Outputs.PrivateSubnet"
+      NetworkAclId: !Ref "PrivateNetworkAcl"
+
+Outputs:
+  PrivateSubnet:
+    Value: !GetAtt "Subnets.Outputs.PrivateSubnet"
+
+  PublicSubnet:
+    Value: !GetAtt "Subnets.Outputs.PublicSubnet"
+
+  RouteTable:
+    Value: !GetAtt "Routes.Outputs.RouteTable"
+
+  PublicRouteTable:
+    Value: !GetAtt "Routes.Outputs.PublicRouteTable"

@@ -1,0 +1,58 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "Project",
+    "ParameterValue": "doenet"
+  },
+  {
+    "ParameterKey": "DnsZone",
+    "ParameterValue": "/dev3/VPCHostedZoneName"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "/dev3/VPCHostedZoneId"
+  },
+  {
+    "ParameterKey": "LoadBalancerScheme",
+    "ParameterValue": "internet-facing"
+  },
+  {
+    "ParameterKey": "EnableSSL",
+    "ParameterValue": "enable"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/dev3/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/dev3/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "WebACLArn",
+    "ParameterValue": "not set"
+  },
+  {
+    "ParameterKey": "SecurityGroup",
+    "ParameterValue": "/dev3/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/dev3/VPC"
+  },
+  {
+    "ParameterKey": "PublicSubnets",
+    "ParameterValue": "/dev3/PublicSubnets"
+  },
+  {
+    "ParameterKey": "PrivateSubnets",
+    "ParameterValue": "/dev3/PrivateSubnets"
+  },
+  {
+    "ParameterKey": "KmsKey",
+    "ParameterValue": "/dev3/EnvironmentKmsKey"
+  }
+]

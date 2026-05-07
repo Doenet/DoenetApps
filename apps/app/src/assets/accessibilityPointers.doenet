@@ -1,0 +1,109 @@
+<title>Accessibility pointers</title>
+
+<section>
+  <title>Accessible answers</title>
+
+
+  <part>
+    <title>A bare answer is not accessible</title>
+  <p>An answer by itself is not accessible, as there is no direct information of what to enter in the input.</p>
+
+  <p>Is this an accessible answer? <answer type="text" caseInsensitiveMatch >no</answer></p>
+</part>
+
+  <part>
+    <title>Simplest solution: add a label</title>
+
+    <p>The simplest solution is to explicitly add a <tag>label</tag> to an answer. The label is visible to both sighted readers and screen readers</p>
+
+    <p><answer type="text" caseInsensitiveMatch>
+      <label>Is this an accessible answer?</label>
+      yes
+    </answer></p>
+  </part>
+
+  <part>
+    <title>Alternative approach: add a short description</title>
+
+    <p>If visual readers do not need additional information beyond the answer and the addition of a <tag>label</tag> would not help them, you can instead add a <tag>shortDescription</tag>, which is visible only to screen readers.</p>
+
+    <p><alert>Important</alert>: since short descriptions are read by screen readers as text, they should not contain any math components. Instead, spell out any mathematics with words.</p>
+
+    <p>The expression
+      <answer>
+        <shortDescription>The greatest common factor of x squared and x times y</shortDescription>
+        x
+      </answer>
+      is the greatest common factor of <m>x^2</m> and <m>xy</m>.
+    </p>   
+  </part>
+
+  <part>
+    <title>Want to add more details: add a description</title>
+
+    <p>If you want to add more information to an answer (for both sighted readers and screen readers), you can add a <tag>description</tag> to the answer.</p>
+    
+    <p>Note: this does <em>not</em> replace the requirement for also having either a <tag>label</tag> or a <tag>shortDescription</tag> to meet accessibility requirements.</p>
+
+    <p><answer>
+      <label>What is the derivative of <m>x^2+2x</m>?</label>
+      <description>
+        <p>To review how to take the derivative, see <ref to="https://mathinsight.org/derivatives_polynomials_refresher">this article</ref>.</p>
+      </description>
+      <derivative>x^2+2x</derivative>
+    </answer></p>
+  </part>
+  
+</section>
+
+<section>
+  <title>Input accessibility</title>
+
+  <p>The accessibility requirements for inputs (e.g., <tag>mathInput</tag>, <tag>textInput</tag>, <tag>choiceInput</tag>, <tag>matrixInput</tag>) are identical as those for <tag>answer</tag>. Each input must have either a <tag>label</tag> or a <tag>shortDescription</tag>; it can also have a <tag>description</tag> for more information.</p>
+
+  <p><textInput name="yourName"><label>Name:</label></textInput> Hello, $yourName!</p>
+
+</section>
+
+<section>
+  <title>Image accessibility</title>
+
+  <p>For an image to be accessible, it must typically have a <tag>shortDescription</tag> that captures the key features of the image.
+<footnote>If the image is purely decorative and can be ignored by screen readers, you can set the <attr>decorative</attr> attribute instead.</footnote> You can optionally add a longer <tag>description</tag> that gives more information for both sighted readers and screen readers.
+  </p>
+    <p>
+See <ref to="https://pretextbook.org/doc/guide/html/topic-accessibility.html#subsec-img-desc-advice">this advice</ref> on writing image descriptions.</p>
+
+<image source="https://upload.wikimedia.org/wikipedia/commons/0/02/Donut.jpg" size="small">
+  <shortDescription>A chocolate donut</shortDescription>
+  <description>This donut image is from 
+    <ref to="https://commons.wikimedia.org/wiki/File:Donut.jpg">Wikimedia Commons</ref>.
+    Used under a <ref to="https://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons license</ref>.
+  </description>
+</image>
+  
+</section>
+
+<section>
+  <title>Graph accessibility</title>
+
+  <p>At present, a <tag>graph</tag> is treated by a screen reader in the same way as an image. The screen reader cannot access the graph, and it must rely on a <tag>shortDescription</tag> and <tag>description</tag> to get information about the graph.</p>
+
+  <p>If a graph has a <tag>shortDescription</tag>,<footnote>or has the <attr>decorative</attr> attribute set</footnote> then it will pass the accessibility tests. But, that doesn't necessarily mean your activity will be accessible to screen reader users, since they will be unable to manipulate any interactive parts of the graph (such as draggable points). At present, the only available way to give screen reader users the ability to manipulate interactive graph parts is to attach them to a control outside a graph, such as a <tag>slider</tag> or <tag>mathInput</tag>.</p>
+  
+</section>
+
+<section>
+  <title>Video accessibility</title>
+
+  <p>The one required accessibility piece that you can add to a video in a Doenet document is the <tag>shortDescription</tag>. There is much more required to make a video truly accessible, such as adding captions and carefully designing its verbal descriptions to be understable without visual cues. However, these aspects are outside the scope of Doenet.</p>
+    
+</section>
+
+<section>
+  <title>Color contrast</title>
+
+  <p>When designing your <tag>styleDefinition</tag>s, make sure that your color choices have sufficient contrast. In the future, Doenet will give warnings or errors if you create a style with insufficient contrast.
+  
+  </p>
+</section>

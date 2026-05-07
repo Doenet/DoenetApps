@@ -1,0 +1,32 @@
+// This is the base tsconfig file that is extended by each package's tsconfig.json.
+// It contains the common compiler options for all packages.
+// Do not specify "include" or "exclude", or "files" here, as they will be specified in each package's tsconfig.json.
+{
+  "compilerOptions": {
+    /* Strictness */
+    "strict": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false
+
+    //TODO: Consider enabling these options in the future, but they may cause too many errors to be worth it right now.
+    // "noUncheckedIndexedAccess": true
+
+    // "useDefineForClassFields": true,
+
+    // /* Module settings */
+    // "resolveJsonModule": true,
+    // "isolatedModules": true,
+    // "module": "nodenext",
+    // "moduleResolution": "nodenext",
+
+    // "allowJs": false
+
+    // "sourceMap": true,
+
+    // "baseUrl": "."
+  }
+}

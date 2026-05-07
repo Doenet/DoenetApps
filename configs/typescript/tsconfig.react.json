@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    // We're using Vite/Astro to build, therefore we don't need TS to create the files,
+    // we only want TS to type check
+    "noEmit": true
+  }
+}

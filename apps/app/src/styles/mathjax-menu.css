@@ -1,0 +1,12 @@
+/* MathJax context menu sits at z-index 200/201 by default, which is below
+   Chakra UI's drawer overlay (~1200) and drawer content (~1300).
+   Raise it so the menu is visible when math is inside a drawer.
+   !important is required to override both the injected CSS rule (201) and
+   the inline style setAttribute("style", ...) on the frame (200). */
+.CtxtMenu_MenuFrame {
+  z-index: 1500 !important;
+}
+
+.CtxtMenu_ContextMenu {
+  z-index: 1501 !important;
+}

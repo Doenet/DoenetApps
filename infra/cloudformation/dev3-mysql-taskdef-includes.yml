@@ -1,0 +1,17 @@
+MountPoints:
+  - SourceVolume: efs-share
+    ContainerPath: /var/lib/mysql
+Environment:
+  - Name: MYSQL_DATABASE
+    Value: "doenet"
+Secrets:
+  - Name: MYSQL_USER
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBUsername"
+  - Name: MYSQL_PASSWORD
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBPassword"
+  - Name: MYSQL_ROOT_PASSWORD
+    ValueFrom:
+      # Dev-only. Same as MYSQL_PASSWORD, but needed for MySQL to start up
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBPassword"

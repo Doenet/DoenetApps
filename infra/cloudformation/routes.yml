@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IAM VPC routes template
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+
+  AvailabilityZone:
+    Description: The availability zone letter identifier (ex. 'a')
+    Type: String
+    AllowedValues:
+      - a
+      - b
+      - c
+      - d
+
+  VPC:
+    Description: The VPC id
+    Type: String
+
+  InternetGateway:
+    Description: The InternetGateway id
+    Type: String
+
+  NatGateway:
+    Description: The NatGateway id
+    Type: String
+
+  PublicSubnet:
+    Description: The PublicSubnet id
+    Type: String
+
+  PrivateSubnet:
+    Description: The PrivateSubnet id
+    Type: String
+
+  CreateNatGateway:
+    Description: Create a nat gateway so that private subnets have internet access
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
+
+  EgressOnlyInternetGateway:
+    Description: The EgressOnlyInternetGateway id
+    Type: String
+
+Conditions:
+  ShouldCreateNatGateway: !Equals [true, !Ref "CreateNatGateway"]
+
+Resources:
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - public-route-table-zone
+              - !Ref "AvailabilityZone"
+        - Key: Application
+          Value: !Ref "AWS::StackId"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref "InternetGateway"
+
+  PublicRouteIpv6:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      DestinationIpv6CidrBlock: "::/0"
+      GatewayId: !Ref "InternetGateway"
+
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref "PublicSubnet"
+      RouteTableId: !Ref "PublicRouteTable"
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - route-table-zone
+              - !Ref "AvailabilityZone"
+        - Key: Application
+          Value: !Ref "AWS::StackId"
+
+  Route:
+    Type: AWS::EC2::Route
+    Condition: ShouldCreateNatGateway
+    Properties:
+      RouteTableId: !Ref "RouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref "NatGateway"
+
+  RouteIpv6:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref "RouteTable"
+      DestinationIpv6CidrBlock: "::/0"
+      EgressOnlyInternetGatewayId: !Ref "EgressOnlyInternetGateway"
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref "PrivateSubnet"
+      RouteTableId: !Ref "RouteTable"
+
+Outputs:
+  PublicRouteTable:
+    Description: The public route table ID
+    Value: !Ref "PublicRouteTable"
+
+  RouteTable:
+    Description: The internal route table ID
+    Value: !Ref "RouteTable"

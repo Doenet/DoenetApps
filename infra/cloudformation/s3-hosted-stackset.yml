@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "StackSet to deploy S3 website hosting template to us-east-1 region"
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    MaxLength: 10
+
+  PublicHostedZoneId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+
+  PublicHostedZoneName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+
+  AppServiceName:
+    Type: String
+    Description: Service name to include in bucket name
+
+  SiteServiceName:
+    Type: String
+    Description: Service name for the site bucket
+    Default: site
+
+  TemplateS3Bucket:
+    Type: String
+    Description: S3 bucket containing the s3-hosted.yml template
+
+  TemplateS3Key:
+    Type: String
+    Description: S3 key for the s3-hosted.yml template
+    Default: cloudformation/s3-hosted.yml
+
+  LoadBalancerDnsName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: DNS name of the Application Load Balancer
+
+Resources:
+  StackSetAdministrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AWSCloudFormationStackSetAdministrationRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: AssumeRole-AWSCloudFormationStackSetExecutionRole
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationStackSetExecutionRole"
+
+  StackSetExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AWSCloudFormationStackSetExecutionRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt StackSetAdministrationRole.Arn
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+      Policies:
+        - PolicyName: StackSetExecutionPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                Resource: "*"
+
+  S3HostedStackSet:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - StackSetAdministrationRole
+      - StackSetExecutionRole
+    Properties:
+      StackSetName: !Sub "${EnvironmentName}-${AppServiceName}-s3-hosted-stackset"
+      Description: StackSet for S3 website hosting with CloudFront
+      Tags:
+        - Key: TemplateVersion
+          Value: "3"
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: AWSCloudFormationStackSetExecutionRole
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      PermissionModel: SELF_MANAGED
+      StackInstancesGroup:
+        - DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions:
+            - us-east-1
+      Parameters:
+        - ParameterKey: EnvironmentName
+          ParameterValue: !Ref EnvironmentName
+        - ParameterKey: PublicHostedZoneName
+          ParameterValue: !Ref PublicHostedZoneName
+        - ParameterKey: PublicHostedZoneId
+          ParameterValue: !Ref PublicHostedZoneId
+        - ParameterKey: AppServiceName
+          ParameterValue: !Ref AppServiceName
+        - ParameterKey: SiteServiceName
+          ParameterValue: !Ref SiteServiceName
+        - ParameterKey: LoadBalancerDnsName
+          ParameterValue: !Ref LoadBalancerDnsName
+      TemplateURL: !Sub "https://${TemplateS3Bucket}.s3.amazonaws.com/${TemplateS3Key}"
+
+Outputs:
+  StackSetId:
+    Description: ID of the created StackSet
+    Value: !Ref S3HostedStackSet
+
+  StackSetAdministrationRoleArn:
+    Description: ARN of the StackSet administration role
+    Value: !GetAtt StackSetAdministrationRole.Arn
+
+  StackSetExecutionRoleArn:
+    Description: ARN of the StackSet execution role
+    Value: !GetAtt StackSetExecutionRole.Arn

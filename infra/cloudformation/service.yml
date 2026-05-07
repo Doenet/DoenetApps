@@ -1,0 +1,1207 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Service in ECS
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W2001
+        - W1001
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Environment Configuration
+        Parameters:
+          - ServiceName
+          - OrganizationName
+          - EnvironmentName
+          - PathPattern
+          - DomainNames
+          - TaskDefIncludesFile
+          - TaskRoleIncludesFile
+          - EfsFileSystemId
+          - UseLbForService
+          - RestrictedCIDRs
+          - RedshiftSecretArn
+          - EnableCognitoAuth
+      #          - OidcDomain
+      - Label:
+          default: ECS Configuration
+        Parameters:
+          - EcsLaunchType
+          - ContainerPort
+          - MinCount
+          - MaxCount
+          - ImageUrl
+          - ContainerMemory
+          - ContainerCpu
+          - HealthCheckGracePeriod
+      - Label:
+          default: ECS in EC2 Configuration
+        Parameters:
+          - InstanceType
+          - ECSAMI
+      - Label:
+          default: SSM-sourced parameters
+        Parameters:
+          - EcsCluster
+          - VPC
+          - PrivateSubnets
+          - SecurityGroup
+          - EnvironmentKmsKey
+          - LoadBalancerListener
+          - PublicHostedZoneId
+          - PublicHostedZoneName
+          - LoadBalancerDnsName
+          - LoadBalancerHostedZoneId
+          - CloudMapPrivateNamespace
+          - S3AppBucket
+#          - LoadBalancerFullName
+#          - CloudwatchSNSTopic
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    #    MaxLength: 10
+    Default: webdev
+
+  OrganizationName:
+    Type: String
+    Description: The mock organization for the demo
+    Default: org1
+
+  ServiceName:
+    Type: String
+    Description: The name of the service
+
+  TaskDefIncludesFile:
+    Type: String
+    Description: The S3 url of the secrets includes file
+
+  TaskRoleIncludesFile:
+    Type: String
+    Description: The S3 url of the task policies includes file
+
+  #  OidcDomain:
+  #    Type: String
+  #    Description: The oidc domain name
+
+  ImageUrl:
+    Type: String
+    Description: The url of a docker image that contains the application process that will handle the traffic for this service
+
+  ContainerPort:
+    Type: Number
+    Description: What port number the application inside the docker container is binding to
+
+  ContainerCpu:
+    Type: Number
+    Description: How much CPU to give the container. 1024 is 1 CPU
+
+  ContainerMemory:
+    Type: Number
+    Description: How much memory in megabytes to give the container
+
+  HealthCheckGracePeriod:
+    Type: Number
+    Default: 300
+    Description: How many seconds to give container for bootstrapping
+
+  SecurityGroup:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::SecurityGroup::Id>"
+    Default: "/webdev/EcsInstanceSecurityGroup"
+
+  PrivateSubnets:
+    Type: "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>"
+    Default: "/webdev/PrivateSubnets"
+
+  VPC:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>"
+    Default: "/webdev/VPC"
+
+  EnvironmentKmsKey:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/EnvironmentKmsKey"
+
+  EcsCluster:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/EcsCluster"
+
+  LoadBalancerListener:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/LoadBalancerHttpsListener"
+
+  EfsFileSystemId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: The EFS file system id of the shared storage
+
+  PublicHostedZoneId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/PublicHostedZoneId"
+
+  PublicHostedZoneName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/PublicHostedZoneName"
+
+  LoadBalancerDnsName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/LoadBalancerDnsName"
+
+  LoadBalancerHostedZoneId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/LoadBalancerHostedZoneId"
+
+  CloudMapPrivateNamespace:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: The discovery service zone name
+
+  S3AppBucket:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: The of the application bucket
+
+  RedshiftSecretArn:
+    Type: String
+    Description: The of ARN of the REDSHIFT_CONFIG secret
+
+  #  LoadBalancerFullName:
+  #    Type : 'AWS::SSM::Parameter::Value<String>'
+  #    Default: '/webdev/LoadBalancerFullName'
+
+  #  CloudwatchSNSTopic:
+  #    Type : 'AWS::SSM::Parameter::Value<String>'
+  #    Default: '/webdev/CloudwatchSNSWarningTopic'
+
+  MinCount:
+    Type: Number
+    Default: 1
+    Description: The minimum number of copies of the service task to run
+
+  MaxCount:
+    Type: Number
+    Default: 4
+    Description: The maximum number of copies of the service task to run
+
+  PathPattern:
+    Type: String
+    Description: The base URI for the application
+
+  DomainNames:
+    Type: CommaDelimitedList
+    Description: A comma delimited list of domain names that should use this target app's target group
+
+  Priority:
+    Type: Number
+    Description: The ordering of rules in the listener (cannot be the same as another app)
+
+  HealthCheckUrl:
+    Type: String
+    Description: The URL used by the Target Group to verify the container is functioning properly before placing in service
+
+  UseLbForService:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Create target groups and routing rules for the load balancer
+
+  RestrictedCIDRs:
+    Type: CommaDelimitedList
+    Description: A comma-delimited list of CIDRs granted access to the service
+
+  EnableCognitoAuth:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable Cognito authentication for this service
+
+  EcsLaunchType:
+    Type: String
+    Default: FARGATE
+    Description: Run the service in Fargate or EC2
+    AllowedValues:
+      - FARGATE
+      - EC2
+
+  InstanceType:
+    Description: Which instance type should we use to build the ECS cluster?
+    Type: String
+    Default: t3a.medium
+
+  ECSAMI:
+    Description: ECS-Optimized AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
+
+Conditions:
+  EcsInFargate: !Equals
+    - !Ref EcsLaunchType
+    - FARGATE
+  EcsInEc2: !Equals
+    - !Ref EcsLaunchType
+    - EC2
+  UseLbForService: !Equals
+    - !Ref UseLbForService
+    - "true"
+  IsDev: !Equals
+    - !Ref EnvironmentName
+    - dev3
+  UseDomainNames: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Ref DomainNames
+      - notapplicable
+  UsePathPattern: !Not
+    - !Equals
+      - !Ref PathPattern
+      - notapplicable
+  UseGroupTargeting: !Not
+    - !Or
+      - !Condition UseDomainNames
+      - !Condition UsePathPattern
+  DomainNamesMatch: !Equals
+    - !Select [0, !Ref DomainNames]
+    - !Sub "${ServiceName}.${PublicHostedZoneName}"
+  CreateDnsEntry: !And
+    - !Not
+      - !Condition DomainNamesMatch
+    - !Or
+      - !Condition UseDomainNames
+      - !Condition UsePathPattern
+  IsRestrictedService: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Ref RestrictedCIDRs
+      - notapplicable
+  CreateLightsOut: !And
+    - !Condition IsDev
+    - !Condition UseLbForService
+
+  UseCognito: !And
+    - !Condition UseDomainNames
+    - !Equals
+      - !Ref EnableCognitoAuth
+      - "true"
+
+Resources:
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/service-role/AWSAppSyncPushToCloudWatchLogs
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      "Fn::Transform":
+        Name: "AWS::Include"
+        Parameters:
+          Location: !Ref TaskRoleIncludesFile
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
+    Properties:
+      Family: !Sub "${ServiceName}-${EnvironmentName}"
+      Cpu: !If [EcsInFargate, !Ref ContainerCpu, !Ref "AWS::NoValue"]
+      Memory: !Ref ContainerMemory
+      NetworkMode: awsvpc
+      #      RequiresCompatibilities:
+      #        - !If [EcsInFargate, 'FARGATE', 'EC2']
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !Ref ECSTaskExecutionRole
+      Volumes:
+        - Name: efs-share
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref EfsFileSystemId
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref EfsAccessPoint
+      ContainerDefinitions:
+        - Name: !Sub "${ServiceName}"
+          Image: !Ref ImageUrl
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "${EnvironmentName}"
+              awslogs-create-group: "true"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: !Sub "${ServiceName}"
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          MountPoints:
+            - SourceVolume: efs-share
+              ContainerPath: /mnt/efs
+          "Fn::Transform":
+            Name: "AWS::Include"
+            Parameters:
+              Location: !Ref TaskDefIncludesFile
+
+  ServiceHttpsListenerRuleReady:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      SecondaryCIDRready:
+        !If [UseLbForService, !Ref ServiceHttpsListenerRule, ""]
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: ServiceHttpsListenerRuleReady
+    Properties:
+      ServiceName: !Sub "${ServiceName}-${EcsLaunchType}"
+      Cluster: !Ref EcsCluster
+      LaunchType: !If [EcsInFargate, "FARGATE", "EC2"]
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+      DesiredCount: !Ref MinCount
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - !Ref SecurityGroup
+          Subnets: !Ref PrivateSubnets
+      EnableExecuteCommand: true
+      TaskDefinition: !Ref TaskDefinition
+      HealthCheckGracePeriodSeconds:
+        !If [UseLbForService, !Ref HealthCheckGracePeriod, !Ref "AWS::NoValue"]
+      LoadBalancers:
+        - !If
+          - UseLbForService
+          - ContainerName: !Sub "${ServiceName}"
+            ContainerPort: !Ref ContainerPort
+            TargetGroupArn: !Ref TargetGroup
+          - !Ref "AWS::NoValue"
+      ServiceRegistries:
+        - RegistryArn: !GetAtt DiscoveryService.Arn
+          Port: !Ref ContainerPort
+
+  DiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      Description: Discovery Service for hcapps
+      DnsConfig:
+        RoutingPolicy: MULTIVALUE
+        DnsRecords:
+          - TTL: 60
+            Type: A
+          - TTL: 60
+            Type: SRV
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: !Ref ServiceName
+      NamespaceId: !Ref CloudMapPrivateNamespace
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Condition: EcsInEc2
+    Properties:
+      VPCZoneIdentifier: !Ref PrivateSubnets
+      LaunchConfigurationName: !Ref ECSLaunchConfiguration
+      MinSize: !Ref MinCount
+      MaxSize: !Ref MaxCount
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ServiceName}"
+          PropagateAtLaunch: true
+        - Key: Group
+          Value: !Ref ServiceName
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT10M
+        WaitOnResourceSignals: true
+        SuspendProcesses:
+          - AZRebalance
+          - ScheduledActions
+      AutoScalingScheduledAction:
+        IgnoreUnmodifiedGroupSizeProperties: true
+
+  ECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Condition: EcsInEc2
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref SecurityGroup
+      IamInstanceProfile: !Ref ECSInstanceProfile
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash
+          yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+          yum install -y aws-cfn-bootstrap hibagent
+          /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSLaunchConfiguration
+          /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSAutoScalingGroup
+          /usr/bin/enable-ec2-spot-hibernation
+
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              collectd: []
+
+          commands:
+            01_add_instance_to_cluster:
+              command: !Sub echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
+            02_enable_cloudwatch_agent:
+              command: !Sub /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:/${EnvironmentName}/ECSCloudWatchParameter -s
+          files:
+            /etc/cfn/cfn-hup.conf:
+              mode: 000400
+              owner: root
+              group: root
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ECSLaunchConfiguration.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSLaunchConfiguration
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: true
+                ensureRunning: true
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+
+  ECSRole:
+    Type: AWS::IAM::Role
+    Condition: EcsInEc2
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: EfsPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "elasticfilesystem:DescribeMountTargets"
+                  - "ec2:DescribeAvailabilityZones"
+                  - "elasticfilesystem:DescribeFileSystems"
+                Resource: "*"
+
+  ECSInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: EcsInEc2
+    Properties:
+      Path: /
+      Roles:
+        - !Ref ECSRole
+
+  ScaleECSClusterEC2Up:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Condition: EcsInEc2
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      PolicyType: SimpleScaling
+      ScalingAdjustment: 1
+      Cooldown: "300"
+
+  ScaleECSClusterEC2Down:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Condition: EcsInEc2
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      PolicyType: SimpleScaling
+      ScalingAdjustment: -1
+      Cooldown: "600"
+
+  ECSServiceScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: !Ref MinCount
+      MaxCapacity: !Ref MaxCount
+      ResourceId: !Sub "service/${EcsCluster}/${Service.Name}"
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ECSServiceScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "ScaleUp-${ServiceName}-ECSContainers"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ECSServiceScalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 300
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: 1
+
+  ECSServiceScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "ScaleDown-${ServiceName}-ECSContainers"
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ECSServiceScalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 600
+        StepAdjustments:
+          - MetricIntervalUpperBound: 0
+            ScalingAdjustment: -1
+
+  ECSClusterCPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-High-CPU"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 5
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !If [EcsInEc2, !Ref ScaleECSClusterEC2Up, !Ref "AWS::NoValue"]
+        - !Ref ECSServiceScaleUpPolicy
+      #        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
+  ECSClusterCPUNormalAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-CPU-Normal"
+      ActionsEnabled: true
+      ComparisonOperator: LessThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 50.0
+      AlarmActions:
+        - !If [EcsInEc2, !Ref ScaleECSClusterEC2Down, !Ref "AWS::NoValue"]
+        - !Ref ECSServiceScaleDownPolicy
+      #        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: UseLbForService
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: !Ref HealthCheckUrl
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: !Sub "${EnvironmentName}-${ServiceName}"
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VPC
+      TargetGroupAttributes:
+        - Key: "stickiness.enabled"
+          Value: "true"
+        - Key: "deregistration_delay.timeout_seconds"
+          Value: "15"
+
+  TargetGroupSSMParameter:
+    Type: AWS::SSM::Parameter
+    Condition: UseLbForService
+    Properties:
+      Description: Target Group
+      Name: !Sub "/${EnvironmentName}/${ServiceName}/TargetGroup"
+      Type: String
+      Value: !Ref TargetGroup
+
+  ServiceHttpsListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: UseLbForService
+    Properties:
+      Actions: !If
+        - UseCognito
+        - - Type: authenticate-cognito
+            Order: 1
+            AuthenticateCognitoConfig:
+              UserPoolArn: !GetAtt UserPool.Arn
+              UserPoolClientId: !Ref UserPoolClient
+              UserPoolDomain: !Ref UserPoolDomain
+              SessionCookieName: !Sub ${EnvironmentName}AppCookie
+              OnUnauthenticatedRequest: authenticate
+          - Type: forward
+            Order: 2
+            TargetGroupArn: !Ref TargetGroup
+        - - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+      Conditions:
+        - !If
+          - UsePathPattern
+          - Field: path-pattern
+            Values:
+              - !Ref PathPattern
+              - !Sub "${PathPattern}/*"
+          - !Ref "AWS::NoValue"
+        - !If
+          - UseDomainNames
+          - Field: host-header
+            Values: !Ref DomainNames
+          - !Ref "AWS::NoValue"
+        - !If
+          - UseGroupTargeting
+          - Field: http-header
+            HttpHeaderConfig:
+              HttpHeaderName: TargetGroup
+              Values:
+                - !GetAtt TargetGroup.TargetGroupName
+          - !Ref "AWS::NoValue"
+        - !If
+          - IsRestrictedService
+          - Field: source-ip
+            SourceIpConfig:
+              Values: !Ref RestrictedCIDRs
+          - !Ref "AWS::NoValue"
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: !Ref Priority
+
+  PublicDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDnsEntry
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Sub "${ServiceName}.${PublicHostedZoneName}."
+      Type: A
+      AliasTarget:
+        HostedZoneId: !Ref LoadBalancerHostedZoneId
+        DNSName: !Ref LoadBalancerDnsName
+
+  Domain0PublicDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: UseDomainNames
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Join
+        - ""
+        - - !Select [0, !Ref DomainNames]
+          - "."
+      Type: A
+      AliasTarget:
+        HostedZoneId: !Ref LoadBalancerHostedZoneId
+        DNSName: !Ref LoadBalancerDnsName
+
+  EfsAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EfsFileSystemId
+      PosixUser:
+        Uid: "0"
+        Gid: "0"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "0"
+          OwnerUid: "0"
+          Permissions: "0755"
+        Path: !Sub "/${ServiceName}"
+
+  #  ServiceHttpsListenerRuleUI:
+  #    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+  #    Condition: UIAndIsNotDaemon
+  #    Properties:
+  #      Actions:
+  #        - Type: authenticate-oidc
+  #          AuthenticateOidcConfig:
+  #            Issuer: !Sub 'https://${OidcDomain}'
+  #            AuthorizationEndpoint: !Sub 'https://${OidcDomain}/oauth2/authorize'
+  #            TokenEndpoint: !Sub 'https://${OidcDomain}/oauth2/token'
+  #            UserInfoEndpoint: !Sub 'https://${OidcDomain}/oidc/uinfo'
+  #            ClientId: '{{resolve:ssm:ClientIdns:1}}'
+  #            ClientSecret: '{{resolve:ssm:ClientSecretns:1}}'
+  #            SessionCookieName: oidc-session
+  #            SessionTimeout: 3600
+  #            Scope: "uid uupid"
+  #            AuthenticationRequestExtraParams:
+  #              display: page
+  #              prompt: login
+  #            OnUnauthenticatedRequest: authenticate
+  #          Order: 1
+  #        - Type: forward
+  #          TargetGroupArn: !Ref TargetGroup
+  #          Order: 2
+  #      Conditions:
+  #        - Field: path-pattern
+  #          Values:
+  #            - !FindInMap [Service, !Ref ServiceName, pathpattern]
+  #            - !FindInMap [Service, !Ref ServiceName, pathpatternstar]
+  #      ListenerArn: !Ref LoadBalancerListener
+  #      Priority: !FindInMap [Service, !Ref ServiceName, priority]
+
+  #  ApplicationLBStatusCheckAlarm:
+  #    Type: AWS::CloudWatch::Alarm
+  #    Condition: UseLbForService
+  #    Properties:
+  #      AlarmName: !Sub '${EnvironmentName}-${ServiceName}-HealthyHostCheck'
+  #      AlarmDescription: 'Application LB Healthy Host Check'
+  #      ActionsEnabled: true
+  #      ComparisonOperator: LessThanThreshold
+  #      MetricName: HealthyHostCount
+  #      Namespace: AWS/ApplicationELB
+  #      Period: 60
+  #      EvaluationPeriods: 2
+  #      Statistic: Minimum
+  #      Threshold: 1.0
+  #      TreatMissingData: breaching
+  #      AlarmActions:
+  #        - !Ref CloudwatchSNSTopic
+  #      OKActions:
+  #        - !Ref CloudwatchSNSTopic
+  #      Dimensions:
+  #        - Name: LoadBalancer
+  #          Value: !Ref LoadBalancerFullName
+  #        - Name: TargetGroup
+  #          Value: !GetAtt TargetGroup.TargetGroupFullName
+
+  CapacityControlLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${EnvironmentName}-${ServiceName}-capacity"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: index.handler
+      Runtime: python3.9
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Description: !Sub "Set the capacity of the ${ServiceName} ECS service"
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          client = boto3.client('application-autoscaling')
+
+          def currentCapacityEquals(minCapacity, maxCapacity) :
+            target = client.describe_scalable_targets(
+              ServiceNamespace='ecs',
+              ResourceIds=['service/${EnvironmentName}/${ServiceName}-${EcsLaunchType}'],
+              ScalableDimension='ecs:service:DesiredCount'
+            )
+
+            if target['ScalableTargets'][0]['MinCapacity'] != minCapacity:
+              return False
+            if target['ScalableTargets'][0]['MaxCapacity'] != maxCapacity:
+              return False
+
+            return True
+
+          def setCapacity(minCapacity, maxCapacity) :
+            print('setting min/max capacity to ', minCapacity, ',', maxCapacity)
+            client.register_scalable_target(
+              ServiceNamespace='ecs',
+              ResourceId='service/${EnvironmentName}/${ServiceName}-${EcsLaunchType}',
+              ScalableDimension='ecs:service:DesiredCount',
+              MinCapacity=minCapacity,
+              MaxCapacity=maxCapacity,
+              RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+            )
+
+          def handler(event, context):
+            # Attempting to change capacity while a capacity
+            # change is in progress will result in an exception
+            if event['service-status'] == 'off':
+              if not currentCapacityEquals(0,0):
+                setCapacity(0,0)
+            elif event['service-status'] == 'on':
+              if not currentCapacityEquals(${MinCount},${MaxCount}):
+                setCapacity(${MinCount},${MaxCount})
+            else:
+              raise ValueError('malformed service-status request')
+            return
+
+  LightsSSMParameter:
+    Type: AWS::SSM::Parameter
+    Condition: CreateLightsOut
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/${ServiceName}/lights"
+      Type: String
+      Value: "on"
+
+  LightsOutLambdaFunction:
+    Type: AWS::Lambda::Function
+    Condition: CreateLightsOut
+    Properties:
+      FunctionName: !Sub "${ServiceName}-lights-out"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: index.handler
+      Runtime: python3.9
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Description: Stop ECS tasks when lights are out
+      Code:
+        ZipFile: !Sub |
+          import boto3
+
+          client = boto3.client('application-autoscaling')
+          elbv2client = boto3.client('elbv2')
+          ssm = boto3.client('ssm')
+          lightsParam = '${LightsSSMParameter}'
+
+          def turnLightsOut() :
+            print('resetting minimum capacity to 0')
+            client.register_scalable_target(
+              ServiceNamespace='ecs',
+              ResourceId='service/${EnvironmentName}/${ServiceName}-${EcsLaunchType}',
+              ScalableDimension='ecs:service:DesiredCount',
+              MinCapacity=0,
+              RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+            )
+            ssm.put_parameter(Name=lightsParam, Value='off', Overwrite=True)
+
+          def routeTrafficToLightsOnLambda() :
+            elbv2client.modify_rule(
+              RuleArn='${ServiceHttpsListenerRule}',
+              Actions=[
+                {
+                  "Type": "forward",
+                  "ForwardConfig": {"TargetGroups": [
+                      {"TargetGroupArn": "${TargetGroup}", "Weight": 0},
+                      {"TargetGroupArn": "${LightsOnTargetGroup}", "Weight": 1}
+                    ],
+                    "TargetGroupStickinessConfig": {
+                      "Enabled": True,
+                      "DurationSeconds": 5
+                    }
+                  }
+                }
+              ]
+            )
+
+          def handler(event, context):
+            routeTrafficToLightsOnLambda()
+            turnLightsOut()
+            return
+
+  LightsOutRule:
+    Type: AWS::Events::Rule
+    Condition: CreateLightsOut
+    Properties:
+      Description: Lights out at end of day
+      ScheduleExpression: "cron(0 01 * * ? *)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LightsOutLambdaFunction.Arn
+          Id: "LightsOutLambdaFunction"
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Condition: CreateLightsOut
+    Properties:
+      FunctionName: !Ref LightsOutLambdaFunction
+      Action: "lambda:InvokeFunction"
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt LightsOutRule.Arn
+
+  LightsOnLambdaFunction:
+    Type: AWS::Lambda::Function
+    Condition: CreateLightsOut
+    Properties:
+      FunctionName: !Sub "${ServiceName}-lights-on"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: index.handler
+      Runtime: python3.9
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Description: Turn the lights back on
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          import time
+          from datetime import datetime, timezone
+
+          client = boto3.client('application-autoscaling')
+          elbv2client = boto3.client('elbv2')
+          ssm = boto3.client('ssm')
+
+          target = None
+          refresh = 15
+          progress = 10
+          lightsParam = '${LightsSSMParameter}'
+
+          def lightsAreOff() :
+            global target
+            target = client.describe_scalable_targets(
+              ServiceNamespace='ecs',
+              ResourceIds=['service/${EnvironmentName}/${ServiceName}-${EcsLaunchType}'],
+              ScalableDimension='ecs:service:DesiredCount'
+            )
+            print(target)
+            return target['ScalableTargets'][0]['MinCapacity'] == 0
+
+          def minutesSinceLightsOn():
+            parameter = ssm.get_parameter(Name=lightsParam)
+            date_str = parameter['Parameter']['LastModifiedDate']
+            time_delta = (datetime.now(timezone.utc) - date_str)
+            total_seconds = time_delta.total_seconds()
+            minutes = total_seconds/60
+            print('minutes since service activation: ' + str(minutes))
+            return minutes
+
+          def turnLightsOn() :
+            print('resetting minimum capacity to ${MinCount}')
+            client.register_scalable_target(
+              ServiceNamespace='ecs',
+              ResourceId='service/${EnvironmentName}/${ServiceName}-${EcsLaunchType}',
+              ScalableDimension='ecs:service:DesiredCount',
+              MinCapacity=${MinCount},
+              RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+            )
+            ssm.put_parameter(Name=lightsParam, Value='on', Overwrite=True)
+
+          def serviceIsReady() :
+            health = elbv2client.describe_target_health(TargetGroupArn='${TargetGroup}')
+            print(health)
+            healthyTargets = 0
+            for target in health['TargetHealthDescriptions'] :
+              progress = 50
+              if target['TargetHealth']['State'] == 'healthy' :
+                progress += 15
+                healthyTargets += 1
+            return healthyTargets > 0
+
+          def routeTrafficToService() :
+            elbv2client.modify_rule(
+              RuleArn='${ServiceHttpsListenerRule}',
+              Actions=[
+                {
+                  "Type": "forward",
+                  "ForwardConfig": {"TargetGroups": [{"TargetGroupArn": "${TargetGroup}"}]}
+                }
+              ]
+            )
+
+          def doWaitResponse(event) :
+            location = 'https://' + event['headers']['host'] + '?lights-check=true'
+            time.sleep(15)  
+            
+            response = {          
+              "isBase64Encoded": False,
+              "statusCode": 302,
+              "headers": {
+                "Location": location
+              },
+              "multiValueHeaders": {},
+              "body": ""
+            }
+            
+            return response
+
+          def handler(event, context):
+            errorMsg = ''
+            global refresh
+            global progress
+
+            if lightsAreOff() :
+              turnLightsOn()
+            else :
+              minutes = minutesSinceLightsOn()
+              progress = 25 + minutes * 5
+              if minutes > 10 :
+                errorMsg = "The startup is unsuccessful. Something seems to be wrong with the service."
+
+            if serviceIsReady() :
+              routeTrafficToService()
+              refresh = 5
+              progress = 100
+
+            if 'lights-check' in event['queryStringParameters'] :
+              if event['queryStringParameters']['lights-check'] == 'true' :
+                return doWaitResponse(event)
+
+            response = {
+              "statusCode": 200,
+              "statusDescription": "200 OK",
+              "isBase64Encoded": False,
+              "headers": { "Content-Type": "text/html; charset=utf-8" }
+            }
+
+            response['body'] = '''<!doctype html>
+            <meta http-equiv="refresh" content="{refresh_interval}">
+            <html>
+            <style>
+              .main-logo {{text-align: center;}}
+              .progress {{text-align: center;}}
+              .error {{color: red;}}
+              div.gif-embed {{max-width: 500px;}}
+            </style>
+            <body>
+            <div class="main-logo">
+              <a rel="home" class="active" href="https://www.unicon.net/"><img class="logo" id="logo" alt="Unicon logo" title="Home" src="https://www.unicon.net/hs-fs/hubfs/raw_assets/public/Unicon_October2020/images/logo.png?width=600&name=logo.png"></a>
+            </div>
+            <div class="progress">
+              <h1>We had the lights off for this service.</h1>
+              <h2>Please allow us a few minutes to restart the service.</h2>
+              <h2>This page will automatically redirect once the restart completes.</h2>
+              <label for="service">Restarting service:</label>
+              <progress id="service" value="{progress_percent}" max="100"></progress>
+              <h2 class="error">{error_message}</h2>
+            </div>
+            </body>
+            </html>'''.format(length='multi-line', refresh_interval=refresh, progress_percent=progress, error_message=errorMsg)
+            return response
+
+  LightsOnLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: CreateLightsOut
+    Properties:
+      FunctionName: !GetAtt LightsOnLambdaFunction.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: elasticloadbalancing.amazonaws.com
+
+  LightsOnTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: CreateLightsOut
+    DependsOn: LightsOnLambdaInvokePermission
+    Properties:
+      HealthCheckEnabled: false
+      Name: !Sub "${ServiceName}-lights-on"
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt LightsOnLambdaFunction.Arn
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F38
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: RegisterScalableTargets
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                  - "application-autoscaling:RegisterScalableTarget"
+                  - "elasticloadbalancing:ModifyRule"
+                  - "application-autoscaling:DescribeScalableTargets"
+                  - "elasticloadbalancing:DescribeTargetHealth"
+                  - "ssm:PutParameter"
+                  - "ssm:GetParameter"
+                Resource: "*"
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Condition: UseCognito
+    Properties:
+      UserPoolName: !Sub ${EnvironmentName}-${ServiceName}-access
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 20
+          RequireLowercase: true
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+          TemporaryPasswordValidityDays: 10
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Condition: UseCognito
+    Properties:
+      Domain: !Sub ${EnvironmentName}-${ServiceName}
+      UserPoolId: !Ref UserPool
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Condition: UseCognito
+    Properties:
+      RefreshTokenValidity: 30
+      IdTokenValidity: 30
+      AccessTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      CallbackURLs:
+        - !Sub
+          - https://${PublicDomainName}/oauth2/idpresponse
+          - PublicDomainName: !Select [0, !Ref DomainNames]
+      SupportedIdentityProviders:
+        - COGNITO
+      GenerateSecret: true
+      UserPoolId: !Ref UserPool

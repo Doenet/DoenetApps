@@ -1,0 +1,18 @@
+{
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  "prisma.pinToPrisma6": true,
+  "eslint.workingDirectories": [
+    "apps/api",
+    "apps/app",
+    "apps/web",
+    "packages/shared",
+    "packages/e2e-tests"
+  ]
+}

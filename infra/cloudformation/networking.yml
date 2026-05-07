@@ -1,0 +1,640 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC/networking template
+Parameters:
+  EnvironmentName:
+    Description: A unique string to separate parameter stores
+    Type: String
+    # EnvironmentName is included in many resources names, many of which
+    # have restrictions on the length of their name.
+    #    MaxLength: 10
+    Default: dev
+
+  S3TemplateBucket:
+    Description: The name of the S3 bucket stack templates
+    Type: String
+    Default: demo-cf-templates
+
+  VPCNetworkPrefix:
+    Description: The first three octets of the network range (ex. '10.40.0'). Note that the third octet must be a multiple of 8. Also, this CIDR prefix should not be in use for another VPC within the organization.
+    Type: String
+    Default: "10.100.0"
+
+  CreateZoneA:
+    Description: Create subnets, routes, and acls for availability zone a
+    Type: String
+    Default: "true"
+
+  CreateZoneB:
+    Description: Create subnets, routes, and acls for availability zone b
+    Type: String
+    Default: "true"
+
+  CreateZoneC:
+    Description: Create subnets, routes, and acls for availability zone c
+    Type: String
+    Default: "false"
+
+  CreateNatGateway:
+    Description: This costs money; it creates a nat gateway in each zone.
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+
+  TransitGatewayId:
+    Type: String
+    Default: "none"
+
+  UseTGW:
+    Description: This costs money; it creates a connection to the organization transit gateway.
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+
+  ConfigureAsHubVpc:
+    Description: Setup the VPC as the center of a multi-account, hub and spoke network
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+
+  PublicHostedZoneId:
+    Description: The zone id for the public hosted zone (for aliasing ALBs)
+    Type: String
+    Default: "not set"
+
+  PublicHostedZoneName:
+    Description: The domain name for the public hosted zone
+    Type: String
+    Default: "not set"
+
+  DomainNameServers:
+    Type: String
+    Default: "not set"
+
+  SecurityZoneId:
+    Description: Create security subnets in the given avainability zone id
+    Type: String
+    Default: "not set"
+
+  SecurityVpcEndpointServiceName:
+    Description: The endpoint service name of the inspection GWLB from the hub vpc
+    Type: String
+    Default: "not set"
+
+  EnableInspection:
+    Description: Update the route tables to route all traffic through the inspection VPCE endpoints
+    Type: String
+    Default: "false"
+
+Conditions:
+  CreateZoneA: !Equals
+    - !Ref "CreateZoneA"
+    - "true"
+
+  CreateZoneB: !Equals
+    - !Ref "CreateZoneB"
+    - "true"
+
+  CreateZoneC: !Equals
+    - !Ref "CreateZoneC"
+    - "true"
+
+  CreateSecurityZone: !Not
+    - !Equals
+      - !Ref "SecurityZoneId"
+      - "not set"
+
+  CreateTGWAttachment: !Equals
+    - !Ref "UseTGW"
+    - "true"
+
+  CreatePublicHostedZoneIdSSM: !Not
+    - !Equals
+      - !Ref "PublicHostedZoneId"
+      - "not set"
+
+  CreatePublicHostedZoneNameSSM: !Not
+    - !Equals
+      - !Ref "PublicHostedZoneName"
+      - "not set"
+
+  IsHubVpc: !Equals
+    - !Ref "ConfigureAsHubVpc"
+    - "true"
+
+Rules:
+  NatGatewayOrTGW:
+    Assertions:
+      - Assert: !Not
+          - !And
+            - !Equals
+              - !Ref UseTGW
+              - "true"
+            - !Equals
+              - !Ref CreateNatGateway
+              - "true"
+        AssertDescription: Cannot use both Nat Gateway and TGW at the same time.
+
+  HubVpcMustHaveTGW:
+    Assertions:
+      - Assert: !Not
+          - !And
+            - !Equals
+              - !Ref ConfigureAsHubVpc
+              - "true"
+            - !Equals
+              - !Ref TransitGatewayId
+              - "none"
+        AssertDescription: Transit Gateway ID required for Hub VPC configuration
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - vpc.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        DomainName: !Sub "${EnvironmentName}.aws"
+        VPCNetworkPrefix: !Ref "VPCNetworkPrefix"
+        DomainNameServers: !Ref DomainNameServers
+
+  NetworkAcls:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - network-acls.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        VpcCidrBlock: !GetAtt "VPC.Outputs.VpcCidrBlock"
+
+  ZoneA:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateZoneA
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - zone.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        S3TemplateBucket: !Ref "S3TemplateBucket"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        VpcCidrBlock: !GetAtt "VPC.Outputs.VpcCidrBlock"
+        VpcIpv6CidrBlock: !GetAtt "VPC.Outputs.VpcIpv6CidrBlock"
+        InternetGateway: !GetAtt "VPC.Outputs.InternetGatewayId"
+        EgressOnlyInternetGateway: !GetAtt "VPC.Outputs.EgressOnlyInternetGateway"
+        PublicNetworkAcl: !GetAtt "NetworkAcls.Outputs.PublicNetworkAcl"
+        PrivateNetworkAcl: !GetAtt "NetworkAcls.Outputs.PrivateNetworkAcl"
+        AvailabilityZone: a
+        CreateNatGateway: !Ref CreateNatGateway
+
+  ZoneB:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateZoneB
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - zone.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        S3TemplateBucket: !Ref "S3TemplateBucket"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        VpcCidrBlock: !GetAtt "VPC.Outputs.VpcCidrBlock"
+        VpcIpv6CidrBlock: !GetAtt "VPC.Outputs.VpcIpv6CidrBlock"
+        InternetGateway: !GetAtt "VPC.Outputs.InternetGatewayId"
+        EgressOnlyInternetGateway: !GetAtt "VPC.Outputs.EgressOnlyInternetGateway"
+        PublicNetworkAcl: !GetAtt "NetworkAcls.Outputs.PublicNetworkAcl"
+        PrivateNetworkAcl: !GetAtt "NetworkAcls.Outputs.PrivateNetworkAcl"
+        AvailabilityZone: b
+        CreateNatGateway: !Ref CreateNatGateway
+
+  ZoneC:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateZoneC
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - zone.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        S3TemplateBucket: !Ref "S3TemplateBucket"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        VpcCidrBlock: !GetAtt "VPC.Outputs.VpcCidrBlock"
+        VpcIpv6CidrBlock: !GetAtt "VPC.Outputs.VpcIpv6CidrBlock"
+        InternetGateway: !GetAtt "VPC.Outputs.InternetGatewayId"
+        EgressOnlyInternetGateway: !GetAtt "VPC.Outputs.EgressOnlyInternetGateway"
+        PublicNetworkAcl: !GetAtt "NetworkAcls.Outputs.PublicNetworkAcl"
+        PrivateNetworkAcl: !GetAtt "NetworkAcls.Outputs.PrivateNetworkAcl"
+        AvailabilityZone: c
+        CreateNatGateway: !Ref CreateNatGateway
+
+  SecurityZone:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateSecurityZone
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - security-zone.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        VpcCidrBlock: !GetAtt "VPC.Outputs.VpcCidrBlock"
+        InternetGatewayId: !GetAtt "VPC.Outputs.InternetGatewayId"
+        SecurityZoneId: !Ref SecurityZoneId
+        SecurityVpcEndpointServiceName: !Ref SecurityVpcEndpointServiceName
+        PublicNetworkAcl: !GetAtt "NetworkAcls.Outputs.PublicNetworkAcl"
+        PrivateNetworkAcl: !GetAtt "NetworkAcls.Outputs.PrivateNetworkAcl"
+        CreateTestSubnets: "true"
+        EnableInspection: !Ref EnableInspection
+        PrivateRouteTableA: !If
+          - CreateZoneA
+          - !GetAtt "ZoneA.Outputs.RouteTable"
+          - "none"
+        PrivateRouteTableB: !If
+          - CreateZoneB
+          - !GetAtt "ZoneB.Outputs.RouteTable"
+          - "none"
+        PrivateRouteTableC: !If
+          - CreateZoneC
+          - !GetAtt "ZoneC.Outputs.RouteTable"
+          - "none"
+
+  HubVpcRouting:
+    Type: AWS::CloudFormation::Stack
+    Condition: IsHubVpc
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - hub-vpc-routing.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        TransitGatewayId: !Ref TransitGatewayId
+        SubnetIds: !Join
+          - ","
+          - - !If
+              - CreateZoneA
+              - !GetAtt "ZoneA.Outputs.PrivateSubnet"
+              - !Ref "AWS::NoValue"
+            #This needs to be fixed for opcenter
+            #Modified the TGW attachment manually to remove zone b subnet
+            # To fix, the above, comment out zone b
+            #- !If
+            #  - CreateZoneB
+            #  - !GetAtt 'ZoneB.Outputs.PrivateSubnet'
+            #  - !Ref 'AWS::NoValue'
+            - !If
+              - CreateZoneC
+              - !GetAtt "ZoneC.Outputs.PrivateSubnet"
+              - !Ref "AWS::NoValue"
+
+  TGWAttachment:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateTGWAttachment
+    Properties:
+      TemplateURL: !Join
+        - /
+        - - !Sub "https://s3.${AWS::Region}.amazonaws.com/${S3TemplateBucket}"
+          - tgw-attachment.yml
+      Parameters:
+        EnvironmentName: !Ref "EnvironmentName"
+        VPC: !GetAtt "VPC.Outputs.VPCId"
+        TransitGatewayId: !Ref TransitGatewayId
+        SubnetIds: !Join
+          - ","
+          - - !If
+              - CreateZoneA
+              - !GetAtt "ZoneA.Outputs.PrivateSubnet"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneB
+              - !GetAtt "ZoneB.Outputs.PrivateSubnet"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneC
+              - !GetAtt "ZoneC.Outputs.PrivateSubnet"
+              - !Ref "AWS::NoValue"
+        RouteTableA: !If
+          - CreateZoneA
+          - !GetAtt "ZoneA.Outputs.RouteTable"
+          - "none"
+        RouteTableB: !If
+          - CreateZoneB
+          - !GetAtt "ZoneB.Outputs.RouteTable"
+          - "none"
+        RouteTableC: !If
+          - CreateZoneC
+          - !GetAtt "ZoneC.Outputs.RouteTable"
+          - "none"
+
+  EnvironmentKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "KMS key for environment ${EnvironmentName}"
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: "key-default-1"
+        Statement:
+          - Sid: "Enable IAM User Permissions"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: "Allow administration of the key"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Sid: "Allow use of the key"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+            Resource: "*"
+
+  EnvironmentKmsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${EnvironmentName}-Key"
+      TargetKeyId: !Ref EnvironmentKmsKey
+
+  PrivateSubnetsSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/PrivateSubnets"
+      Type: "StringList"
+      Value: !Join
+        - ","
+        - - !If
+            - CreateZoneA
+            - !GetAtt "ZoneA.Outputs.PrivateSubnet"
+            - !Ref "AWS::NoValue"
+          - !If
+            - CreateZoneB
+            - !GetAtt "ZoneB.Outputs.PrivateSubnet"
+            - !Ref "AWS::NoValue"
+          - !If
+            - CreateZoneC
+            - !GetAtt "ZoneC.Outputs.PrivateSubnet"
+            - !Ref "AWS::NoValue"
+
+  PublicSubnetsSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/PublicSubnets"
+      Type: "StringList"
+      Value: !Join
+        - ","
+        - - !If
+            - CreateZoneA
+            - !GetAtt "ZoneA.Outputs.PublicSubnet"
+            - !Ref "AWS::NoValue"
+          - !If
+            - CreateZoneB
+            - !GetAtt "ZoneB.Outputs.PublicSubnet"
+            - !Ref "AWS::NoValue"
+          - !If
+            - CreateZoneC
+            - !GetAtt "ZoneC.Outputs.PublicSubnet"
+            - !Ref "AWS::NoValue"
+
+  VPCSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/VPC"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.VPCId"
+
+  VPCHostedZoneIdSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/VPCHostedZoneId"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.HostedZoneId"
+
+  VPCHostedZoneNameSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/VPCHostedZoneName"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.HostedZoneName"
+
+  PublicHostedZoneIdSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/PublicHostedZoneId"
+      Type: "String"
+      Value:
+        !If [CreatePublicHostedZoneIdSSM, !Ref PublicHostedZoneId, "not set"]
+
+  PublicHostedZoneNameSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/PublicHostedZoneName"
+      Type: "String"
+      Value:
+        !If [
+          CreatePublicHostedZoneNameSSM,
+          !Ref PublicHostedZoneName,
+          "not set",
+        ]
+
+  AdminSecurityGroupSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/AdminSecurityGroup"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.AdminSecurityGroup"
+
+  EcsInstanceSecurityGroupSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/EcsInstanceSecurityGroup"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.EcsInstanceSecurityGroup"
+
+  VPCNetworkPrefixSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/VPCNetworkPrefix"
+      Type: "String"
+      Value: !Ref "VPCNetworkPrefix"
+
+  VpcCidrBlockSSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/VpcCidrBlock"
+      Type: "String"
+      Value: !GetAtt "VPC.Outputs.VpcCidrBlock"
+
+  EnvironmentKmsKeySSM:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/${EnvironmentName}/EnvironmentKmsKey"
+      Type: "String"
+      Value: !GetAtt "EnvironmentKmsKey.Arn"
+
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !GetAtt "VPC.Outputs.VPCId"
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds: !Split
+        - ","
+        - !Join
+          - ","
+          - - !If
+              - CreateZoneA
+              - !GetAtt "ZoneA.Outputs.PublicRouteTable"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneA
+              - !GetAtt "ZoneA.Outputs.RouteTable"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneB
+              - !GetAtt "ZoneB.Outputs.PublicRouteTable"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneB
+              - !GetAtt "ZoneB.Outputs.RouteTable"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneC
+              - !GetAtt "ZoneC.Outputs.PublicRouteTable"
+              - !Ref "AWS::NoValue"
+            - !If
+              - CreateZoneC
+              - !GetAtt "ZoneC.Outputs.RouteTable"
+              - !Ref "AWS::NoValue"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+              - "s3:GetBucketLocation"
+            Resource:
+              - "arn:aws:s3:::*"
+              - "arn:aws:s3:::*/*"
+
+Outputs:
+  PrivateSubnetZoneA:
+    Condition: CreateZoneA
+    Value: !GetAtt "ZoneA.Outputs.PrivateSubnet"
+
+  PrivateSubnetZoneB:
+    Condition: CreateZoneB
+    Value: !GetAtt "ZoneB.Outputs.PrivateSubnet"
+
+  PrivateSubnetZoneC:
+    Condition: CreateZoneC
+    Value: !GetAtt "ZoneC.Outputs.PrivateSubnet"
+
+  PrivateSubnets:
+    Value: !Join
+      - ","
+      - - !If
+          - CreateZoneA
+          - !GetAtt "ZoneA.Outputs.PrivateSubnet"
+          - !Ref "AWS::NoValue"
+        - !If
+          - CreateZoneB
+          - !GetAtt "ZoneB.Outputs.PrivateSubnet"
+          - !Ref "AWS::NoValue"
+        - !If
+          - CreateZoneC
+          - !GetAtt "ZoneC.Outputs.PrivateSubnet"
+          - !Ref "AWS::NoValue"
+
+  PublicSubnetZoneA:
+    Condition: CreateZoneA
+    Value: !GetAtt "ZoneA.Outputs.PublicSubnet"
+
+  PublicSubnetZoneB:
+    Condition: CreateZoneB
+    Value: !GetAtt "ZoneB.Outputs.PublicSubnet"
+
+  PublicSubnetZoneC:
+    Condition: CreateZoneC
+    Value: !GetAtt "ZoneC.Outputs.PublicSubnet"
+
+  PublicSubnets:
+    Value: !Join
+      - ","
+      - - !If
+          - CreateZoneA
+          - !GetAtt "ZoneA.Outputs.PublicSubnet"
+          - !Ref "AWS::NoValue"
+        - !If
+          - CreateZoneB
+          - !GetAtt "ZoneB.Outputs.PublicSubnet"
+          - !Ref "AWS::NoValue"
+        - !If
+          - CreateZoneC
+          - !GetAtt "ZoneC.Outputs.PublicSubnet"
+          - !Ref "AWS::NoValue"
+
+  VPC:
+    Value: !GetAtt "VPC.Outputs.VPCId"
+
+  VPCHostedZoneId:
+    Value: !GetAtt "VPC.Outputs.HostedZoneId"
+
+  PublicHostedZoneId:
+    Value: !Ref PublicHostedZoneId
+
+  AdminSecurityGroup:
+    Description: The admin security group id
+    Value: !GetAtt "VPC.Outputs.AdminSecurityGroup"
+
+  EcsInstanceSecurityGroup:
+    Description: The ecs instance security group id
+    Value: !GetAtt "VPC.Outputs.EcsInstanceSecurityGroup"
+
+  VPCNetworkPrefix:
+    Value: !Ref "VPCNetworkPrefix"
+
+  VpcCidrBlock:
+    Value: !GetAtt "VPC.Outputs.VpcCidrBlock"
+
+  TransitGatewayAttachmentId:
+    Condition: CreateTGWAttachment
+    Description: Attachment ID to the Transit Gateway
+    Value: !GetAtt TGWAttachment.Outputs.TransitGatewayAttachmentId

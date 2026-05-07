@@ -2,24 +2,33 @@
   "name": "doenet-tools",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "~24.15.0"
+  },
   "workspaces": [
-    "client",
-    "server",
-    "shared",
-    "tests-cypress",
-    "blog"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run prisma:generate --workspace @doenet-tools/api",
+    "setup": "node scripts/setup.js",
+    "db:setup": "npm run prisma:migrate-dev --workspace @doenet-tools/api && npm run prisma:seed --workspace @doenet-tools/api",
+    "dev": "npm run build --workspace @doenet-tools/shared -- --force && concurrently \"npm run dev --workspace @doenet-tools/shared\" \"npm run dev --workspace @doenet-tools/api\" \"npm run dev --workspace @doenet-tools/app\" \"npm run dev --workspace @doenet-tools/web\"",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "lint": "npm run lint --workspaces",
-    "lint:check": "npm run lint:check --workspaces"
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:check": "npm run lint:check --workspaces --if-present",
+    "build:ts": "npm run build:ts --workspaces --if-present && tsc --build",
+    "build:assets": "npm run build:assets --workspaces --if-present",
+    "build": "npm run build:ts && npm run build:assets"
   },
   "devDependencies": {
     "@cypress/grep": "^6.0.0",
+    "@doenet-tools/eslint-config": "*",
     "@eslint/js": "^9.39.2",
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.0.10",
+    "concurrently": "^9.1.0",
     "cypress": "^15.10.0",
     "cypress-axe": "^1.7.0",
     "cypress-file-upload": "^5.0.8",
@@ -28,20 +37,16 @@
     "cypress-plugin-tab": "^1.0.5",
     "cypress-wait-until": "^3.0.2",
     "eslint": "^9.39.2",
-    "eslint-plugin-cypress": "^5.2.1",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-mocha": "^11.2.0",
     "eslint-plugin-unused-imports": "^4.3.0",
     "prettier": "^3.8.1",
-    "react-router-dom": "^7.12.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
     "vite": "^7.3.1",
     "vite-plugin-dts": "^4.5.4",
-    "vite-plugin-mpa": "^1.2.0",
-    "vite-plugin-static-copy": "^3.1.5",
-    "wait-on": "^9.0.3",
-    "wick-a11y": "^2.5.0",
-    "wireit": "^0.14.12"
+    "wick-a11y": "^2.5.0"
   }
 }

@@ -1,0 +1,58 @@
+Environment:
+  - Name: PORT
+    Value: 3000
+  - Name: APP_URL
+    Value: "https://beta.doenet.org"
+  - Name: DATABASE_PORT
+    Value: 3306
+  - Name: DATABASE_NAME
+    Value: "doenet"
+  - Name: EMAIL_SES_FROM_ADDRESS
+    Value: "Doenet Accounts <info@mail.doenet.org>"
+  - Name: EMAIL_SES_REGION
+    Value: "us-east-2"
+  - Name: EMAIL_SES_ARN
+    Value: "arn:aws:ses:us-east-2:350646758180:identity/mail.doenet.org"
+  - Name: ENABLE_TEST_AUTH_BYPASS
+    Value: "false"
+  - Name: ENABLE_TEST_ROUTES
+    Value: "false"
+  - Name: MOCK_SIGNIN_EMAIL
+    Value: "false"
+  - Name: NODE_OPTIONS
+    Value: "--max-old-space-size=1950"
+  - Name: DISCOURSE_API_USERNAME
+    Value: "system"
+  - Name: DISCOURSE_URL
+    Value: "https://community.doenet.org"
+Secrets:
+  - Name: DATABASE_HOST
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBHost"
+  - Name: DATABASE_USER
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBUsername"
+  - Name: DATABASE_PASSWORD
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBPassword"
+  - Name: DATABASE_URL
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/mysql/DBUrl"
+  - Name: SESSION_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/SessionSecret"
+  - Name: GOOGLE_CLIENT_ID
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/GoogleClientId"
+  - Name: GOOGLE_CLIENT_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/GoogleClientSecret"
+  - Name: MAGIC_LINK_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/MagicLinkSecret"
+  - Name: DISCOURSE_SSO_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/DiscourseSsoSecret"
+  # - Name: DISCOURSE_API_KEY
+  #   ValueFrom:
+  #     Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/DiscourseApiKey"

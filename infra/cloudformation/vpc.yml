@@ -1,0 +1,345 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC template
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment this is going into (staging, etc)
+    Type: String
+  DomainName:
+    Description: The private hosted zone name
+    Type: String
+  VPCNetworkPrefix:
+    Description: The first two octets of the network range (ex. '192.168')
+    Type: String
+  DomainNameServers:
+    Type: CommaDelimitedList
+    Default: "not set"
+  SearchDomainName:
+    Type: String
+    Default: "not set"
+Conditions:
+  OverrideDNS: !Not
+    - !Equals
+      - !Select [0, !Ref "DomainNameServers"]
+      - "not set"
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Join
+        - .
+        - - !Ref "VPCNetworkPrefix"
+          - "0/21"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - vpc
+        - Key: Environment
+          Value: !Ref "EnvironmentName"
+        - Key: Application
+          Value: !Ref "AWS::StackId"
+
+  VPCIpv6CidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref VPC
+      AmazonProvidedIpv6CidrBlock: true
+
+  EgressOnlyInternetGateway:
+    Type: AWS::EC2::EgressOnlyInternetGateway
+    DependsOn: VPCIpv6CidrBlock
+    Properties:
+      VpcId: !Ref "VPC"
+  DHCPOptionSet:
+    Type: AWS::EC2::DHCPOptions
+    Condition: OverrideDNS
+    Properties:
+      DomainName: !Ref SearchDomainName
+      DomainNameServers: !Ref DomainNameServers
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - dhcp-options
+        - Key: Application
+          Value: !Ref "AWS::StackId"
+  VPCDHCPOptionsAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Condition: OverrideDNS
+    Properties:
+      VpcId: !Ref "VPC"
+      DhcpOptionsId: !Ref "DHCPOptionSet"
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - internet-gateway
+        - Key: Application
+          Value: !Ref "AWS::StackId"
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref "VPC"
+      InternetGatewayId: !Ref "InternetGateway"
+  EcsInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W75
+          - id: W98
+          - id: W40
+          - id: W5
+          - id: W42
+    Properties:
+      VpcId: !Ref "VPC"
+      GroupDescription: Enable access to necessary ports for ECS instances
+      SecurityGroupIngress:
+        - CidrIp: 10.0.0.0/8
+          FromPort: 0
+          ToPort: 65535
+          IpProtocol: tcp
+          Description: permit all inbound from 10.0.0.0/8
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+          Description: permit all outbound IPv4
+        - CidrIpv6: ::/0
+          IpProtocol: "-1"
+          Description: permit all outbound IPv6
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - ecs-instance-sg
+  EcsInstanceSecurityGroupIngressFromSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from other containers in the same security group
+      GroupId: !Ref "EcsInstanceSecurityGroup"
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref "EcsInstanceSecurityGroup"
+  AdminSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W75
+          - id: W98
+          - id: W40
+          - id: W5
+    Properties:
+      VpcId: !Ref "VPC"
+      GroupDescription: Enable access to necessary ports for admins
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+          Description: permit all outbound
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - admin-sg
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      HostedZoneConfig:
+        Comment: vpc hosted zone
+      HostedZoneTags:
+        - Key: Name
+          Value: !Ref "AWS::StackName"
+        - Key: Environment
+          Value: !Ref "EnvironmentName"
+      Name: !Sub "${DomainName}"
+      VPCs:
+        - VPCId: !Ref "VPC"
+          VPCRegion: !Ref "AWS::Region"
+
+  ReverseDnsZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      HostedZoneConfig:
+        Comment: vpc reverse dns zone (for PTR records)
+      HostedZoneTags:
+        - Key: Name
+          Value: !Ref "AWS::StackName"
+        - Key: Environment
+          Value: !Ref "EnvironmentName"
+      Name: !Join
+        - .
+        - - !Select
+            - 1
+            - !Split
+              - .
+              - !Ref VPCNetworkPrefix
+          - !Select
+            - 0
+            - !Split
+              - .
+              - !Ref VPCNetworkPrefix
+          - "in-addr.arpa."
+      VPCs:
+        - VPCId: !Ref "VPC"
+          VPCRegion: !Ref "AWS::Region"
+
+  ChangeResourceRecordSetsEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Update PTR (reverse DNS) records when A records change
+      EventPattern:
+        source:
+          - "aws.route53"
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          eventSource:
+            - "route53.amazonaws.com"
+          eventName:
+            - "ChangeResourceRecordSets"
+          requestParameters:
+            hostedZoneId:
+              - !Ref HostedZone
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ReverseDnsUpdateFunction.Arn
+          Id: "ReverseDnsUpdateFunction"
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ReverseDnsUpdateFunction
+      Action: "lambda:InvokeFunction"
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ChangeResourceRecordSetsEventRule.Arn
+
+  ReverseDnsUpdateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${EnvironmentName}-ReverseDnsUpdateFunction
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Description: Update PTR (reverse DNS) records when A records change
+      Code:
+        ZipFile: !Sub |
+          console.log('Loading function');
+
+          export const handler = async (event, context) => {
+            console.log('Received event:', JSON.stringify(event, null, 2));
+            // throw new Error('Something went wrong');
+            // HostedZoneId ${HostedZone}
+            // HostedZoneName ${DomainName}
+          };
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: CloudwatchLogs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        - PolicyName: UpdateDnsZone
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "route53:List*"
+                  - "route53:Get*"
+                  - "route53:ChangeResourceRecordSets"
+
+                Resource:
+                  - !Sub "arn:aws:route53:::hostedzone/${ReverseDnsZone}"
+
+  VpcFlowLog:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      LogGroupName: !Sub ${EnvironmentName}-vpc-flow-logs
+      LogDestinationType: cloud-watch-logs
+      ResourceId: !Ref VPC
+      ResourceType: VPC
+      TrafficType: ALL
+
+  FlowLogRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: flowlogs-to-cloudwatch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: "*"
+
+Outputs:
+  VPCId:
+    Description: VPCId of the newly created VPC
+    Value: !Ref "VPC"
+  InternetGatewayId:
+    Description: ID of the newly created VPC Internet Gateway
+    Value: !Ref "InternetGateway"
+  VpcCidrBlock:
+    Description: The CIDR block of the newly created VPC
+    Value: !GetAtt "VPC.CidrBlock"
+  VpcIpv6CidrBlock:
+    Description: The IPv6 CIDR block of the newly created VPC
+    Value: !Select [0, !GetAtt VPC.Ipv6CidrBlocks]
+  EgressOnlyInternetGateway:
+    Description: The EgressOnlyInternetGateway id
+    Value: !Ref "EgressOnlyInternetGateway"
+  AdminSecurityGroup:
+    Description: The admin security group id
+    Value: !Ref "AdminSecurityGroup"
+  EcsInstanceSecurityGroup:
+    Description: The ecs instance security group id
+    Value: !Ref "EcsInstanceSecurityGroup"
+  HostedZoneId:
+    Description: The private hosted zone id
+    Value: !Ref "HostedZone"
+  HostedZoneName:
+    Description: The private hosted zone name
+    Value: !Ref "DomainName"

@@ -1,0 +1,581 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Navigate services common resources in AWS
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: General Environment Configuration
+        Parameters:
+          - EnvironmentName
+          - Project
+          - WebACLArn
+          - LoadBalancerScheme
+          - EnableSSL
+      - Label:
+          default: SSM-sourced parameters
+        Parameters:
+          - VPC
+          - PublicSubnets
+          - PrivateSubnets
+          - KmsKey
+          - DnsZone
+          - HostedZoneId
+          - PublicHostedZoneName
+          - PublicHostedZoneId
+          - SecurityGroup
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    #    MaxLength: 10
+    Default: dev
+
+  Project:
+    Type: String
+    Description: The project name
+
+  KmsKey:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/EnvironmentKmsKey"
+
+  SecurityGroup:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::SecurityGroup::Id>"
+    Default: "/demo/EcsInstanceSecurityGroup"
+
+  PublicSubnets:
+    Type: "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>"
+    Default: "/demo/PublicSubnets"
+
+  PrivateSubnets:
+    Type: "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>"
+    Default: "/demo/PrivateSubnets"
+
+  VPC:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>"
+    Default: "/demo/VPC"
+
+  WebACLArn:
+    Type: String
+
+  LoadBalancerScheme:
+    Type: String
+    Default: internal
+    AllowedValues:
+      - disable
+      - internet-facing
+      - internal
+
+  DnsZone:
+    Description: Route53 hosted zone to use for the database's DNS record (<prefix>.<zone>)
+    Type: "AWS::SSM::Parameter::Value<String>"
+
+  HostedZoneId:
+    Description: Route53 hosted zone id to use for the database's DNS record
+    Type: "AWS::SSM::Parameter::Value<String>"
+
+  EnableSSL:
+    Description: Enable an HTTPS listener (requires a public hosted zone)
+    Type: String
+    AllowedValues:
+      - enable
+      - disable
+
+  PublicHostedZoneName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/PublicHostedZoneName"
+
+  PublicHostedZoneId:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/demo/PublicHostedZoneId"
+
+Conditions:
+  WafIsEnabled: !And
+    - !Not
+      - !Equals
+        - !Ref LoadBalancerScheme
+        - "disable"
+    - !Not
+      - !Equals
+        - !Ref WebACLArn
+        - "not set"
+
+  LbIsEnabled: !Not
+    - !Equals
+      - !Ref LoadBalancerScheme
+      - "disable"
+
+  SSLIsEnabled: !And
+    - !Equals
+      - !Ref EnableSSL
+      - "enable"
+    - !Not
+      - !Equals
+        - !Ref LoadBalancerScheme
+        - "disable"
+
+  SSLIsDisabled: !And
+    - !Equals
+      - !Ref EnableSSL
+      - "disable"
+    - !Not
+      - !Equals
+        - !Ref LoadBalancerScheme
+        - "disable"
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      "ElbLogsAccount": "127311923021"
+    us-east-2:
+      "ElbLogsAccount": "033677994240"
+    us-west-1:
+      "ElbLogsAccount": "027434742980"
+    us-west-2:
+      "ElbLogsAccount": "797873946194"
+
+Resources:
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref EnvironmentName
+      Tags:
+        - Key: Group
+          Value: !Ref EnvironmentName
+
+  EcsClusterSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/EcsCluster"
+      Type: String
+      Value: !Ref EcsCluster
+
+  ECSCloudWatchParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/ECSCloudWatchParameter"
+      Type: String
+      Value: !Sub |
+        {
+          "logs": {
+            "force_flush_interval": 5,
+            "logs_collected": {
+              "files": {
+                "collect_list": [
+                  {
+                    "file_path": "/var/log/messages",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/messages",
+                    "timestamp_format": "%b %d %H:%M:%S"
+                  },
+                  {
+                    "file_path": "/var/log/dmesg",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/dmesg"
+                  },
+                  {
+                    "file_path": "/var/log/docker",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/docker",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f"
+                  },
+                  {
+                    "file_path": "/var/log/ecs/ecs-init.log",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/ecs/ecs-init.log",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                  },
+                  {
+                    "file_path": "/var/log/ecs/ecs-agent.log.*",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/ecs/ecs-agent.log",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                  },
+                  {
+                    "file_path": "/var/log/ecs/audit.log",
+                    "log_group_name": "${EnvironmentName}",
+                    "log_stream_name": "{instance_id}/var/log/ecs/audit.log",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                  }
+                ]
+              }
+            }
+          },
+          "metrics": {
+            "append_dimensions": {
+              "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+              "InstanceId": "${!aws:InstanceId}",
+              "InstanceType": "${!aws:InstanceType}"
+            },
+            "metrics_collected": {
+              "collectd": {
+                "metrics_aggregation_interval": 60
+              },
+              "disk": {
+                "measurement": [
+                  "used_percent"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                  "/"
+                ]
+              },
+              "mem": {
+                "measurement": [
+                  "mem_used_percent"
+                ],
+                "metrics_collection_interval": 60
+              },
+              "statsd": {
+                "metrics_aggregation_interval": 60,
+                "metrics_collection_interval": 10,
+                "service_address": ":8125"
+              }
+            }
+          }
+        }
+
+  CloudwatchSNSWarningTopic:
+    Type: AWS::SNS::Topic
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W47
+    Properties:
+      DisplayName: !Sub "${EnvironmentName}-warning-cloudwatch-notifications"
+      Subscription:
+        - Endpoint: "devops@doenet.org"
+          Protocol: email
+      TopicName: !Sub "${EnvironmentName}-warning-cloudwatch-notifications"
+
+  CloudwatchSNSWarningTopicSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CloudwatchSNSWarningTopic"
+      Type: String
+      Value: !Ref CloudwatchSNSWarningTopic
+
+  CloudwatchSNSCriticalTopic:
+    Type: AWS::SNS::Topic
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W47
+    Properties:
+      DisplayName: !Sub "${EnvironmentName}-critical-cloudwatch-notifications"
+      Subscription:
+        - Endpoint: "devops@doenet.org"
+          Protocol: email
+      TopicName: !Sub "${EnvironmentName}-critical-cloudwatch-notifications"
+
+  CloudwatchSNSCriticalTopicSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CloudwatchSNSCriticalTopic"
+      Type: String
+      Value: !Ref CloudwatchSNSCriticalTopic
+
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Condition: LbIsEnabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+          - id: W41
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${EnvironmentName}-${Project}-access-logs"
+      LifecycleConfiguration:
+        Rules:
+          - Id: RemoveFilesAfter7Days
+            Prefix: logs
+            Status: Enabled
+            ExpirationInDays: 7
+            NoncurrentVersionExpirationInDays: 7
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: LbIsEnabled
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub
+                - "arn:aws:iam::${ELB_ACCOUNT_ID}:root"
+                - ELB_ACCOUNT_ID:
+                    !FindInMap [RegionMap, !Ref "AWS::Region", "ElbLogsAccount"]
+            Action: "s3:PutObject"
+            Resource: !Sub "${LogsBucket.Arn}/logs/AWSLogs/${AWS::AccountId}/*"
+          - Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: "s3:PutObject"
+            Resource: !Sub "${LogsBucket.Arn}/logs/AWSLogs/${AWS::AccountId}/*"
+            Condition:
+              StringEquals:
+                "s3:x-amz-acl": bucket-owner-full-control
+          - Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: "s3:GetBucketAcl"
+            Resource: !GetAtt LogsBucket.Arn
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: LbIsEnabled
+    Properties:
+      Scheme: !Ref LoadBalancerScheme
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "30"
+        - Key: access_logs.s3.enabled
+          Value: "true"
+        - Key: access_logs.s3.bucket
+          Value: !Ref LogsBucket
+        - Key: access_logs.s3.prefix
+          Value: logs
+      Subnets: !Ref PublicSubnets
+      SecurityGroups:
+        - !Ref LoadBalancerSG
+        - !Ref SecurityGroup
+
+  LoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Condition: LbIsEnabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W75
+          - id: W98
+          - id: W40
+          - id: W5
+          - id: W42
+          - id: W9
+          - id: W2
+    Properties:
+      GroupDescription: Access to the public facing load balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+          Description: Permit all inbound traffic
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+          Description: Permit all outboud traffic
+
+  # LoadBalancerDns:
+  #   Type: AWS::Route53::RecordSet
+  #   Condition: LbIsEnabled
+  #   Properties:
+  #     HostedZoneId: !Ref PublicHostedZoneId
+  #     Name: !Sub "${PublicHostedZoneName}."
+  #     Type: A
+  #     AliasTarget:
+  #       HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+  #       DNSName: !GetAtt LoadBalancer.DNSName
+  #       EvaluateTargetHealth: false
+
+  LoadBalancerFullNameSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerFullName"
+      Type: String
+      Value:
+        !If [LbIsEnabled, !GetAtt LoadBalancer.LoadBalancerFullName, "not set"]
+
+  LoadBalancerDnsNameSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerDnsName"
+      Type: String
+      Value: !If [LbIsEnabled, !GetAtt LoadBalancer.DNSName, "not set"]
+
+  LoadBalancerHostedZoneIdSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerHostedZoneId"
+      Type: String
+      Value:
+        !If [LbIsEnabled, !GetAtt LoadBalancer.CanonicalHostedZoneID, "not set"]
+
+  LoadBalancerHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: SSLIsDisabled
+    Properties:
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "text/html"
+            StatusCode: "200"
+            MessageBody: >
+              <!doctype html>
+              <title>This is not the page you're looking for</title>
+              <style>
+                .main-logo {text-align: center;}
+              </style>
+              <div class="main-logo">
+                <a rel="home" title="404 Home" class="active" href="https://www.unicon.net/"><img class="logo" id="logo" alt="Unicon logo" title="Home" src="https://www.unicon.net/hs-fs/hubfs/raw_assets/public/Unicon_October2020/images/logo.png?width=600&name=logo.png"></a>		    
+              </div>
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  LoadBalancerHttpListenerSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerHttpListener"
+      Type: String
+      Value: !If [SSLIsDisabled, !Ref LoadBalancerHttpListener, "not set"]
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: SSLIsEnabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W56
+    Properties:
+      DefaultActions:
+        - Type: "redirect"
+          RedirectConfig:
+            Protocol: "HTTPS"
+            Port: "443"
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: "HTTP_301"
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  LoadBalancerHttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: SSLIsEnabled
+    Properties:
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "text/html"
+            StatusCode: "200"
+            MessageBody: >
+              <!doctype html>
+              <title>This is not the page you're looking for</title>
+              <style>
+                .main-logo {text-align: center;}
+              </style>
+              <div class="main-logo">
+                <a rel="home" title="404 Home" class="active" href="https://www.unicon.net/"><img class="logo" id="logo" alt="Unicon logo" title="Home" src="https://www.unicon.net/hs-fs/hubfs/raw_assets/public/Unicon_October2020/images/logo.png?width=600&name=logo.png"></a>		    
+              </div>
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref SSLCertificate
+
+  SSLCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Condition: SSLIsEnabled
+    Properties:
+      DomainName: !Ref PublicHostedZoneName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref PublicHostedZoneName
+          HostedZoneId: !Ref PublicHostedZoneId
+      SubjectAlternativeNames:
+        - !Sub "*.${PublicHostedZoneName}"
+
+  LoadBalancerHttpsListenerSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerHttpsListener"
+      Type: String
+      Value: !If [SSLIsEnabled, !Ref LoadBalancerHttpsListener, "not set"]
+
+  EfsFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-efs"
+      KmsKeyId: !Ref KmsKey
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+
+  EfsDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Comment: EFS
+      Name: !Sub "${EnvironmentName}-efs.${DnsZone}"
+      Type: A
+      TTL: 60
+      ResourceRecords:
+        - !GetAtt MountTarget1.IpAddress
+        - !GetAtt MountTarget2.IpAddress
+
+  EfsFileSystemSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/EfsFileSystemId"
+      Type: String
+      Value: !Ref EfsFileSystem
+
+  MountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EfsFileSystem
+      SubnetId: !Select [0, !Ref PrivateSubnets]
+      SecurityGroups:
+        - !Ref SecurityGroup
+
+  MountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EfsFileSystem
+      SubnetId: !Select [1, !Ref PrivateSubnets]
+      SecurityGroups:
+        - !Ref SecurityGroup
+
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: WafIsEnabled
+    Properties:
+      ResourceArn: !Ref LoadBalancer
+      WebACLArn: !Ref WebACLArn
+
+  PrivateNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: !Sub ${EnvironmentName}.doenet.internal
+      Vpc: !Ref VPC
+
+  PrivateNamespaceSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CloudMapPrivateNamespace"
+      Type: String
+      Value: !Ref PrivateNamespace
+
+Outputs:
+  CloudwatchSNSWarningTopic:
+    Value: !Ref CloudwatchSNSWarningTopic
+  CloudwatchSNSCriticalTopic:
+    Value: !Ref CloudwatchSNSCriticalTopic

@@ -1,0 +1,64 @@
+<title>Mathematical tags in Doenet</title>
+
+<p>Doenet has multiple ways of authoring mathematics. This document is just a quick overview of the options. For more details, see <ref to="https://docs.doenet.org/tutorials/introdTutorial/iT1-4-comparison-math">A Comparison of Mathematics Tags</ref> from the tutorial.</p>
+
+<section>
+  <title>Displayed mathematics: the <tag>m</tag> tag</title>
+
+  <p>If you are familiar with LaTeX and you don't want to do any computation with mathematics, then the <tag>m</tag> tag is for you. Just put any valid LaTeX inside it and it will display as nicely formatted mathematics.</p>
+
+  <subsection>
+  <title>Examples</title>
+
+  <ul>
+    <li>Trig functions: <m>\sin(x^2) + \arcsin(3)</m></li>
+    <li>A rational expression: <m>\frac{x^2-2}{y+z}</m></li>
+    <li>An integral: <m>\int_a^b f(x)\, dx</m></li>
+  </ul>
+  </subsection>  
+</section>
+
+<section>
+  <title>Computations with math: the <tag>math</tag> tag</title>
+
+  <p>If you want to perform computations like simplifications, then you'll gravitate toward the <tag>math</tag> tag. By default, the <tag>math</tag> does not support LaTeX; instead it uses a plain text format.</p>
+
+  <subsection>
+    <title>Examples</title>
+
+    <p>Most (but not all) expressions that you can write with an <tag>m</tag> can also be written with an <tag>math</tag> tag.</p>
+    
+    <ul>
+      <li>Trig functions: <math>sin(x^2) + arcsin(3)</math></li>
+      <li>A rational expression: <math>(x^2-2)/(y+z)</math></li>
+      <li>An integral: <math>int_a^b f(x) dx</math></li>
+    </ul>
+  </subsection>
+
+  <subsection>
+    <title>Simplification and expansion</title>
+
+    <p>With a <tag>math</tag>, you can simplify or expand the result. For details on the different types of simplifications possible, see <ref to="https://docs.doenet.org/reference/math">the documentation</ref>.</p>
+
+    <ul>
+      <li>Simplify <math>x+x</math>: <math simplify>x+x</math></li>
+      <li>Simplify <math>(x+2)(x+1)</math>: <math simplify>(x+1)(x+2)</math></li>
+      <li>Expand <math>(x+2)(x+1)</math>: <math  expand>(x+1)(x+2)</math></li>
+    </ul>
+    
+  </subsection>
+
+  <subsection>
+    <title>LaTeX in <tag>math</tag></title>
+
+    <p>If you really want to type in LaTeX, you can set the <attr>format</attr> attribute to "latex"</p>
+
+
+  <ul>
+    <li>Simplify with latex format: <math format="latex" simplify>\sin(0)</math></li>
+    <li>Expand with latex format: <math format="latex" expand>\log((x-1)(x+1))</math></li>
+  </ul>
+    
+  </subsection>
+  
+</section>

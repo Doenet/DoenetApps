@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "mail.doenet.org"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "Z1038898S1YL9GRMU0SY"
+  },
+  {
+    "ParameterKey": "AllowedAccountId",
+    "ParameterValue": "568298704244"
+  }
+]

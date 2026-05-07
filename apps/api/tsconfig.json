@@ -1,0 +1,31 @@
+{
+  "extends": "../../configs/typescript/tsconfig.node.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+
+    "allowSyntheticDefaultImports": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "tsBuildInfoFile": "../../.tsbuildinfo/apps/api.tsbuildinfo",
+
+    // Only include types that the server actually uses (excludes cypress)
+    "types": ["node", "express", "passport", "chai"],
+
+    // The following settings are only used because of Passport
+    "esModuleInterop": true,
+    "typeRoots": ["../../node_modules/@types", "src/types"]
+  },
+  "include": [
+    "src",
+    "prisma",
+    "scripts",
+    "prisma/seed/**/*.json",
+    "passport-anonymous/lib"
+  ],
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ]
+}

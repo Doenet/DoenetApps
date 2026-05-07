@@ -1,0 +1,58 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "Project",
+    "ParameterValue": "doenet"
+  },
+  {
+    "ParameterKey": "DnsZone",
+    "ParameterValue": "/prod/VPCHostedZoneName"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "/prod/VPCHostedZoneId"
+  },
+  {
+    "ParameterKey": "LoadBalancerScheme",
+    "ParameterValue": "internet-facing"
+  },
+  {
+    "ParameterKey": "EnableSSL",
+    "ParameterValue": "enable"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/prod/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/prod/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "WebACLArn",
+    "ParameterValue": "not set"
+  },
+  {
+    "ParameterKey": "SecurityGroup",
+    "ParameterValue": "/prod/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/prod/VPC"
+  },
+  {
+    "ParameterKey": "PublicSubnets",
+    "ParameterValue": "/prod/PublicSubnets"
+  },
+  {
+    "ParameterKey": "PrivateSubnets",
+    "ParameterValue": "/prod/PrivateSubnets"
+  },
+  {
+    "ParameterKey": "KmsKey",
+    "ParameterValue": "/prod/EnvironmentKmsKey"
+  }
+]

@@ -1,0 +1,491 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String   @db.Text
+  expiresAt DateTime
+}
+
+model content {
+  // 
+  // ========= General ==========
+  id                     Bytes                    @id @default(dbgenerated("(uuid_to_bin(uuid(),1))")) @db.Binary(16)
+  type                   ContentType              @default(singleDoc)
+  ownerId                Bytes                    @db.Binary(16)
+  owner                  users                    @relation(fields: [ownerId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  name                   String
+  createdAt              DateTime                 @default(now())
+  sortIndex              BigInt
+  licenseCode            String?                  @default("CCDUAL") @db.VarChar(10)
+  license                licenses?                @relation(fields: [licenseCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  lastEdited             DateTime                 @default(now())
+  // 
+  // ========== Tree structure ==========
+  parentId               Bytes?                   @db.Binary(16)
+  parent                 content?                 @relation("childParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children               content[]                @relation("childParent")
+  // 
+  // ========== Sharing ==========
+  visibility             Visibility               @default(private)
+  isPublic               Boolean                  @default(false)
+  sharedWith             contentShares[]
+  // `publiclySharedAt`: when the content was made public, including through parent folder sharing
+  publiclySharedAt       DateTime?
+  // 
+  // ====== Documents =========
+  source                 String?                  @db.MediumText
+  doenetmlVersionId      Int?
+  doenetmlVersion        doenetmlVersions?        @relation(fields: [doenetmlVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  numVariants            Int                      @default(1)
+  // Specific to documents inside problem sets
+  repeatInProblemSet     Int                      @default(1)
+  // 
+  // ====== Problem Sets =========
+  shuffle                Boolean                  @default(false)
+  paginate               Boolean                  @default(false)
+  // 
+  // ====== Selects (obsolete) =========
+  numToSelect            Int                      @default(1) @db.UnsignedSmallInt
+  selectByVariant        Boolean                  @default(false)
+  // 
+  // ===== Code ==========
+  // Course or assignment code
+  // All courses have a code, and all one-off assignments have a code.
+  classCode              Int?                     @unique @db.UnsignedInt
+  // 
+  // ====== Assignments ==========
+  // `isAssignmentRoot` is true if both: 1) this content is an assignment 2) this content is the root of that assignment
+  isAssignmentRoot       Boolean                  @default(false)
+  assignmentOpenOn       DateTime?
+  assignmentClosedOn     DateTime?
+  mode                   AssignmentMode           @default(formative)
+  maxAttempts            Int                      @default(1) @db.UnsignedSmallInt
+  individualizeByStudent Boolean                  @default(true)
+  submittedResponses     submittedResponses[]
+  contentStates          contentState[]
+  assignmentScores       assignmentScores[]
+  contentItemStates      contentItemState[]
+  // 
+  // ====== Deletion =========
+  // The parent id that the user deleted. Not defined if this is root
+  deletionRootId         Bytes?                   @db.Binary(16)
+  isDeletedOn            DateTime?
+  deletionRoot           content?                 @relation("deletionRoot", fields: [deletionRootId], references: [id])
+  isDeletionRootFor      content[]                @relation("deletionRoot")
+  // 
+  // ======= Courses ==========
+  // `courseRoot`: If I'm part of a course, points to root of course I'm in (myself if I'm root)
+  //               If empty, I'm not in a course.
+  //               Course roots cannot be nested.
+  // `courseContent`: If non-empty, I'm a course root and it points to all the content in my course, including myself.
+  // `scopedUsers`: ignored if not at course root.
+  courseRootId           Bytes?                   @db.Binary(16)
+  courseRoot             content?                 @relation("courseRoot", fields: [courseRootId], references: [id])
+  courseContent          content[]                @relation("courseRoot")
+  scopedUsers            users[]                  @relation(name: "scopedToClass")
+  // 
+  // ====== Metadata/tagging =========
+  categories             categories[]
+  classifications        contentClassifications[]
+  // 
+  // ====== Library =========
+  librarySourceInfo      libraryActivityInfos?    @relation("source")
+  libraryActivityInfo    libraryActivityInfos?    @relation("activity")
+  // 
+  // ===== Tracking data ========
+  contentViews           contentViews[]
+  recentContent          recentContent[]
+  // 
+  // ====== History =========
+  contentRevisions       contentRevisions[]
+
+  @@index([ownerId, parentId, sortIndex])
+  @@index([parentId, type])
+  @@fulltext([name])
+  @@fulltext([source])
+}
+
+enum ContentType {
+  singleDoc
+  select
+  sequence
+  folder
+}
+
+enum Visibility {
+  private
+  unlisted
+  public
+}
+
+model recentContent {
+  id        Int        @id @default(autoincrement())
+  userId    Bytes      @db.Binary(16)
+  contentId Bytes      @db.Binary(16)
+  accessed  DateTime   @default(now())
+  mode      RecentMode
+  user      users      @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  content   content    @relation(fields: [contentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, mode, contentId])
+}
+
+enum RecentMode {
+  edit
+  view
+}
+
+model contentRevisions {
+  contentId                  Bytes                @db.Binary(16)
+  revisionNum                Int
+  revisionName               String
+  note                       String?              @db.Text
+  autoGenerated              Boolean              @default(true)
+  cid                        String
+  source                     String               @db.MediumText
+  createdAt                  DateTime             @default(now())
+  numVariants                Int                  @default(1)
+  doenetmlVersionId          Int?
+  content                    content              @relation(fields: [contentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  doenetmlVersion            doenetmlVersions?    @relation(fields: [doenetmlVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  contributorHistoryAsOrigin contributorHistory[] @relation("originContent")
+  contributorHistoryAsRemix  contributorHistory[] @relation("remixContent")
+
+  @@id([contentId, revisionNum])
+  @@index([contentId, cid])
+  @@index([cid])
+}
+
+model licenses {
+  code               String                @id @db.VarChar(10)
+  name               String
+  description        String                @db.Text
+  imageURL           String?
+  smallImageURL      String?
+  licenseURL         String?
+  composedOf         licenseCompositions[] @relation("composeOf")
+  includedIn         licenseCompositions[] @relation("includedIn")
+  content            content[]
+  sortIndex          Int
+  contributorHistory contributorHistory[]
+}
+
+model licenseCompositions {
+  composedOfCode String   @db.VarChar(10)
+  composedOf     licenses @relation("includedIn", fields: [composedOfCode], references: [code])
+  includedInCode String   @db.VarChar(10)
+  includedIn     licenses @relation("composeOf", fields: [includedInCode], references: [code])
+
+  @@id([composedOfCode, includedInCode])
+}
+
+model categories {
+  id          Int             @id @default(autoincrement())
+  // For now, we'll make groupId optional. Later, when we've migrated our existing categories, we'll make it required.
+  groupId     Int?
+  code        String          @unique
+  term        String          @unique
+  description String
+  sortIndex   Int
+  content     content[]
+  group       categoryGroups? @relation(fields: [groupId], references: [id])
+}
+
+model categoryGroups {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  // Whether this group must be filled out to be shared publicly
+  isRequired  Boolean      @default(false)
+  isExclusive Boolean      @default(false)
+  categories  categories[]
+}
+
+model contributorHistory {
+  remixContentId               Bytes            @db.Binary(16)
+  remixContentRevisionNum      Int
+  originContentId              Bytes            @db.Binary(16)
+  originContentRevisionNum     Int
+  withLicenseCode              String?          @db.VarChar(10)
+  timestampRemixContent        DateTime         @default(now())
+  timestampOriginContent       DateTime         @default(now())
+  directCopy                   Boolean          @default(false)
+  subscribeOriginContentChange Boolean          @default(true)
+  subscribeRemixContentChange  Boolean          @default(false)
+  remixContent                 contentRevisions @relation("remixContent", fields: [remixContentId, remixContentRevisionNum], references: [contentId, revisionNum], onDelete: Cascade, onUpdate: NoAction)
+  originContent                contentRevisions @relation("originContent", fields: [originContentId, originContentRevisionNum], references: [contentId, revisionNum], onDelete: Cascade, onUpdate: NoAction)
+  withLicense                  licenses?        @relation(fields: [withLicenseCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([remixContentId, originContentId])
+  @@index([originContentId, originContentRevisionNum])
+}
+
+model contentShares {
+  contentId   Bytes    @db.Binary(16)
+  // Whether this content was explicitly shared by the owner (true)
+  // or is a share created because it's inside a folder that was shared (false)
+  isRootShare Boolean  @default(false)
+  userId      Bytes    @db.Binary(16)
+  sharedOn    DateTime @default(now())
+  content     content  @relation(fields: [contentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user        users    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([contentId, userId])
+  @@index([userId])
+}
+
+model doenetmlVersions {
+  id                 Int                @id @default(autoincrement())
+  displayedVersion   String             @unique
+  fullVersion        String
+  default            Boolean            @default(false)
+  deprecated         Boolean            @default(false)
+  removed            Boolean            @default(false)
+  deprecationMessage String             @default("")
+  content            content[]
+  contentRevisions   contentRevisions[]
+}
+
+enum AssignmentMode {
+  formative
+  summative
+}
+
+model assignmentScores {
+  contentId               Bytes   @db.Binary(16)
+  userId                  Bytes   @db.Binary(16)
+  cachedScore             Float?
+  cachedBestAttemptNumber Int     @db.UnsignedSmallInt
+  cachedItemScores        String? @db.Text
+  cachedLatestAttempt     String? @db.Text
+  assignment              content @relation(fields: [contentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                    users   @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([contentId, userId])
+  @@index([userId])
+}
+
+model contentState {
+  contentId         Bytes              @db.Binary(16)
+  userId            Bytes              @db.Binary(16)
+  variant           Int                @db.UnsignedMediumInt
+  attemptNumber     Int                @db.UnsignedSmallInt
+  score             Float?
+  state             String?            @db.MediumText
+  assignment        content            @relation(fields: [contentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user              users              @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  contentItemStates contentItemState[]
+
+  @@id([contentId, userId, attemptNumber])
+  @@index([userId])
+}
+
+model contentItemState {
+  contentId            Bytes        @db.Binary(16)
+  userId               Bytes        @db.Binary(16)
+  variant              Int          @db.UnsignedMediumInt
+  contentAttemptNumber Int          @db.UnsignedSmallInt
+  itemNumber           Int          @db.UnsignedSmallInt
+  shuffledItemNumber   Int          @db.UnsignedSmallInt
+  itemAttemptNumber    Int          @db.UnsignedSmallInt
+  docId                Bytes        @db.Binary(16)
+  score                Float        @default(0)
+  state                String?      @db.MediumText
+  contentState         contentState @relation(fields: [contentId, userId, contentAttemptNumber], references: [contentId, userId, attemptNumber], onDelete: NoAction, onUpdate: NoAction)
+  document             content      @relation(fields: [docId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([contentId, userId, contentAttemptNumber, itemNumber, itemAttemptNumber])
+  @@unique([contentId, userId, contentAttemptNumber, shuffledItemNumber, itemAttemptNumber])
+}
+
+model submittedResponses {
+  id                      Int      @id @default(autoincrement())
+  contentId               Bytes    @db.Binary(16)
+  userId                  Bytes    @db.Binary(16)
+  contentAttemptNumber    Int      @db.UnsignedSmallInt
+  itemAttemptNumber       Int?     @db.UnsignedSmallInt
+  answerId                String
+  response                String   @db.Text
+  answerNumber            Int?     @db.UnsignedSmallInt
+  componentNumber         Int      @db.UnsignedSmallInt
+  itemNumber              Int      @db.UnsignedSmallInt
+  shuffledItemNumber      Int      @db.UnsignedSmallInt
+  answerCreditAchieved    Float
+  componentCreditAchieved Float
+  itemCreditAchieved      Float
+  submittedAt             DateTime @default(now())
+  content                 content  @relation(fields: [contentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                    users    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([contentId, contentAttemptNumber, itemAttemptNumber, userId, answerId])
+}
+
+model contentViews {
+  id        Int      @id @default(autoincrement())
+  contentId Bytes    @db.Binary(16)
+  date      DateTime @default(dbgenerated("(curdate())")) @db.Date
+  userId    Bytes    @db.Binary(16)
+  content   content  @relation(fields: [contentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([date, contentId, userId])
+}
+
+model users {
+  userId             Bytes                  @id @default(dbgenerated("(uuid_to_bin(uuid(),1))")) @db.Binary(16)
+  username           String                 @unique
+  email              String?                @unique
+  passwordHash       String?                @db.Char(60)
+  firstNames         String?
+  lastNames          String
+  isLibrary          Boolean                @default(false)
+  isEditor           Boolean                @default(false)
+  isAuthor           Boolean                @default(false)
+  // For now, premium refers to the instructor accounts
+  // A premium account means: any assignment I create can be taken by normal (non-anonymous and non-scoped) users
+  isPremium          Boolean                @default(false)
+  // There are two ways that an account is locked to not be able to explore or create content:
+  // 1. Account has scopedToClassId. This means that the account is a student rostered to a folder.
+  // 2. Account isAnonymous. We don't know what class they are in, but they're not going to author.
+  //
+  // This field should be true for any account that is scoped to an instructor's folder
+  scopedToClassId    Bytes?                 @db.Binary(16)
+  isAnonymous        Boolean                @default(false)
+  joinedAt           DateTime               @default(now())
+  content            content[]
+  contentState       contentState[]
+  submittedResponses submittedResponses[]
+  sharedWithMe       contentShares[]
+  recentContent      recentContent[]
+  assignmentScores   assignmentScores[]
+  libraryEvents      libraryEvents[]
+  libraryEditorInfos libraryActivityInfos[]
+  scopedToClass      content?               @relation(name: "scopedToClass", fields: [scopedToClassId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@fulltext([firstNames, lastNames])
+}
+
+model contentClassifications {
+  contentId        Bytes           @db.Binary(16)
+  classificationId Int
+  content          content         @relation(fields: [contentId], references: [id])
+  classification   classifications @relation(fields: [classificationId], references: [id])
+
+  @@id([contentId, classificationId])
+}
+
+model classificationSystems {
+  id                      Int                        @id @default(autoincrement())
+  name                    String                     @unique
+  shortName               String                     @unique
+  categoryLabel           String
+  subCategoryLabel        String
+  descriptionLabel        String
+  sortIndex               Int
+  type                    String
+  categoriesInDescription Boolean                    @default(false)
+  categories              classificationCategories[]
+
+  @@fulltext([name])
+}
+
+model classificationCategories {
+  id            Int                           @id @default(autoincrement())
+  category      String
+  systemId      Int
+  sortIndex     Int
+  system        classificationSystems         @relation(fields: [systemId], references: [id])
+  subCategories classificationSubCategories[]
+
+  @@unique([category, systemId])
+  @@fulltext([category])
+}
+
+model classificationSubCategories {
+  id           Int                          @id @default(autoincrement())
+  categoryId   Int
+  subCategory  String                       @db.Text
+  sortIndex    Int
+  category     classificationCategories     @relation(fields: [categoryId], references: [id])
+  descriptions classificationDescriptions[]
+
+  @@unique([subCategory(length: 200), categoryId])
+  @@fulltext([subCategory])
+}
+
+model classificationDescriptions {
+  id               Int                         @id @default(autoincrement())
+  subCategoryId    Int
+  classificationId Int
+  description      String                      @db.Text
+  sortIndex        Int
+  isPrimary        Boolean                     @default(true)
+  subCategory      classificationSubCategories @relation(fields: [subCategoryId], references: [id])
+  classification   classifications             @relation(fields: [classificationId], references: [id])
+
+  @@unique([classificationId, subCategoryId])
+  @@unique([description(length: 200), subCategoryId])
+  @@fulltext([description])
+}
+
+model classifications {
+  id                     Int                          @id @default(autoincrement())
+  code                   String
+  descriptions           classificationDescriptions[]
+  contentClassifications contentClassifications[]
+
+  @@fulltext([code])
+}
+
+model libraryActivityInfos {
+  sourceId        Bytes           @id @db.Binary(16)
+  contentId       Bytes           @unique @db.Binary(16)
+  primaryEditorId Bytes?          @db.Binary(16)
+  ownerRequested  Boolean
+  requestedOn     DateTime        @default(now())
+  status          LibraryStatus
+  source          content         @relation(name: "source", fields: [sourceId], references: [id])
+  activity        content         @relation(name: "activity", fields: [contentId], references: [id])
+  primaryEditor   users?          @relation(fields: [primaryEditorId], references: [userId])
+  events          libraryEvents[]
+}
+
+enum LibraryStatus {
+  PENDING
+  UNDER_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+model libraryEvents {
+  id        Bytes                @id @default(dbgenerated("(uuid_to_bin(uuid(),1))")) @db.Binary(16)
+  infoId    Bytes                @db.Binary(16)
+  eventType LibraryEventType
+  dateTime  DateTime
+  comment   String?
+  userId    Bytes                @db.Binary(16)
+  info      libraryActivityInfos @relation(fields: [infoId], references: [sourceId])
+  user      users                @relation(fields: [userId], references: [userId])
+}
+
+enum LibraryEventType {
+  // Anyone can:
+  SUGGEST_REVIEW
+
+  // Editors can:
+  TAKE_OWNERSHIP
+  PUBLISH
+  UNPUBLISH
+  REJECT
+
+  // Editors and owners can:
+  ADD_COMMENT
+  // EDIT_COMMENT
+}

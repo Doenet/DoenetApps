@@ -7,3 +7,104 @@ Although we are still in the early stages, we are excited to introduce Doenet an
 For more background and information on the Doenet project, see this [MAA DUE Point](https://www.mathvalues.org/masterblog/reimagining-online-mathematics) article.
 
 We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h) to ask questions and stay updated on our progress!
+
+---
+
+## Dev Environment Setup
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 24+
+- [Docker](https://www.docker.com/) (for the MySQL database)
+
+### Steps
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/Doenet/DoenetTools.git
+cd DoenetTools
+```
+
+**2. Install dependencies**
+
+```bash
+npm install
+```
+
+**3. Create the `.env` file**
+
+```bash
+npm run setup
+```
+
+This copies `apps/api/.env.example` to `apps/api/.env`. The defaults work for local development, but edit as needed (e.g. change `DATABASE_HOST`, `DATABASE_PORT`, or `DATABASE_PASSWORD` if your MySQL setup differs — and update `DATABASE_URL` to match).
+
+**4. Start the database**
+
+```bash
+docker compose --env-file apps/api/.env up -d
+```
+
+Wait until the MySQL container shows `(healthy)` in `docker container ls` before continuing.
+
+**5. Setup the database tables**
+
+```bash
+npm run db:setup
+```
+
+This creates the required database tables and seeds them with minimal data.
+
+**6. Start the dev servers**
+
+All dev processes can be started together with a single command:
+
+```bash
+npm run dev
+```
+
+This starts:
+
+- Shared package watcher
+- Express API → http://localhost:3000
+- React SPA → http://localhost:8000 (proxies `/api/*` to the API)
+- Astro site → http://localhost:4321
+
+This command first builds `shared` once, then starts its watch process alongside
+the app, API, and web dev servers.
+
+Alternatively, run each in a separate terminal if needed:
+
+```bash
+npm run dev --workspace @doenet-tools/shared   # Shared package watcher
+npm run dev --workspace @doenet-tools/api   # Express API
+npm run dev --workspace @doenet-tools/app   # React SPA
+npm run dev --workspace @doenet-tools/web   # Astro site
+```
+
+---
+
+## Repository Structure
+
+This repository is an npm workspace monorepo. Packages are organized into two directories:
+
+- **`apps/`** — runnable applications (each has a dev server or build output intended to be deployed or run directly)
+- **`packages/`** — shared libraries and internal tooling consumed by the apps
+
+### Apps
+
+| Package    | Description                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api` | Express REST API and database layer (Prisma + MySQL). The backend for the platform.                                                                                             |
+| `apps/app` | React SPA — the main Doenet web application. Communicates with `api` via `/api/*`.                                                                                              |
+| `apps/web` | Astro-based static site. Currently houses the Doenet blog, but is intended to grow into the full public-facing static portion of the website (landing pages, about page, etc.). |
+
+### Packages
+
+| Package                  | Description                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `packages/shared`        | Utility functions and TypeScript types shared between `api` and `app`. Must be built before either app. |
+| `packages/e2e-tests`     | Cypress end-to-end tests. Requires both dev servers running.                                            |
+| `packages/eslint-config` | Internal shared ESLint configuration used to lint each package                                          |
+| `packages/load-tests`    | Locust load tests for analyzing maximum traffic capacity and bottlenecks.                               |

@@ -1,0 +1,86 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "mysql"
+  },
+  {
+    "ParameterKey": "PrivateHostedZoneName",
+    "ParameterValue": "/prod/VPCHostedZoneName"
+  },
+  {
+    "ParameterKey": "PrivateHostedZoneId",
+    "ParameterValue": "/prod/VPCHostedZoneId"
+  },
+  {
+    "ParameterKey": "DBType",
+    "ParameterValue": "MySQL"
+  },
+  {
+    "ParameterKey": "DBUsername",
+    "ParameterValue": "doenet"
+  },
+  {
+    "ParameterKey": "DBPassword",
+    "ParameterValue": "/prod/mysql/DBPassword"
+  },
+  {
+    "ParameterKey": "DBClass",
+    "ParameterValue": "db.t4g.medium"
+  },
+  {
+    "ParameterKey": "DBAllocatedStorage",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "MultiAZDatabase",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "EngineVersion",
+    "ParameterValue": "8.4.8"
+  },
+  {
+    "ParameterKey": "Subnets",
+    "ParameterValue": "/prod/PrivateSubnets"
+  },
+  {
+    "ParameterKey": "SeedSnapshotIdA",
+    "ParameterValue": "none"
+  },
+  {
+    "ParameterKey": "SeedSnapshotIdB",
+    "ParameterValue": "delete"
+  },
+  {
+    "ParameterKey": "RdsInstanceSelector",
+    "ParameterValue": "A"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/prod/VPC"
+  },
+  {
+    "ParameterKey": "VpcCidrBlock",
+    "ParameterValue": "/prod/VpcCidrBlock"
+  },
+  {
+    "ParameterKey": "EcsInstanceSecurityGroup",
+    "ParameterValue": "/prod/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "EncryptedStorageA",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EncryptedStorageB",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnvironmentKmsKey",
+    "ParameterValue": "/prod/EnvironmentKmsKey"
+  }
+]

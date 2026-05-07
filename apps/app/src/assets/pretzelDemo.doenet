@@ -1,0 +1,100 @@
+<title>Demo Pretzel</title>
+
+<aside boxed>
+  <title>
+    Instructions for Pretzel
+  </title>
+
+  <ul>
+    <li>Start anywhere in the activity and enter 1 in the box next to the first problem you wish to solve.</li> 
+    <li>Search for your answer, enter '2' in the box and the attached problem becomes problem 2.</li> 
+    <li>Continue in this manner until you return to your first problem, completing the pretzel. There is only one correct path to the end, including all problems.</li>
+    <li>Happy solving!</li>
+  </ul>
+
+</aside>
+
+
+<pretzel name="pretzel1" maxNumColumns="2">
+
+  <!-- problem 1 -->
+  <problem>
+    <statement>
+      What is <m>1+2</m>?
+    </statement>
+    <answer>
+      <m>3</m>
+    </answer>
+  </problem>
+
+  <!-- problem 2 -->
+  <problem>
+    <statement>
+      What is the solution to <m>x+4=10</m>?
+    </statement>
+    <answer>
+      <m>6</m>
+    </answer>
+  </problem>
+
+  <!-- problem 3 -->
+  <problem>
+    <statement>
+      What is <m>\frac{1}{2}+ \frac{1}{2}</m>?
+    </statement>
+    <answer>
+      <m>1</m>
+    </answer>
+  </problem>
+
+  <!-- problem 4 -->
+  <problem>
+    <statement>
+      True/False: <m>-8</m> is an even number.
+    </statement>
+    <answer>
+      True
+    </answer>
+  </problem>
+
+  <!-- problem 5 -->
+  <problem>
+    <statement>
+      True/False: <m>7</m> is an even number.
+    </statement>
+    <answer>
+      False
+    </answer>
+  </problem>
+
+  <!-- problem 6 -->
+  <problem>
+    <statement>
+      What is <m>\cos(\pi)</m>?
+    </statement>
+    <answer>
+      <m>-1</m>
+    </answer>
+  </problem>
+
+  <!-- problem 7 -->
+  <problem>
+    <statement>
+      What is <m>\sin(0)</m>?
+    </statement>
+    <answer>
+      <m>0</m>
+    </answer>
+  </problem>
+
+  <!-- problem 8 -->
+  <problem>
+    <statement>
+      What is a factor of <m>x^2-1</m>?
+    </statement>
+    <answer>
+      <m>(x+1)</m>
+    </answer>
+  </problem>
+
+</pretzel>

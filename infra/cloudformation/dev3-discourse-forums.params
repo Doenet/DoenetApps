@@ -1,0 +1,47 @@
+
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "discourse"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t4g.medium"
+  },
+  {
+    "ParameterKey": "VolumeSize",
+    "ParameterValue": "30"
+  },
+  {
+    "ParameterKey": "SubnetId",
+    "ParameterValue": "subnet-00ea6b6ef03653914"
+  },
+  {
+    "ParameterKey": "AvailabilityZone",
+    "ParameterValue": "us-east-2a"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/dev3/VPC"
+  },  
+  {
+    "ParameterKey": "AmiId",
+    "ParameterValue": "ami-0689a3ce09bf1872e"
+  },
+  {
+    "ParameterKey": "AdminSecurityGroup",
+    "ParameterValue": "/dev3/AdminSecurityGroup"
+  },
+  {
+    "ParameterKey": "EcsInstanceSecurityGroup",
+    "ParameterValue": "/dev3/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "PublicLoadBalancerHttpsListener",
+    "ParameterValue": "/dev3/PublicLoadBalancerHttpsListener"
+  }
+]

@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC subnets template
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+  VPC:
+    Description: The VPC id
+    Type: String
+  VpcCidrBlock:
+    Type: String
+  VpcIpv6CidrBlock:
+    Type: String
+  AvailabilityZone:
+    Description: The availability zone letter identifier (ex. 'a')
+    Type: String
+    AllowedValues:
+      - a
+      - b
+      - c
+  CreateNatGateway:
+    Description: Create a nat gateway so that private subnets have internet access
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
+
+Conditions:
+  ShouldCreateNatGateway: !Equals [true, !Ref "CreateNatGateway"]
+
+Mappings:
+  CidrDivision:
+    a:
+      public: "0"
+      private: "1"
+    b:
+      public: "2"
+      private: "3"
+    c:
+      public: "4"
+      private: "5"
+Resources:
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref "VPC"
+      AvailabilityZone: !Join
+        - ""
+        - - !Ref "AWS::Region"
+          - !Ref "AvailabilityZone"
+      CidrBlock: !Select
+        - !FindInMap
+          - CidrDivision
+          - !Ref "AvailabilityZone"
+          - public
+        - !Cidr [!Ref VpcCidrBlock, 8, 8]
+      Ipv6CidrBlock: !Select
+        - !FindInMap
+          - CidrDivision
+          - !Ref "AvailabilityZone"
+          - public
+        - !Cidr [!Ref VpcIpv6CidrBlock, 8, 64]
+      AssignIpv6AddressOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - public-subnet-zone
+              - !Ref "AvailabilityZone"
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref "VPC"
+      AvailabilityZone: !Join
+        - ""
+        - - !Ref "AWS::Region"
+          - !Ref "AvailabilityZone"
+      CidrBlock: !Select
+        - !FindInMap
+          - CidrDivision
+          - !Ref "AvailabilityZone"
+          - private
+        - !Cidr [!Ref VpcCidrBlock, 8, 8]
+      Ipv6CidrBlock: !Select
+        - !FindInMap
+          - CidrDivision
+          - !Ref "AvailabilityZone"
+          - private
+        - !Cidr [!Ref VpcIpv6CidrBlock, 8, 64]
+      AssignIpv6AddressOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref "EnvironmentName"
+              - private-subnet-zone
+              - !Ref "AvailabilityZone"
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Condition: ShouldCreateNatGateway
+    Properties:
+      AllocationId: !GetAtt "NatIP.AllocationId"
+      SubnetId: !Ref "PublicSubnet"
+  NatIP:
+    Type: AWS::EC2::EIP
+    Condition: ShouldCreateNatGateway
+    Properties:
+      Domain: vpc
+Outputs:
+  VPCId:
+    Description: VPCId of the newly created VPC
+    Value: !Ref "VPC"
+  PrivateSubnet:
+    Description: SubnetId of private subnet
+    Value: !Ref "PrivateSubnet"
+  PublicSubnet:
+    Description: SubnetId of public subnet
+    Value: !Ref "PublicSubnet"
+  NatGateway:
+    Description: NatGatewayId of the connected NAT Gateway
+    Condition: ShouldCreateNatGateway
+    Value: !Ref "NatGateway"

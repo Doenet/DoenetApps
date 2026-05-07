@@ -1,0 +1,440 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: MySQL/Postgres RDS
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W1001
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment this is going into (staging, etc)
+    Type: String
+    #    MaxLength: 10
+    Default: webdev
+  DBName:
+    Type: String
+  PrivateHostedZoneName:
+    Description: Route53 hosted zone to use for the database's DNS record (<prefix>.<zone>)
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /webdev/VPCHostedZoneName
+  PrivateHostedZoneId:
+    Description: Route53 hosted zone id to use for the database's DNS record
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /webdev/VPCPrivateHostedZoneId
+  DBType:
+    Default: PostgreSQL
+    Description: Choose the Database Type
+    Type: String
+    AllowedValues:
+      - PostgreSQL
+      - MySQL
+  DBUsername:
+    Default: mysql
+    Description: The database master account username
+    Type: String
+  DBPassword:
+    NoEcho: true
+    Description: The SSM parameter path holding the DB password
+    Type: "AWS::SSM::Parameter::Value<String>"
+  DBClass:
+    Default: db.t4g.medium
+    Description: Database instance class
+    Type: String
+  DBAllocatedStorage:
+    Default: 20
+    Description: The size of the database (Gb)
+    Type: Number
+    MinValue: 5
+    MaxValue: 1024
+    ConstraintDescription: must be between 5 and 1024Gb.
+  MultiAZDatabase:
+    Default: false
+    Description: Create a multi-AZ Amazon RDS database instance, cannot be true
+      if the Availability Zone is selected
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be either true or false.
+  EngineVersion:
+    Type: String
+    Description: The database engine version (leave blank for default).
+  Subnets:
+    Type: "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>"
+    Default: /webdev/PrivateSubnets
+  SeedSnapshotIdA:
+    Default: none
+    Description: The DBSnapshotIdentifier of the seed snapshot (or the full ARN)
+    Type: String
+  SeedSnapshotIdB:
+    Default: delete
+    Description: The DBSnapshotIdentifier of the seed snapshot (or the full ARN)
+    Type: String
+  RdsInstanceSelector:
+    Default: A
+    Description: Select which RDS instance to use (via the private zone DNS entry).
+    Type: String
+    AllowedValues:
+      - A
+      - B
+    ConstraintDescription: Must be either A or B.
+  VPC:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /webdev/VPC
+  VpcCidrBlock:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /webdev/VpcCidrBlock
+  EcsInstanceSecurityGroup:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: /webdev/EcsInstanceSecurityGroup
+  EncryptedStorageA:
+    Default: true
+    Type: String
+    AllowedValues:
+      - true
+      - false
+  EncryptedStorageB:
+    Default: true
+    Type: String
+    AllowedValues:
+      - true
+      - false
+  EnvironmentKmsKey:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/EnvironmentKmsKey"
+Conditions:
+  RunRdsServerA: !Not
+    - !Equals
+      - !Ref SeedSnapshotIdA
+      - delete
+  RunRdsServerB: !Not
+    - !Equals
+      - !Ref SeedSnapshotIdB
+      - delete
+  UseDBSnapshotA: !And
+    - !Condition RunRdsServerA
+    - !Not
+      - !Equals
+        - !Ref SeedSnapshotIdA
+        - none
+  UseDBSnapshotB: !And
+    - !Condition RunRdsServerB
+    - !Not
+      - !Equals
+        - !Ref SeedSnapshotIdB
+        - none
+  SelectRdsServerA: !Equals
+    - !Ref RdsInstanceSelector
+    - A
+  SelectRdsServerB: !Equals
+    - !Ref RdsInstanceSelector
+    - B
+  EnsureAtLeastOneRunningDb: !Or
+    - !And
+      - !Condition RunRdsServerA
+      - !Condition SelectRdsServerA
+    - !And
+      - !Condition RunRdsServerB
+      - !Condition SelectRdsServerB
+
+  IsDbAEncrypted: !Equals
+    - !Ref EncryptedStorageA
+    - true
+
+  IsDbBEncrypted: !Equals
+    - !Ref EncryptedStorageB
+    - true
+
+Mappings:
+  Engine:
+    PostgreSQL:
+      port: 5432
+      engine: postgres
+      urlScheme: postgresql
+    MySQL:
+      port: 3306
+      engine: mysql
+      urlScheme: mysql
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: EnsureAtLeastOneRunningDb
+    Properties:
+      DBSubnetGroupDescription: Subnets available for the RDS DB Instance
+      SubnetIds: !Ref Subnets
+  DBASecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: EnsureAtLeastOneRunningDb
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+          - id: W5
+    Properties:
+      GroupDescription: Allowed Ports for Ops Jenkins
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - CidrIp: !Ref VpcCidrBlock
+          IpProtocol: tcp
+          FromPort: !FindInMap [Engine, !Ref DBType, port]
+          ToPort: !FindInMap [Engine, !Ref DBType, port]
+          Description: Permit all inbound traffic from administrative instances
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          Description: Permit all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref EnvironmentName
+              - db-dba-sg
+  DBSecurityGroupIngressSelfReference:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: EnsureAtLeastOneRunningDb
+    Properties:
+      GroupId: !Ref DBASecurityGroup
+      IpProtocol: tcp
+      FromPort: !FindInMap [Engine, !Ref DBType, port]
+      ToPort: !FindInMap [Engine, !Ref DBType, port]
+      SourceSecurityGroupId: !Ref DBASecurityGroup
+      Description: Permit all inbound traffic from the same security group
+  MainSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: EnsureAtLeastOneRunningDb
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+          - id: W5
+    Properties:
+      GroupDescription: Allowed Ports for the ECS Cluster Members
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !FindInMap [Engine, !Ref DBType, port]
+          ToPort: !FindInMap [Engine, !Ref DBType, port]
+          SourceSecurityGroupId: !Ref EcsInstanceSecurityGroup
+          Description: Permit all inbound traffic from the ECSInstanceSecurityGroup
+        - IpProtocol: tcp
+          FromPort: !FindInMap [Engine, !Ref DBType, port]
+          ToPort: !FindInMap [Engine, !Ref DBType, port]
+          CidrIp: "10.0.0.0/8"
+          Description: Permit all inbound traffic from the Holycross on premise.
+        - IpProtocol: tcp
+          FromPort: !FindInMap [Engine, !Ref DBType, port]
+          ToPort: !FindInMap [Engine, !Ref DBType, port]
+          CidrIp: "192.168.83.133/32"
+          Description: Permit inbound traffic from 192.168.83.133.
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          Description: Permit all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref EnvironmentName
+              - db-main-sg
+  RdsServerA:
+    Type: AWS::RDS::DBInstance
+    Condition: RunRdsServerA
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F24
+          - id: F80
+            reason: Added rules in this template help to prevent accidental deletion
+          - id: W28
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E2521
+    Properties:
+      BackupRetentionPeriod: 30
+      DBInstanceIdentifier: !Join
+        - "-"
+        - - !Ref EnvironmentName
+          - !Ref DBName
+          - db-a
+      AllocatedStorage: !Ref DBAllocatedStorage
+      DBInstanceClass: !Ref DBClass
+      Engine: !FindInMap [Engine, !Ref DBType, engine]
+      Port: !FindInMap [Engine, !Ref DBType, port]
+      EngineVersion: !Ref EngineVersion
+      AllowMajorVersionUpgrade: true
+      StorageType: gp3
+      # MasterUsername will be inherited from the snapshot
+      MasterUsername: !If
+        - UseDBSnapshotA
+        - !Ref AWS::NoValue
+        - !Ref DBUsername
+      MasterUserPassword: !Ref "DBPassword"
+      MultiAZ: !Ref MultiAZDatabase
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref MainSecurityGroup
+        - !Ref DBASecurityGroup
+      DBSnapshotIdentifier: !If
+        - UseDBSnapshotA
+        - !Ref SeedSnapshotIdA
+        - !Ref AWS::NoValue
+      #  If you specify the DBSnapshotIdentifier and the specified snapshot is encrypted, don't specify StorageEncrypted. The value is inherited from the snapshot, and the specified KmsKeyId property is used. If the specified snapshot isn't encrypted, you can use this property to specify that the restored DB instance is encrypted.
+      #  Assume that the snapshot is encrypted
+      StorageEncrypted: !If
+        - UseDBSnapshotA
+        - !Ref AWS::NoValue
+        - !Ref EncryptedStorageA
+      KmsKeyId: !If
+        - IsDbAEncrypted
+        - !Ref EnvironmentKmsKey
+        - !Ref AWS::NoValue
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref EnvironmentName
+              - db-a
+        - Key: Environment
+          Value: !Ref EnvironmentName
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+
+  RdsServerB:
+    Type: AWS::RDS::DBInstance
+    Condition: RunRdsServerB
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F24
+          - id: F80
+            reason: Added rules in this template help to prevent accidental deletion
+          - id: W28
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E2521
+    Properties:
+      BackupRetentionPeriod: 30
+      DBInstanceIdentifier: !Join
+        - "-"
+        - - !Ref EnvironmentName
+          - !Ref DBName
+          - db-b
+      AllocatedStorage: !Ref DBAllocatedStorage
+      DBInstanceClass: !Ref DBClass
+      Engine: !FindInMap [Engine, !Ref DBType, engine]
+      Port: !FindInMap [Engine, !Ref DBType, port]
+      EngineVersion: !Ref EngineVersion
+      AllowMajorVersionUpgrade: true
+      StorageType: gp3
+      # MasterUsername will be inherited from the snapshot
+      MasterUsername: !If
+        - UseDBSnapshotB
+        - !Ref AWS::NoValue
+        - !Ref DBUsername
+      MasterUserPassword: !Ref "DBPassword"
+      MultiAZ: !Ref MultiAZDatabase
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref MainSecurityGroup
+        - !Ref DBASecurityGroup
+      DBSnapshotIdentifier: !If
+        - UseDBSnapshotB
+        - !Ref SeedSnapshotIdB
+        - !Ref AWS::NoValue
+      #  If you specify the DBSnapshotIdentifier and the specified snapshot is encrypted, don't specify StorageEncrypted. The value is inherited from the snapshot, and the specified KmsKeyId property is used. If the specified snapshot isn't encrypted, you can use this property to specify that the restored DB instance is encrypted.
+      #  Assume that the snapshot is encrypted
+      StorageEncrypted: !If
+        - UseDBSnapshotB
+        - !Ref AWS::NoValue
+        - !Ref EncryptedStorageB
+      KmsKeyId: !If
+        - IsDbBEncrypted
+        - !Ref EnvironmentKmsKey
+        - !Ref AWS::NoValue
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: !Join
+            - "-"
+            - - !Ref EnvironmentName
+              - db-b
+        - Key: Environment
+          Value: !Ref EnvironmentName
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZoneId
+      Comment: DB
+      Name: !Join
+        - ""
+        - - !Ref EnvironmentName
+          - "-"
+          - !Ref DBName
+          - -db.
+          - !Ref PrivateHostedZoneName
+      Type: CNAME
+      TTL: 60
+      ResourceRecords:
+        - !If
+          - SelectRdsServerA
+          - !GetAtt "RdsServerA.Endpoint.Address"
+          - !GetAtt "RdsServerB.Endpoint.Address"
+  dbHostParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join
+        - ""
+        - - /
+          - !Ref EnvironmentName
+          - /
+          - !Ref DBName
+          - /
+          - DBHost
+      Type: String
+      Value: !Ref DnsRecord
+  dbUserParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join
+        - ""
+        - - /
+          - !Ref EnvironmentName
+          - /
+          - !Ref DBName
+          - /
+          - DBUsername
+      Type: String
+      Value: !Ref DBUsername
+  DatabaseUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join
+        - ""
+        - - /
+          - !Ref EnvironmentName
+          - /
+          - !Ref DBName
+          - /
+          - DBUrl
+      Type: String
+      Value: !Sub
+        - "${DatabaseUrlScheme}://${DBUsername}:${DBPassword}@${DnsRecord}:${DatabasePort}/doenet"
+        - DatabaseUrlScheme: !FindInMap [Engine, !Ref DBType, urlScheme]
+          DatabasePort: !FindInMap [Engine, !Ref DBType, port]
+
+Outputs:
+  DatabaseHost:
+    Value: !Ref DnsRecord
+  DBSecurityGroup:
+    Value: !Ref MainSecurityGroup

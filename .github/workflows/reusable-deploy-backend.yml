@@ -1,0 +1,109 @@
+name: Reusable - Deploy Doenet Backend to AWS ECR
+
+on:
+  workflow_call:
+    inputs:
+      deploy_ref:
+        description: Git ref or SHA to deploy
+        required: true
+        type: string
+      aws_region:
+        description: AWS region for ECR and ECS
+        required: true
+        type: string
+      ecr_repository:
+        description: ECR repository path
+        required: true
+        type: string
+      ecs_cluster:
+        description: ECS cluster name
+        required: true
+        type: string
+      ecs_service:
+        description: ECS service name
+        required: true
+        type: string
+      gha_role:
+        description: GitHub Actions role ARN
+        required: true
+        type: string
+      sns_topic:
+        description: SNS topic ARN for deployment failures
+        required: true
+        type: string
+      tag_name:
+        description: Stable image tag to deploy
+        required: true
+        type: string
+
+env:
+  AWS_REGION: ${{ inputs.aws_region }}
+  WORKING_DIR: ./
+  ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+  ECS_CLUSTER: ${{ inputs.ecs_cluster }}
+  ECS_SERVICE: ${{ inputs.ecs_service }}
+  GHA_ROLE: ${{ inputs.gha_role }}
+  SNS_TOPIC: ${{ inputs.sns_topic }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.deploy_ref }}
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: ${{ env.GHA_ROLE }}
+          role-skip-session-tagging: true
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sts GetCallerIdentity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: image tag
+        id: vars
+        shell: bash
+        run: |
+          sha_short=$(git rev-parse --short HEAD)
+          date_string=$(date +%Y-%m-%d-%H-%M-%S)
+          tag=${date_string}-${sha_short}
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        id: build-and-push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.WORKING_DIR }}
+          file: ./apps/api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.tag_name }}
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.tag_name }}
+          cache-to: type=inline
+
+      - name: Update the Doenet ECS Service
+        uses: ./.github/actions/update-cluster-with-rollback
+        with:
+          github-actions-role: ${{ env.GHA_ROLE }}
+          role-session-name: doenet-backend-ecs
+          aws-region: ${{ env.AWS_REGION }}
+          ecs-cluster: ${{ env.ECS_CLUSTER }}
+          ecs-service: ${{ env.ECS_SERVICE }}
+          sns-topic-arn: ${{ env.SNS_TOPIC }}
+          tag-name: ${{ inputs.tag_name }}

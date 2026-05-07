@@ -1,0 +1,128 @@
+# If you're setting this up for the first time, and you want `dev` to use `prod`'s SES server,
+# you will have to manually add permissions that allow `dev` to send email with `prod`'s SES identity.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SES configuration
+
+Parameters:
+  DomainName:
+    Description: Domain name for SES (e.g., mail.doenet.org)
+    Type: String
+    Default: mail.doenet.org
+
+  HostedZoneId:
+    Description: Route 53 Hosted Zone ID
+    Type: String
+
+  AllowedAccountId:
+    Description: AWS Account ID allowed to send email through SES
+    Type: String
+
+Resources:
+  EmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref DomainName
+      DkimSigningAttributes:
+        NextSigningKeyLength: RSA_2048_BIT
+      DkimAttributes:
+        SigningEnabled: true
+      MailFromAttributes:
+        MailFromDomain: !Sub "bounce.${DomainName}"
+        BehaviorOnMxFailure: USE_DEFAULT_VALUE
+
+  ConfigurationSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name: !Sub "${AWS::StackName}-config-set"
+
+  # EmailIdentityPolicy:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: AllowCrossAccountSending
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             AWS: !Sub "arn:aws:iam::${AllowedAccountId}:root"
+
+  #           Action:
+  #             - ses:SendEmail
+  #             - ses:SendRawEmail
+  #           Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${DomainName}"
+  #     Roles:
+  #       - !Ref CrossAccountSendingRole
+
+  # CrossAccountSendingRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             AWS: !Sub "arn:aws:iam::${AllowedAccountId}:root"
+  #           Action: sts:AssumeRole
+  #     ManagedPolicyArns: []
+
+  DkimRecord1:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt EmailIdentity.DkimDNSTokenName1
+      Type: CNAME
+      TTL: 300
+      ResourceRecords:
+        - !GetAtt EmailIdentity.DkimDNSTokenValue1
+
+  DkimRecord2:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt EmailIdentity.DkimDNSTokenName2
+      Type: CNAME
+      TTL: 300
+      ResourceRecords:
+        - !GetAtt EmailIdentity.DkimDNSTokenValue2
+
+  DkimRecord3:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt EmailIdentity.DkimDNSTokenName3
+      Type: CNAME
+      TTL: 300
+      ResourceRecords:
+        - !GetAtt EmailIdentity.DkimDNSTokenValue3
+
+  BounceMxRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "bounce.${DomainName}"
+      Type: MX
+      TTL: 300
+      ResourceRecords:
+        - !Sub "10 feedback-smtp.${AWS::Region}.amazonses.com"
+
+Outputs:
+  EmailIdentity:
+    Description: SES Email Identity
+    Value: !Ref EmailIdentity
+
+  ConfigurationSet:
+    Description: SES Configuration Set
+    Value: !Ref ConfigurationSet
+
+  DkimRecord1:
+    Description: DKIM Record 1
+    Value: !GetAtt EmailIdentity.DkimDNSTokenName1
+
+  DkimRecord2:
+    Description: DKIM Record 2
+    Value: !GetAtt EmailIdentity.DkimDNSTokenName2
+
+  DkimRecord3:
+    Description: DKIM Record 3
+    Value: !GetAtt EmailIdentity.DkimDNSTokenName3
