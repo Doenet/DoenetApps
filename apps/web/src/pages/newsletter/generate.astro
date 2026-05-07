@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
-import { newsletterStyles } from "../utils/newsletterStyles";
-import { newsletterConfig } from "../utils/newsletter-config";
+import { newsletterStyles } from "../../utils/newsletterStyles";
+import { newsletterConfig } from "../../utils/newsletter-config";
 import fs from "node:fs";
 import path from "node:path";
 import { Marked } from "marked";
@@ -53,12 +53,12 @@ const postsWithExcerpts = await Promise.all(
   }),
 );
 
-const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "";
-const blogBasePath = import.meta.env.BASE_URL || "/";
+const siteUrl = "https://beta.doenet.org".replace(/\/$/, "");
+const blogBasePath = "/blog";
 
 // For newsletter images, always use the production URL so they work in emails
 const productionUrl = "https://beta.doenet.org";
-const logoUrl = `${productionUrl}${blogBasePath}/Doenet_Logo_Frontpage_color_text.png`;
+const logoUrl = `${productionUrl}/Doenet_Logo_Frontpage_color_text.png`;
 
 const issueDateFormatted = newsletterConfig.issueDate.toLocaleDateString(
   "en-US",
@@ -191,11 +191,13 @@ try {
                   </span>
                 </td>
                 <td style={newsletterStyles.newsletterHeaderRightCell}>
-                  <img
-                    src={logoUrl}
-                    alt="Doenet"
-                    style={newsletterStyles.newsletterLogoImage}
-                  />
+                    <a href={siteUrl} aria-label="Visit Doenet">
+                      <img
+                        src={logoUrl}
+                        alt="Doenet"
+                        style={newsletterStyles.newsletterLogoImage}
+                      />
+                    </a>
                 </td>
               </tr>
             </table>
@@ -679,6 +681,7 @@ try {
       function downloadNewsletter() {
         const content = document.getElementById("newsletter-content");
         const html = `<!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -717,6 +720,7 @@ ${content.innerHTML}
       function copyToClipboard() {
         const content = document.getElementById("newsletter-content");
         const html = `<!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -753,5 +757,6 @@ ${content.innerHTML}
           });
       }
     </script>
+
   </body>
 </html>
