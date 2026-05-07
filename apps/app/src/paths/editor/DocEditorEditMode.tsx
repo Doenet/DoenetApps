@@ -159,6 +159,9 @@ function DocumentEditor({
         // See https://github.com/Doenet/DoenetML/issues/525
         handleSaveDoc();
       }}
+      diagnosticsSummaryCallback={(diagnostics: Diagnostics) => {
+        handleDiagnosticsSummary(contentId, diagnostics);
+      }}
       immediateDoenetmlChangeCallback={(newDoenetML: string) => {
         textEditorDoenetML.current = newDoenetML;
       }}
@@ -175,4 +178,23 @@ function DocumentEditor({
       doenetViewerUrl={doenetViewerUrl}
     />
   );
+}
+
+/**
+ * Reimplementation of a `DoenetEditor` type since the package doesn't export types correctly
+ * The argument of `diagnosticsSummaryCallback`.
+ */
+type Diagnostics = {
+  accessibilityLevel1Count: number;
+  accessibilityLevel2Count: number;
+  errorsCount: number;
+  infosCount: number;
+  warningsCount: number;
+};
+
+function handleDiagnosticsSummary(contentId: string, diagnostics: Diagnostics) {
+  axios.put(`/api/content/${contentId}/audit`, {
+    noErrorsConfirmed: diagnostics.errorsCount === 0,
+    accessibilityConfirmed: diagnostics.accessibilityLevel1Count === 0,
+  });
 }

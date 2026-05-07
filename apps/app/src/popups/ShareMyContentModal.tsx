@@ -20,11 +20,14 @@ import {
   AlertIcon,
   AlertTitle,
   Link as ChakraLink,
+  List,
+  ListItem,
+  Select,
   Tooltip,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { contentTypeToName } from "../utils/activity";
-import { ContentType, UserInfoWithEmail } from "../types";
+import { ContentType, UserInfoWithEmail, Visibility } from "../types";
 import { Link as ReactRouterLink, useFetcher } from "react-router";
 import { SpinnerWhileFetching } from "../utils/optimistic_ui";
 import { ShareTable } from "../widgets/editor/ShareTable";
@@ -32,9 +35,11 @@ import axios from "axios";
 import { IoMdLink, IoMdCheckmark } from "react-icons/io";
 import { FiCode } from "react-icons/fi";
 
-import { loader as settingsLoader } from "../paths/editor/EditorSettingsMode";
 import { editorUrl } from "../utils/url";
-import { isBrowsable } from "@doenet-tools/shared";
+type PublicShareIssue =
+  | "missingRequiredCategories"
+  | "documentErrors"
+  | "level1AccessibilityViolations";
 
 export async function loadShareStatus({ params }: { params: any }) {
   const { data } = await axios.get(
@@ -66,17 +71,12 @@ export function ShareMyContentModal({
   // ==== Load share data
   // We're using a fetcher here so that it loads every time React Router revalidates the page
   const fetcher = useFetcher<typeof loadShareStatus>();
-  const settingsFetcher = useFetcher<typeof settingsLoader>();
 
   useEffect(() => {
     if (isOpen && fetcher.state === "idle" && !fetcher.data) {
       fetcher.load(`/loadShareStatus/${contentId}`);
-
-      if (contentType !== "folder") {
-        settingsFetcher.load(editorUrl(contentId, contentType, "settings"));
-      }
     }
-  }, [isOpen, fetcher, settingsFetcher, contentId, contentType]);
+  }, [isOpen, fetcher, contentId]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside" size="4xl">
@@ -92,15 +92,14 @@ export function ShareMyContentModal({
           <VStack spacing="3rem" align="flex-start">
             <Box>
               <Heading size="sm">With the public</Heading>
-              {contentType === "folder" ? (
-                <p>Not implemented yet for folders.</p>
-              ) : fetcher.data && settingsFetcher.data ? (
+              {fetcher.data ? (
                 <SharePublicly
-                  isPublic={fetcher.data.isPublic}
-                  parentIsPublic={fetcher.data.parentIsPublic}
+                  visibility={fetcher.data.visibility}
+                  parentVisibility={fetcher.data.parentVisibility}
+                  canSharePublicly={fetcher.data.canSharePublicly}
+                  publicShareIssues={fetcher.data.publicShareIssues}
                   contentId={contentId}
                   contentType={contentType}
-                  settings={settingsFetcher.data}
                   closeModal={onClose}
                 />
               ) : (
@@ -216,21 +215,24 @@ function ShareWithPeople({
 }
 
 function SharePublicly({
-  isPublic,
-  parentIsPublic,
+  visibility,
+  parentVisibility,
+  canSharePublicly,
+  publicShareIssues,
   contentId,
   contentType,
-  settings,
   closeModal,
 }: {
-  isPublic: boolean;
-  parentIsPublic: boolean;
+  visibility: Visibility;
+  parentVisibility: Visibility;
+  canSharePublicly: boolean;
+  publicShareIssues: PublicShareIssue[];
   contentId: string;
   contentType: ContentType;
-  settings: Awaited<ReturnType<typeof settingsLoader>>;
   closeModal: () => void;
 }) {
   const fetcher = useFetcher();
+  const [selectedVisibility, setSelectedVisibility] = useState(visibility);
 
   const shareableLink = `${window.location.origin}/activityViewer/${contentId}`;
   const embedCode = `<iframe src="${window.location.origin}/embed/${contentId}" width="100%" height="800" style="border: 0"></iframe>`;
@@ -238,39 +240,109 @@ function SharePublicly({
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [copiedEmbedCode, setCopiedEmbedCode] = useState(false);
 
-  const notBrowsable = !isBrowsable({
-    allCategories: settings.allCategories,
-    categories: settings.categories,
-  });
+  useEffect(() => {
+    setSelectedVisibility(visibility);
+  }, [visibility]);
 
-  const browseWarning = notBrowsable && (
+  const hasShareableVisibility = selectedVisibility !== "private";
+  const publicOptionDisabled =
+    !canSharePublicly && selectedVisibility !== "public";
+  const visibilityMessage: Record<Visibility, string> = {
+    private:
+      "Content is private. Only people you explicitly share with can access it.",
+    unlisted:
+      "Content is unlisted. Anyone with the link can view it, but it will not appear in browse pages.",
+    public: "Content is public. Anyone can find and use it.",
+  };
+
+  const publicCriteriaWarning = publicShareIssues.length > 0 && (
     <Alert status="warning">
       <AlertIcon />
-      <AlertTitle>Not browsable</AlertTitle>
+      <AlertTitle>Cannot share publicly yet</AlertTitle>
       <AlertDescription>
-        Fill out{" "}
-        <ChakraLink
-          as={ReactRouterLink}
-          to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
-          textDecoration="underline"
-          onClick={closeModal}
-        >
-          required settings
-        </ChakraLink>{" "}
-        to make this content discoverable by others.
+        <List spacing="0.25rem">
+          {publicShareIssues.includes("missingRequiredCategories") ? (
+            <ListItem>
+              Fill out{" "}
+              {contentType === "folder" ? (
+                <>required categories on the content you want to publish.</>
+              ) : (
+                <ChakraLink
+                  as={ReactRouterLink}
+                  to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
+                  textDecoration="underline"
+                  onClick={closeModal}
+                >
+                  required settings
+                </ChakraLink>
+              )}{" "}
+              to satisfy the category requirement for public sharing.
+            </ListItem>
+          ) : null}
+          {publicShareIssues.includes("documentErrors") ? (
+            <ListItem>
+              Resolve document errors in this content and its children.
+            </ListItem>
+          ) : null}
+          {publicShareIssues.includes("level1AccessibilityViolations") ? (
+            <ListItem>
+              Resolve level 1 accessibility violations in this content and its
+              children.
+            </ListItem>
+          ) : null}
+        </List>
       </AlertDescription>
     </Alert>
   );
 
-  if (parentIsPublic) {
-    return <p data-test="Public Status">Parent is public.</p>;
-  } else if (isPublic) {
-    return (
-      <VStack justify="flex-start" align="flex-start" spacing="1rem" pt="1rem">
-        {browseWarning}
+  return (
+    <VStack justify="flex-start" align="flex-start" spacing="1rem" pt="1rem">
+      {parentVisibility !== "private" ? (
+        <Alert status="info">
+          <AlertIcon />
+          <AlertDescription>
+            Parent visibility is <strong>{parentVisibility}</strong>, so this
+            item cannot be more private than its parent.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-        <Text data-test="Public Status">Content is public.</Text>
+      {publicCriteriaWarning}
 
+      <FormControl>
+        <FormLabel>Visibility</FormLabel>
+        <Select
+          data-test="Visibility Select"
+          value={selectedVisibility}
+          isDisabled={fetcher.state !== "idle"}
+          onChange={(e) => {
+            setSelectedVisibility(e.target.value as Visibility);
+            fetcher.submit(
+              {
+                path: `content/${contentId}/access`,
+                visibility: e.target.value,
+              },
+              { method: "patch", encType: "application/json" },
+            );
+          }}
+        >
+          <option value="private" disabled={parentVisibility !== "private"}>
+            Private
+          </option>
+          <option value="unlisted" disabled={parentVisibility === "public"}>
+            Unlisted
+          </option>
+          <option value="public" disabled={publicOptionDisabled}>
+            Public
+          </option>
+        </Select>
+      </FormControl>
+
+      <Text data-test="Public Status">
+        {visibilityMessage[selectedVisibility]}
+      </Text>
+
+      {hasShareableVisibility ? (
         <HStack spacing="1rem">
           <Tooltip
             label="Copies a direct link to this content."
@@ -318,50 +390,7 @@ function SharePublicly({
             </Button>
           </Tooltip>
         </HStack>
-        <Button
-          size="sm"
-          colorScheme="blue"
-          onClick={() => {
-            fetcher.submit(
-              {
-                path: "share/setContentIsPublic",
-                contentId,
-                isPublic: false,
-              },
-              { method: "post", encType: "application/json" },
-            );
-          }}
-        >
-          Unshare with the public
-        </Button>
-      </VStack>
-    );
-  } else {
-    return (
-      <VStack justify="flex-start" align="flex-start" spacing="1rem" pt="1rem">
-        {browseWarning}
-
-        <Text data-test="Public Status">
-          Content is not public. Allow others to find and use your content.
-        </Text>
-        <Button
-          size="sm"
-          colorScheme="blue"
-          onClick={() => {
-            fetcher.submit(
-              {
-                path: "share/setContentIsPublic",
-                contentId,
-                isPublic: true,
-              },
-              { method: "post", encType: "application/json" },
-            );
-          }}
-          data-test="Share Publicly Button"
-        >
-          Share publicly
-        </Button>
-      </VStack>
-    );
-  }
+      ) : null}
+    </VStack>
+  );
 }

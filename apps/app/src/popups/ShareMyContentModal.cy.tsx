@@ -14,7 +14,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
 
   const shareStatusData = {
     isPublic: false,
+    visibility: "private",
     parentIsPublic: false,
+    parentVisibility: "private",
+    canSharePublicly: true,
+    publicShareIssues: [],
     sharedWith: [mockUser],
     parentSharedWith: [],
   };
@@ -66,8 +70,8 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
 
     cy.contains("With the public").should("be.visible");
     cy.contains("With specific people").should("be.visible");
-    cy.contains("Content is not public").should("be.visible");
-    cy.contains("Share publicly").should("be.visible");
+    cy.contains("Content is private").should("be.visible");
+    cy.get('[data-test="Visibility Select"]').should("have.value", "private");
   });
 
   it("renders shared users in the table", () => {
@@ -179,10 +183,14 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
   });
 
-  it("submits public share toggle when Share publicly is clicked", () => {
+  it("submits visibility changes from the dropdown", () => {
     const actionSpy = cy.spy().as("actionSpy");
     const mountOptions = setupMocks({
-      shareStatus: { ...shareStatusData, isPublic: false },
+      shareStatus: {
+        ...shareStatusData,
+        isPublic: false,
+        visibility: "private",
+      },
       actionHandler: async ({ request }) => {
         const body = await request.json();
         actionSpy(body);
@@ -200,13 +208,38 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       mountOptions,
     );
 
-    cy.contains("Share publicly").should("be.visible");
-    cy.get('[data-test="Share Publicly Button"]').click();
+    cy.get('[data-test="Visibility Select"]').select("Public");
     cy.get("@actionSpy").should("have.been.calledWith", {
-      path: "share/setContentIsPublic",
-      contentId,
-      isPublic: true,
+      path: `content/${contentId}/access`,
+      visibility: "public",
     });
+  });
+
+  it("shows blocked public criteria when public visibility is unavailable", () => {
+    const mountOptions = setupMocks({
+      shareStatus: {
+        ...shareStatusData,
+        canSharePublicly: false,
+        publicShareIssues: ["missingRequiredCategories", "documentErrors"],
+      },
+    });
+
+    cy.mount(
+      <ShareMyContentModal
+        contentId={contentId}
+        contentType={contentType}
+        isOpen={true}
+        onClose={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    cy.contains("Cannot share publicly yet").should("be.visible");
+    cy.contains("required settings").should("be.visible");
+    cy.contains("Resolve document errors").should("be.visible");
+    cy.get('[data-test="Visibility Select"] option[value="public"]').should(
+      "be.disabled",
+    );
   });
 
   describe("Accessibility", () => {
@@ -230,7 +263,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
 
     it("is accessible when public", () => {
       const mountOptions = setupMocks({
-        shareStatus: { ...shareStatusData, isPublic: true },
+        shareStatus: {
+          ...shareStatusData,
+          isPublic: true,
+          visibility: "public",
+        },
       });
 
       cy.mount(
