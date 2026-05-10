@@ -1,4 +1,4 @@
-import { ReactElement, useEffect } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import {
   useFetcher,
   Link as ReactRouterLink,
@@ -42,9 +42,16 @@ import {
 import { FaHistory, FaCog, FaChevronRight, FaRegFolder } from "react-icons/fa";
 import { IoGitBranch } from "react-icons/io5";
 import { LuCircleHelp, LuLibraryBig } from "react-icons/lu";
+import { FiGlobe, FiLink2, FiLock } from "react-icons/fi";
+import type { IconType } from "react-icons";
 
 import axios from "axios";
-import { AssignmentStatus, ContentType, ContentDescription } from "../../types";
+import {
+  AssignmentStatus,
+  ContentType,
+  ContentDescription,
+  Visibility,
+} from "../../types";
 import { contentTypeToName, getIconInfo } from "../../utils/activity";
 import { SiteContext } from "../SiteHeader";
 import { getDiscourseUrl } from "../../utils/discourse";
@@ -63,7 +70,7 @@ import { IFRAME_MENU_IDS } from "../../utils/iframeMenuIds";
 import { useControlledMenu } from "../../utils/useControlledMenu";
 import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression";
 import {
-  isBrowsable,
+  hasRequiredCategories,
   type Category,
   type CategoryGroup,
 } from "@doenet-tools/shared";
@@ -122,6 +129,7 @@ export function EditorHeader() {
     contentName,
     contentType,
     isPublic,
+    visibility,
     assignmentStatus,
     remixSourceHasChanged,
     inLibrary,
@@ -131,11 +139,19 @@ export function EditorHeader() {
     contentName: string;
     contentType: ContentType;
     isPublic: boolean;
+    visibility: Visibility;
     assignmentStatus: AssignmentStatus;
     remixSourceHasChanged: boolean;
     inLibrary: boolean;
     contentDescription: ContentDescription;
   };
+
+  const [currentVisibility, setCurrentVisibility] =
+    useState<Visibility>(visibility);
+
+  useEffect(() => {
+    setCurrentVisibility(visibility);
+  }, [visibility]);
 
   const nameBarFetcher = useFetcher();
 
@@ -145,7 +161,7 @@ export function EditorHeader() {
   const [searchParams, _] = useSearchParams();
   const inCurateMode = searchParams.get("curate") === null ? false : true;
 
-  // Loads settings on mount to check if required categories are filled (for "Not browsable" warning)
+  // Loads settings on mount to check if required categories are filled.
   const categoryCheckFetcher = useFetcher<typeof settingsLoader>();
 
   useEffect(() => {
@@ -159,11 +175,10 @@ export function EditorHeader() {
     }
   }, [isPublic, contentType, contentId, categoryCheckFetcher]);
 
-  // Check if required categories are filled out (similar to ShareMyContentModal)
-  const notBrowsable =
+  const isMissingRequiredCategories =
     isPublic &&
     categoryCheckFetcher.data &&
-    !isBrowsable({
+    !hasRequiredCategories({
       allCategories: categoryCheckFetcher.data.allCategories as CategoryGroup[],
       categories: categoryCheckFetcher.data.categories as Category[],
     });
@@ -186,28 +201,32 @@ export function EditorHeader() {
     onClose: helpMenuControl.menuProps.onClose,
   });
 
-  const notBrowsableMessage = notBrowsable && (
+  const missingRequiredCategoriesMessage = isMissingRequiredCategories && (
     <Alert status="warning" height="40px">
       <AlertIcon />
-      <AlertTitle>Not browsable</AlertTitle>
+      <AlertTitle>Missing required categories</AlertTitle>
       <AlertDescription>
-        This activity is public but will not be discoverable unless{" "}
+        This activity is public, but it is missing{" "}
         <ChakraLink
           as={ReactRouterLink}
           to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
           textDecoration="underline"
         >
           required activity categories
-        </ChakraLink>{" "}
-        are filled out.
+        </ChakraLink>
+        .
       </AlertDescription>
     </Alert>
   );
 
   // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
 
-  const editorHeaderHeight = notBrowsable ? `${40 + 40}px` : "40px";
-  const totalHeaderHeight = notBrowsable ? `${40 + 40 + 40}px` : `${40 + 40}px`;
+  const editorHeaderHeight = isMissingRequiredCategories
+    ? `${40 + 40}px`
+    : "40px";
+  const totalHeaderHeight = isMissingRequiredCategories
+    ? `${40 + 40 + 40}px`
+    : `${40 + 40}px`;
 
   const context = useOutletContext<SiteContext>();
   const editorContext: EditorContext = {
@@ -613,8 +632,41 @@ export function EditorHeader() {
     </ButtonGroup>
   );
 
+  const shareButtonConfig = getShareButtonConfig(currentVisibility);
+  const shareButtonLabel = getVisibilityLabel(currentVisibility);
+
   const actionButtons = !isSubActivity && (
     <ButtonGroup size="sm" mt="4px" mr={{ base: "5px", sm: "10px" }}>
+      <Button
+        variant="outline"
+        borderColor={shareButtonConfig.borderColor}
+        bg={shareButtonConfig.bg}
+        color={shareButtonConfig.color}
+        leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
+        rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
+        _hover={{
+          bg: shareButtonConfig.hoverBg,
+          borderColor: shareButtonConfig.hoverBorderColor,
+        }}
+        _active={{
+          bg: shareButtonConfig.hoverBg,
+        }}
+        _disabled={{
+          opacity: 0.6,
+          cursor: "not-allowed",
+        }}
+        isDisabled={inLibrary}
+        onClick={() => shareContentOnOpen()}
+        data-test="Share Button"
+        aria-label={`Open sharing settings. Current access: ${shareButtonLabel}`}
+      >
+        <HStack spacing="0.45rem">
+          <Text>Sharing settings</Text>
+          <Text fontWeight="medium" opacity={0.85}>
+            {shareButtonLabel}
+          </Text>
+        </HStack>
+      </Button>
       <Tooltip
         label={
           contentDescription.hasBadVersion &&
@@ -631,14 +683,6 @@ export function EditorHeader() {
           Create assignment
         </Button>
       </Tooltip>
-      <Button
-        colorScheme="blue"
-        isDisabled={inLibrary}
-        onClick={() => shareContentOnOpen()}
-        data-test="Share Button"
-      >
-        Share
-      </Button>
     </ButtonGroup>
   );
 
@@ -667,6 +711,7 @@ export function EditorHeader() {
         contentType={contentType}
         isOpen={shareContentIsOpen}
         onClose={shareContentOnClose}
+        onVisibilityChange={setCurrentVisibility}
       />
 
       <Box
@@ -690,7 +735,7 @@ export function EditorHeader() {
               not a sub-part of a problem set */}
           {!isSubActivity && actionButtons}
         </HStack>
-        {notBrowsableMessage}
+      {missingRequiredCategoriesMessage}
       </Box>
 
       <Box
@@ -724,4 +769,54 @@ export function EditorHeader() {
       </Box>
     </>
   );
+}
+
+function getVisibilityLabel(visibility: Visibility) {
+  switch (visibility) {
+    case "private":
+      return "Private";
+    case "unlisted":
+      return "Unlisted";
+    case "public":
+      return "Public";
+  }
+}
+
+function getShareButtonConfig(visibility: Visibility): {
+  icon: IconType;
+  borderColor: string;
+  bg: string;
+  color: string;
+  hoverBg: string;
+  hoverBorderColor: string;
+} {
+  switch (visibility) {
+    case "private":
+      return {
+        icon: FiLock,
+        borderColor: "gray.300",
+        bg: "white",
+        color: "gray.700",
+        hoverBg: "gray.50",
+        hoverBorderColor: "gray.400",
+      };
+    case "unlisted":
+      return {
+        icon: FiLink2,
+        borderColor: "blue.300",
+        bg: "blue.50",
+        color: "blue.700",
+        hoverBg: "blue.100",
+        hoverBorderColor: "blue.400",
+      };
+    case "public":
+      return {
+        icon: FiGlobe,
+        borderColor: "green.300",
+        bg: "green.50",
+        color: "green.700",
+        hoverBg: "green.100",
+        hoverBorderColor: "green.400",
+      };
+  }
 }
