@@ -10,22 +10,20 @@ import {
   Box,
   Button,
   FormControl,
-  FormErrorMessage,
-  FormLabel,
   HStack,
   Input,
   VStack,
   Alert,
   AlertDescription,
   AlertIcon,
-  AlertTitle,
-  Link as ChakraLink,
-  List,
-  ListItem,
-  Select,
+  SimpleGrid,
   Tooltip,
+  Flex,
+  Icon,
+  Td,
+  Tr,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { contentTypeToName } from "../utils/activity";
 import { ContentType, UserInfoWithEmail, Visibility } from "../types";
 import { Link as ReactRouterLink, useFetcher } from "react-router";
@@ -33,9 +31,18 @@ import { SpinnerWhileFetching } from "../utils/optimistic_ui";
 import { ShareTable } from "../widgets/editor/ShareTable";
 import axios from "axios";
 import { IoMdLink, IoMdCheckmark } from "react-icons/io";
-import { FiCode } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiChevronRight,
+  FiCode,
+  FiGlobe,
+  FiLink2,
+  FiLock,
+  FiXCircle,
+} from "react-icons/fi";
+import type { IconType } from "react-icons";
 
-import { editorUrl } from "../utils/url";
+import { editorDiagnosticsUrl, editorUrl } from "../utils/url";
 type PublicShareIssue =
   | "missingRequiredCategories"
   | "documentErrors"
@@ -50,7 +57,7 @@ export async function loadShareStatus({ params }: { params: any }) {
 
 /**
  * A modal to manage the sharing status of your activity.
- * Two tabs: sharing with specific people and sharing publicly.
+ * Separate sections let you manage public visibility and invited users.
  *
  * @param contentId - The ID of the content being shared
  * @param contentType - The type of content (doc, sequence, etc.)
@@ -62,21 +69,23 @@ export function ShareMyContentModal({
   contentType,
   isOpen,
   onClose,
+  onVisibilityChange,
 }: {
   contentId: string;
   contentType: ContentType;
   isOpen: boolean;
   onClose: () => void;
+  onVisibilityChange?: (visibility: Visibility) => void;
 }) {
   // ==== Load share data
-  // We're using a fetcher here so that it loads every time React Router revalidates the page
+  // Reload every time the modal opens so share status reflects changes made elsewhere
   const fetcher = useFetcher<typeof loadShareStatus>();
 
   useEffect(() => {
-    if (isOpen && fetcher.state === "idle" && !fetcher.data) {
+    if (isOpen) {
       fetcher.load(`/loadShareStatus/${contentId}`);
     }
-  }, [isOpen, fetcher, contentId]);
+  }, [isOpen, contentId, fetcher]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside" size="4xl">
@@ -89,10 +98,9 @@ export function ShareMyContentModal({
         </ModalHeader>
         <ModalCloseButton data-test="Share Close Button" />
         <ModalBody m="1rem">
-          <VStack spacing="3rem" align="flex-start">
-            <Box>
-              <Heading size="sm">With the public</Heading>
-              {fetcher.data ? (
+          <VStack spacing="2rem" align="stretch">
+            {fetcher.data ? (
+              <>
                 <SharePublicly
                   visibility={fetcher.data.visibility}
                   parentVisibility={fetcher.data.parentVisibility}
@@ -101,24 +109,24 @@ export function ShareMyContentModal({
                   contentId={contentId}
                   contentType={contentType}
                   closeModal={onClose}
+                  onVisibilityChange={onVisibilityChange}
+                  peopleSection={
+                    <Box>
+                      <Heading size="sm" mb="0.75rem">
+                        People
+                      </Heading>
+                      <ShareWithPeople
+                        contentId={contentId}
+                        sharedWith={fetcher.data.sharedWith}
+                        parentSharedWith={fetcher.data.parentSharedWith}
+                      />
+                    </Box>
+                  }
                 />
-              ) : (
-                <p>Loading...</p>
-              )}
-            </Box>
-
-            <Box>
-              <Heading size="sm">With specific people</Heading>
-              {fetcher.data ? (
-                <ShareWithPeople
-                  contentId={contentId}
-                  sharedWith={fetcher.data.sharedWith}
-                  parentSharedWith={fetcher.data.parentSharedWith}
-                />
-              ) : (
-                <p>Loading...</p>
-              )}
-            </Box>
+              </>
+            ) : (
+              <p>Loading...</p>
+            )}
           </VStack>
         </ModalBody>
       </ModalContent>
@@ -167,49 +175,71 @@ function ShareWithPeople({
 
   return (
     <>
-      {sharedWith.length > 0 && (
-        <ShareTable
-          contentId={contentId}
-          isPublic={false}
-          parentIsPublic={false}
-          sharedWith={sharedWith}
-          parentSharedWith={parentSharedWith}
-        />
-      )}
+      <ShareTable
+        contentId={contentId}
+        isPublic={false}
+        parentIsPublic={false}
+        sharedWith={sharedWith}
+        parentSharedWith={parentSharedWith}
+        footerRow={
+          <Tr data-test="Invite People Row">
+            <Td colSpan={3} px={0} py={0}>
+              <FormControl isInvalid={addEmailError ? true : false}>
+                <Flex
+                  align="center"
+                  justify="space-between"
+                  gap="0.75rem"
+                  px="0.75rem"
+                  py="0.6rem"
+                  borderBottomWidth="1px"
+                  borderColor="gray.100"
+                >
+                  <Input
+                    type="email"
+                    name="email"
+                    aria-label="Invite people with email address"
+                    placeholder="Invite people with email address"
+                    variant="unstyled"
+                    flex="1"
+                    minWidth="0"
+                    value={emailInput}
+                    data-test="Email address"
+                    onChange={(e) => {
+                      if (e.target.value !== emailInput) {
+                        setInputHasChanged(true);
+                        setEmailInput(e.target.value);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (inputHasChanged) {
+                        addEmail();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key == "Enter" && inputHasChanged) {
+                        addEmail();
+                      }
+                    }}
+                  />
 
-      <FormControl isInvalid={addEmailError ? true : false} marginTop="20px">
-        <FormLabel>Add people</FormLabel>
-        <HStack>
-          <Input
-            type="email"
-            name="email"
-            placeholder="Email address"
-            value={emailInput}
-            data-test="Email address"
-            onChange={(e) => {
-              if (e.target.value !== emailInput) {
-                setInputHasChanged(true);
-                setEmailInput(e.target.value);
-              }
-            }}
-            width="90%"
-            onBlur={() => {
-              if (inputHasChanged) {
-                addEmail();
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key == "Enter" && inputHasChanged) {
-                addEmail();
-              }
-            }}
-          />
+                  {addEmailError ? (
+                    <Text
+                      color="red.500"
+                      fontSize="sm"
+                      textAlign="right"
+                      flexShrink={0}
+                    >
+                      {addEmailError}
+                    </Text>
+                  ) : null}
 
-          <SpinnerWhileFetching state={addEmailFetcher.state} />
-        </HStack>
-
-        {addEmailError && <FormErrorMessage>{addEmailError}</FormErrorMessage>}
-      </FormControl>
+                  <SpinnerWhileFetching state={addEmailFetcher.state} />
+                </Flex>
+              </FormControl>
+            </Td>
+          </Tr>
+        }
+      />
     </>
   );
 }
@@ -222,6 +252,8 @@ function SharePublicly({
   contentId,
   contentType,
   closeModal,
+  onVisibilityChange,
+  peopleSection,
 }: {
   visibility: Visibility;
   parentVisibility: Visibility;
@@ -230,9 +262,14 @@ function SharePublicly({
   contentId: string;
   contentType: ContentType;
   closeModal: () => void;
+  onVisibilityChange?: (visibility: Visibility) => void;
+  peopleSection?: ReactNode;
 }) {
   const fetcher = useFetcher();
   const [selectedVisibility, setSelectedVisibility] = useState(visibility);
+  const [currentVisibility, setCurrentVisibility] = useState(visibility);
+  const [pendingVisibilityUpdate, setPendingVisibilityUpdate] =
+    useState<Visibility | null>(null);
 
   const shareableLink = `${window.location.origin}/activityViewer/${contentId}`;
   const embedCode = `<iframe src="${window.location.origin}/embed/${contentId}" width="100%" height="800" style="border: 0"></iframe>`;
@@ -242,61 +279,141 @@ function SharePublicly({
 
   useEffect(() => {
     setSelectedVisibility(visibility);
+    setCurrentVisibility(visibility);
   }, [visibility]);
 
-  const hasShareableVisibility = selectedVisibility !== "private";
-  const publicOptionDisabled =
-    !canSharePublicly && selectedVisibility !== "public";
-  const visibilityMessage: Record<Visibility, string> = {
-    private:
-      "Content is private. Only people you explicitly share with can access it.",
-    unlisted:
-      "Content is unlisted. Anyone with the link can view it, but it will not appear in browse pages.",
-    public: "Content is public. Anyone can find and use it.",
-  };
+  useEffect(() => {
+    if (
+      pendingVisibilityUpdate &&
+      fetcher.state === "idle" &&
+      fetcher.data &&
+      typeof fetcher.data === "object" &&
+      "status" in fetcher.data &&
+      typeof fetcher.data.status === "number" &&
+      fetcher.data.status >= 200 &&
+      fetcher.data.status < 300
+    ) {
+      setCurrentVisibility(pendingVisibilityUpdate);
+      onVisibilityChange?.(pendingVisibilityUpdate);
+      setPendingVisibilityUpdate(null);
+    }
+  }, [
+    fetcher.state,
+    fetcher.data,
+    onVisibilityChange,
+    pendingVisibilityUpdate,
+  ]);
 
-  const publicCriteriaWarning = publicShareIssues.length > 0 && (
-    <Alert status="warning">
-      <AlertIcon />
-      <AlertTitle>Cannot share publicly yet</AlertTitle>
-      <AlertDescription>
-        <List spacing="0.25rem">
-          {publicShareIssues.includes("missingRequiredCategories") ? (
-            <ListItem>
-              Fill out{" "}
-              {contentType === "folder" ? (
-                <>required categories on the content you want to publish.</>
-              ) : (
-                <ChakraLink
-                  as={ReactRouterLink}
-                  to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
-                  textDecoration="underline"
-                  onClick={closeModal}
-                >
-                  required settings
-                </ChakraLink>
-              )}{" "}
-              to satisfy the category requirement for public sharing.
-            </ListItem>
-          ) : null}
-          {publicShareIssues.includes("documentErrors") ? (
-            <ListItem>
-              Resolve document errors in this content and its children.
-            </ListItem>
-          ) : null}
-          {publicShareIssues.includes("level1AccessibilityViolations") ? (
-            <ListItem>
-              Resolve level 1 accessibility violations in this content and its
-              children.
-            </ListItem>
-          ) : null}
-        </List>
-      </AlertDescription>
-    </Alert>
-  );
+  const visibilityOptions: Array<{
+    value: Visibility;
+    title: string;
+    description: string;
+    dataTest: string;
+    icon: IconType;
+  }> = [
+    {
+      value: "private",
+      title: "Private",
+      description: "Only invited users",
+      dataTest: "Share Private Button",
+      icon: FiLock,
+    },
+    {
+      value: "unlisted",
+      title: "Unlisted",
+      description: "Anyone with link",
+      dataTest: "Share Unlisted Button",
+      icon: FiLink2,
+    },
+    {
+      value: "public",
+      title: "Public",
+      description: "Visible in discovery",
+      dataTest: "Share Publicly Button",
+      icon: FiGlobe,
+    },
+  ];
+  const publicCriteria: Array<{
+    issue: PublicShareIssue;
+    label: string;
+    failedLabel: string;
+    dataTest: string;
+    actionLabel: string;
+    actionTo: string;
+  }> = [
+    {
+      issue: "documentErrors",
+      label: "No syntax errors",
+      failedLabel: "Syntax errors need to be fixed",
+      dataTest: "Public Criteria Errors",
+      actionLabel: "Open syntax errors",
+      actionTo: editorDiagnosticsUrl(contentId, contentType, "errors"),
+    },
+    {
+      issue: "missingRequiredCategories",
+      label: "Categories added",
+      failedLabel: "Categories need to be added",
+      dataTest: "Public Criteria Categories",
+      actionLabel: "Open categories",
+      actionTo:
+        contentType === "folder"
+          ? editorUrl(contentId, contentType, "settings")
+          : `${editorUrl(contentId, contentType, "settings")}?showRequired`,
+    },
+    {
+      issue: "level1AccessibilityViolations",
+      label: "No accessibility violations",
+      failedLabel: "Accessibility violations need to be fixed",
+      dataTest: "Public Criteria Accessibility",
+      actionLabel: "Open accessibility violations",
+      actionTo: editorDiagnosticsUrl(contentId, contentType, "accessibility"),
+    },
+  ];
+  const completedRequirements = publicCriteria.filter(
+    ({ issue }) => !publicShareIssues.includes(issue),
+  ).length;
+  const remainingRequirements = publicCriteria.length - completedRequirements;
+  const publicRequirementsComplete =
+    selectedVisibility === "public" &&
+    canSharePublicly &&
+    remainingRequirements === 0;
+  const hasUnsavedVisibility = selectedVisibility !== currentVisibility;
+  const canSubmitVisibility =
+    hasUnsavedVisibility &&
+    !isVisibilityDisabled(selectedVisibility, parentVisibility);
+  const showAccessCta = selectedVisibility !== "public" && canSubmitVisibility;
+  const showPublicAccessCta =
+    selectedVisibility === "public" && hasUnsavedVisibility;
+  const disablePublicAccessCta =
+    !canSubmitVisibility ||
+    !publicRequirementsComplete ||
+    fetcher.state !== "idle";
+  const showDistributionActions = currentVisibility !== "private";
+  const documentLinkHelperText =
+    currentVisibility === "unlisted"
+      ? "Anyone with this link can open the document"
+      : "Anyone can open the document with this link";
+
+  function submitVisibility() {
+    const nextVisibility = selectedVisibility;
+    setPendingVisibilityUpdate(nextVisibility);
+    setCopiedShareLink(false);
+    setCopiedEmbedCode(false);
+    fetcher.submit(
+      {
+        path: `content/${contentId}/access`,
+        visibility: nextVisibility,
+      },
+      { method: "patch", encType: "application/json" },
+    );
+  }
+
+  function cancelVisibilityChange() {
+    setSelectedVisibility(currentVisibility);
+  }
 
   return (
-    <VStack justify="flex-start" align="flex-start" spacing="1rem" pt="1rem">
+    <VStack justify="flex-start" align="stretch" spacing="3rem" pt="0.5rem">
       {parentVisibility !== "private" ? (
         <Alert status="info">
           <AlertIcon />
@@ -307,90 +424,462 @@ function SharePublicly({
         </Alert>
       ) : null}
 
-      {publicCriteriaWarning}
-
-      <FormControl>
-        <FormLabel>Visibility</FormLabel>
-        <Select
-          data-test="Visibility Select"
-          value={selectedVisibility}
-          isDisabled={fetcher.state !== "idle"}
-          onChange={(e) => {
-            setSelectedVisibility(e.target.value as Visibility);
-            fetcher.submit(
-              {
-                path: `content/${contentId}/access`,
-                visibility: e.target.value,
-              },
-              { method: "patch", encType: "application/json" },
-            );
-          }}
-        >
-          <option value="private" disabled={parentVisibility !== "private"}>
-            Private
-          </option>
-          <option value="unlisted" disabled={parentVisibility === "public"}>
-            Unlisted
-          </option>
-          <option value="public" disabled={publicOptionDisabled}>
-            Public
-          </option>
-        </Select>
-      </FormControl>
-
-      <Text data-test="Public Status">
-        {visibilityMessage[selectedVisibility]}
-      </Text>
-
-      {hasShareableVisibility ? (
-        <HStack spacing="1rem">
-          <Tooltip
-            label="Copies a direct link to this content."
-            hasArrow
-            openDelay={500}
+      <Box width="100%">
+        <VStack align="stretch" spacing="1rem">
+          <Heading size="sm" data-test="Access Heading">
+            Access
+          </Heading>
+          <Text
+            data-test="Current Access Helper"
+            color="gray.900"
+            fontSize="md"
+            fontWeight="medium"
+            lineHeight="1.45"
           >
-            <Button
-              size="sm"
-              colorScheme="blue"
-              onClick={() => {
-                navigator.clipboard.writeText(shareableLink);
-                setCopiedShareLink(true);
-                setCopiedEmbedCode(false);
-              }}
+            Current access:{" "}
+            <Text as="span" fontWeight="semibold">
+              {getVisibilityLabel(currentVisibility)}
+            </Text>
+            .
+          </Text>
+          {hasUnsavedVisibility ? (
+            <Text
+              data-test="Access Unsaved Note"
+              color="blue.700"
+              fontSize="sm"
             >
-              {copiedShareLink ? (
-                <IoMdCheckmark fontSize="1.2rem" />
-              ) : (
-                <IoMdLink fontSize="1.2rem" />
-              )}
-              <Text ml="0.5rem">Copy shareable link</Text>
-            </Button>
-          </Tooltip>
-
-          <Tooltip
-            label="Embed this content in another website or LMS using an iframe."
-            hasArrow
-            openDelay={500}
+              {`Saving will make it ${selectedVisibility}.`}
+            </Text>
+          ) : null}
+          <SimpleGrid
+            columns={{ base: 1, md: 3 }}
+            spacing="1rem"
+            role="radiogroup"
+            aria-label="Access options"
           >
-            <Button
-              size="sm"
-              colorScheme="blue"
-              onClick={() => {
-                navigator.clipboard.writeText(embedCode);
-                setCopiedEmbedCode(true);
-                setCopiedShareLink(false);
-              }}
+            {visibilityOptions.map((option) => {
+              const disabled = isVisibilityDisabled(
+                option.value,
+                parentVisibility,
+              );
+              return (
+                <VisibilityOptionCard
+                  key={option.value}
+                  title={option.title}
+                  description={option.description}
+                  icon={option.icon}
+                  isSelected={selectedVisibility === option.value}
+                  isDisabled={disabled || fetcher.state !== "idle"}
+                  dataTest={option.dataTest}
+                  onClick={() => setSelectedVisibility(option.value)}
+                />
+              );
+            })}
+          </SimpleGrid>
+
+          {showAccessCta ? (
+            <HStack spacing="0.75rem" align="center">
+              <AccessCancelButton
+                dataTest="Share Cancel Button"
+                onClick={cancelVisibilityChange}
+                isDisabled={fetcher.state !== "idle"}
+              />
+              <AccessSaveButton
+                dataTest="Share Submit Button"
+                onClick={submitVisibility}
+                isLoading={fetcher.state !== "idle"}
+              />
+            </HStack>
+          ) : null}
+
+          {selectedVisibility === "public" && currentVisibility !== "public" ? (
+            <>
+              <Box
+                width="100%"
+                borderWidth="1px"
+                borderRadius="lg"
+                borderColor="gray.200"
+                bg="gray.50"
+                p="1rem"
+                data-test="Public Requirements Card"
+              >
+                <VStack align="stretch" spacing="0.75rem">
+                  <Text
+                    color={
+                      remainingRequirements === 0 ? "green.700" : "gray.700"
+                    }
+                    fontWeight="medium"
+                  >
+                    {remainingRequirements === 0
+                      ? "All requirements complete"
+                      : `${remainingRequirements} requirement${
+                          remainingRequirements === 1 ? "" : "s"
+                        } remaining before this document can be public`}
+                  </Text>
+
+                  <VStack align="stretch" spacing="0.6rem">
+                    {publicCriteria.map((criterion) => {
+                      const passed = !publicShareIssues.includes(
+                        criterion.issue,
+                      );
+                      return (
+                        <PublicCriterion
+                          key={criterion.issue}
+                          label={
+                            passed ? criterion.label : criterion.failedLabel
+                          }
+                          passed={passed}
+                          dataTest={criterion.dataTest}
+                          actionLabel={criterion.actionLabel}
+                          actionTo={criterion.actionTo}
+                          closeModal={closeModal}
+                        />
+                      );
+                    })}
+                  </VStack>
+                </VStack>
+              </Box>
+
+              {showPublicAccessCta ? (
+                <HStack spacing="0.75rem" align="center" pt="0.15rem">
+                  <AccessCancelButton
+                    dataTest="Share Cancel Button"
+                    onClick={cancelVisibilityChange}
+                    isDisabled={fetcher.state !== "idle"}
+                  />
+                  <AccessSaveButton
+                    dataTest="Share Submit Button"
+                    onClick={submitVisibility}
+                    isDisabled={disablePublicAccessCta}
+                    isLoading={fetcher.state !== "idle"}
+                  />
+                </HStack>
+              ) : null}
+            </>
+          ) : null}
+        </VStack>
+      </Box>
+
+      {currentVisibility === "private" ? peopleSection : null}
+
+      {showDistributionActions ? (
+        <VStack align="stretch" spacing="1.5rem">
+          <Box>
+            <Text
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.800"
+              mb="0.35rem"
             >
-              {copiedEmbedCode ? (
-                <IoMdCheckmark fontSize="1.2rem" />
-              ) : (
-                <FiCode fontSize="1.2rem" />
-              )}
-              <Text ml="0.5rem">Copy embed code</Text>
-            </Button>
-          </Tooltip>
-        </HStack>
+              Document link
+            </Text>
+            <Text color="gray.600" fontSize="sm" mb="0.65rem">
+              {documentLinkHelperText}
+            </Text>
+            <Tooltip
+              label="Copies the current document link."
+              hasArrow
+              openDelay={500}
+            >
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="gray.300"
+                bg="white"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareableLink);
+                  setCopiedShareLink(true);
+                  setCopiedEmbedCode(false);
+                }}
+                _hover={{ bg: "gray.50" }}
+              >
+                {copiedShareLink ? (
+                  <IoMdCheckmark fontSize="1.1rem" />
+                ) : (
+                  <IoMdLink fontSize="1.1rem" />
+                )}
+                <Text ml="0.45rem">Copy link</Text>
+              </Button>
+            </Tooltip>
+          </Box>
+
+          <Box>
+            <Text
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.800"
+              mb="0.35rem"
+            >
+              Embed code
+            </Text>
+            <Text color="gray.600" fontSize="sm" mb="0.65rem">
+              Use this code to embed the document on another site or LMS.
+            </Text>
+            <Tooltip
+              label="Embed this content in another website or LMS using an iframe."
+              hasArrow
+              openDelay={500}
+            >
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="gray.300"
+                bg="white"
+                onClick={() => {
+                  navigator.clipboard.writeText(embedCode);
+                  setCopiedEmbedCode(true);
+                  setCopiedShareLink(false);
+                }}
+                _hover={{ bg: "gray.50" }}
+              >
+                {copiedEmbedCode ? (
+                  <IoMdCheckmark fontSize="1.1rem" />
+                ) : (
+                  <FiCode fontSize="1.1rem" />
+                )}
+                <Text ml="0.45rem">Copy embed code</Text>
+              </Button>
+            </Tooltip>
+          </Box>
+        </VStack>
       ) : null}
     </VStack>
   );
+}
+
+function VisibilityOptionCard({
+  title,
+  description,
+  icon,
+  isSelected,
+  isDisabled,
+  dataTest,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: IconType;
+  isSelected: boolean;
+  isDisabled: boolean;
+  dataTest: string;
+  onClick: () => void;
+}) {
+  return (
+    <Box
+      as="button"
+      type="button"
+      role="radio"
+      aria-checked={isSelected}
+      disabled={isDisabled}
+      data-test={dataTest}
+      width="100%"
+      minHeight="5.6rem"
+      borderWidth="1px"
+      borderRadius="lg"
+      borderColor={isSelected ? "blue.400" : "gray.200"}
+      bg={isSelected ? "blue.50" : "white"}
+      boxShadow={isSelected ? "sm" : "none"}
+      px="0.85rem"
+      py="0.8rem"
+      textAlign="left"
+      transition="border-color 0.2s ease, box-shadow 0.2s ease"
+      opacity={isDisabled ? 0.6 : 1}
+      cursor={isDisabled ? "not-allowed" : "pointer"}
+      onClick={onClick}
+      _hover={
+        isDisabled
+          ? undefined
+          : {
+              borderColor: isSelected ? "blue.400" : "blue.300",
+              boxShadow: "sm",
+            }
+      }
+      _focusVisible={{
+        outline: "2px solid",
+        outlineColor: "blue.500",
+        outlineOffset: "2px",
+      }}
+    >
+      <VStack align="flex-start" spacing="0.25rem">
+        <Flex
+          justify="space-between"
+          align="flex-start"
+          width="100%"
+          gap="1rem"
+        >
+          <HStack align="flex-start" spacing="0.65rem">
+            <Icon
+              as={icon}
+              boxSize="1rem"
+              color={isSelected ? "blue.600" : "gray.600"}
+              mt="0.1rem"
+            />
+            <Box>
+              <Text fontWeight="semibold" fontSize="sm">
+                {title}
+              </Text>
+              <Text color="gray.600" fontSize="xs">
+                {description}
+              </Text>
+            </Box>
+          </HStack>
+        </Flex>
+      </VStack>
+    </Box>
+  );
+}
+
+function PublicCriterion({
+  label,
+  passed,
+  dataTest,
+  actionLabel,
+  actionTo,
+  closeModal,
+}: {
+  label: string;
+  passed: boolean;
+  dataTest: string;
+  actionLabel: string;
+  actionTo: string;
+  closeModal: () => void;
+}) {
+  return (
+    <Flex
+      data-test={dataTest}
+      align="center"
+      justify="space-between"
+      gap="0.75rem"
+      py="0.15rem"
+      wrap="nowrap"
+    >
+      <HStack align="center" spacing="0.65rem" flex="1" minWidth={0}>
+        <Icon
+          as={passed ? FiCheckCircle : FiXCircle}
+          color={passed ? "green.500" : "red.500"}
+          boxSize="1rem"
+        />
+        <Text color={passed ? "gray.800" : "red.700"} noOfLines={1}>
+          {label}
+        </Text>
+      </HStack>
+      {!passed ? (
+        <Button
+          as={ReactRouterLink}
+          to={actionTo}
+          variant="link"
+          size="sm"
+          colorScheme="blue"
+          rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
+          onClick={closeModal}
+          flexShrink={0}
+        >
+          {actionLabel}
+        </Button>
+      ) : null}
+    </Flex>
+  );
+}
+
+function AccessSaveButton({
+  onClick,
+  isDisabled,
+  isLoading,
+  dataTest,
+}: {
+  onClick: () => void;
+  isDisabled?: boolean;
+  isLoading?: boolean;
+  dataTest: string;
+}) {
+  return (
+    <Button
+      data-test={dataTest}
+      size="sm"
+      borderRadius="lg"
+      px="1rem"
+      bg="blue.600"
+      color="white"
+      boxShadow="sm"
+      fontWeight="semibold"
+      onClick={onClick}
+      isDisabled={isDisabled}
+      isLoading={isLoading}
+      _hover={{
+        bg: "blue.700",
+        boxShadow: "md",
+      }}
+      _active={{
+        bg: "blue.700",
+      }}
+      _disabled={{
+        bg: "gray.200",
+        color: "gray.500",
+        boxShadow: "none",
+        cursor: "not-allowed",
+      }}
+    >
+      Save access
+    </Button>
+  );
+}
+
+function AccessCancelButton({
+  onClick,
+  isDisabled,
+  dataTest,
+}: {
+  onClick: () => void;
+  isDisabled?: boolean;
+  dataTest: string;
+}) {
+  return (
+    <Button
+      data-test={dataTest}
+      size="sm"
+      variant="outline"
+      borderRadius="lg"
+      px="1rem"
+      borderColor="gray.300"
+      bg="white"
+      color="gray.700"
+      boxShadow="sm"
+      onClick={onClick}
+      isDisabled={isDisabled}
+      _hover={{ bg: "gray.50", borderColor: "gray.400" }}
+      _disabled={{
+        color: "gray.400",
+        bg: "gray.100",
+        borderColor: "gray.200",
+        boxShadow: "none",
+        cursor: "not-allowed",
+      }}
+    >
+      Cancel
+    </Button>
+  );
+}
+
+function getVisibilityLabel(visibility: Visibility) {
+  switch (visibility) {
+    case "private":
+      return "Private";
+    case "unlisted":
+      return "Unlisted";
+    case "public":
+      return "Public";
+  }
+}
+
+function isVisibilityDisabled(
+  visibility: Visibility,
+  parentVisibility: Visibility,
+) {
+  if (visibility === "private") {
+    return parentVisibility !== "private";
+  }
+  if (visibility === "unlisted") {
+    return parentVisibility === "public";
+  }
+  return false;
 }
