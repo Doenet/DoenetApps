@@ -134,5 +134,13 @@
   {
     "ParameterKey": "PathPattern",
     "ParameterValue": "/api"
-  }
+  },
+  {
+    "ParameterKey": "CloudwatchSNSWarningTopic",
+    "ParameterValue": "/prod/CloudwatchSNSWarningTopic"
+  },
+  {
+    "ParameterKey": "CloudwatchSNSCriticalTopic",
+    "ParameterValue": "/prod/CloudwatchSNSCriticalTopic"
+  }  
 ]
