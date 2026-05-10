@@ -1,9 +1,26 @@
-import { useCallback, useEffect, useRef } from "react";
-import { useBlocker, useLoaderData, useOutletContext } from "react-router";
+import {
+  type ComponentProps,
+  type ComponentType,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  useBlocker,
+  useLoaderData,
+  useOutletContext,
+  useSearchParams,
+} from "react-router";
 import { DoenetmlVersion } from "../../types";
-import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { DoenetEditor, type DoenetEditorHandle } from "@doenet/doenetml-iframe";
 import axios, { AxiosError } from "axios";
 import { EditorContext } from "./EditorHeader";
+import {
+  editorDiagnosticsSearchParam,
+  type EditorDiagnosticsTab,
+} from "../../utils/url";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -20,6 +37,21 @@ export async function loader({ params }: { params: any }) {
  * This page allows you to edit your doenetml and save it to the server.
  * Context: `documentEditor`
  */
+type EditorComponent = ComponentType<ComponentProps<typeof DoenetEditor>>;
+
+type DiagnosticsPanelRequest = {
+  diagnosticsTab: EditorDiagnosticsTab;
+  requestId: number;
+};
+
+export interface DocEditorEditModeComponentProps {
+  contentId: string;
+  source: string;
+  readOnly: boolean;
+  doenetmlVersion: DoenetmlVersion;
+  editorComponent?: EditorComponent;
+}
+
 export function DocEditorEditMode() {
   const { contentId, assignmentStatus } = useOutletContext<EditorContext>();
   const readOnly = assignmentStatus !== "Unassigned";
@@ -30,11 +62,61 @@ export function DocEditorEditMode() {
   };
 
   return (
+    <DocEditorEditModeComponent
+      contentId={contentId}
+      source={source}
+      readOnly={readOnly}
+      doenetmlVersion={doenetmlVersion}
+    />
+  );
+}
+
+export function DocEditorEditModeComponent({
+  contentId,
+  source,
+  readOnly,
+  doenetmlVersion,
+  editorComponent,
+}: DocEditorEditModeComponentProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialDiagnosticsTab = getRequestedDiagnosticsTab(searchParams);
+  const [diagnosticsPanelRequest, setDiagnosticsPanelRequest] =
+    useState<DiagnosticsPanelRequest>(() => ({
+      diagnosticsTab: initialDiagnosticsTab ?? "errors",
+      requestId: initialDiagnosticsTab ? 1 : 0,
+    }));
+  const hasConsumedInitialDiagnosticsLink = useRef(
+    initialDiagnosticsTab === null,
+  );
+
+  useEffect(() => {
+    const requestedTab = getRequestedDiagnosticsTab(searchParams);
+    if (!requestedTab) {
+      return;
+    }
+
+    if (hasConsumedInitialDiagnosticsLink.current) {
+      setDiagnosticsPanelRequest((prev) => ({
+        diagnosticsTab: requestedTab,
+        requestId: prev.requestId + 1,
+      }));
+    } else {
+      hasConsumedInitialDiagnosticsLink.current = true;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete(editorDiagnosticsSearchParam);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  return (
     <DocumentEditor
       contentId={contentId}
       source={source}
       readOnly={readOnly}
       doenetmlVersion={doenetmlVersion}
+      diagnosticsPanelRequest={diagnosticsPanelRequest}
+      editorComponent={editorComponent}
     />
   );
 }
@@ -44,14 +126,19 @@ function DocumentEditor({
   source,
   readOnly,
   doenetmlVersion,
+  diagnosticsPanelRequest,
+  editorComponent: EditorComponent = DoenetEditor,
 }: {
   contentId: string;
   source: string;
   readOnly: boolean;
   doenetmlVersion: DoenetmlVersion;
+  diagnosticsPanelRequest: DiagnosticsPanelRequest;
+  editorComponent?: EditorComponent;
 }) {
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
+  const editorRef = useRef<DoenetEditorHandle>(null);
 
   const numVariants = useRef(1);
   const documentStructureChanged = useRef(false);
@@ -145,11 +232,21 @@ function DocumentEditor({
     };
   }, [handleSaveDoc]);
 
+  useLayoutEffect(() => {
+    if (diagnosticsPanelRequest.requestId === 0) {
+      return;
+    }
+    editorRef.current?.openDiagnosticsTab(
+      diagnosticsPanelRequest.diagnosticsTab,
+    );
+  }, [diagnosticsPanelRequest]);
+
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
   return (
-    <DoenetEditor
+    <EditorComponent
+      ref={editorRef}
       height="100%"
       width="100%"
       doenetML={textEditorDoenetML.current}
@@ -178,6 +275,14 @@ function DocumentEditor({
       doenetViewerUrl={doenetViewerUrl}
     />
   );
+}
+
+function getRequestedDiagnosticsTab(searchParams: URLSearchParams) {
+  const requestedTab = searchParams.get(editorDiagnosticsSearchParam);
+  if (requestedTab === "errors" || requestedTab === "accessibility") {
+    return requestedTab;
+  }
+  return null;
 }
 
 /**
