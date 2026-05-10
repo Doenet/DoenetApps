@@ -18,12 +18,17 @@ import {
 import { ActivitySource } from "@doenet-tools/shared";
 import { getContent } from "./activity_edit_view";
 import { recordRecentContent } from "./recent";
-import { getAllDoenetmlVersions, getContentSource } from "./activity";
+import {
+  getAllDoenetmlVersions,
+  getContentSource,
+  getDescendantIds,
+} from "./activity";
 import {
   InvalidRequestError,
   PermissionDeniedRedirectError,
 } from "../utils/error";
 import { StatusCodes } from "http-status-codes";
+import { getPublicShareViolations } from "../access";
 
 /**
  * Gets the general metadata relevant to editing for an activity.
@@ -394,11 +399,22 @@ export async function getEditorShareStatus({
     parentSharedWith = processSharedWith(results.parent.sharedWith).sharedWith;
   }
 
+  const descendantIds = await getDescendantIds(contentId, {
+    excludeAssignments: true,
+  });
+  const contentIds = [contentId, ...descendantIds];
+  const publicShareViolations = await getPublicShareViolations({ contentIds });
+  const publicShareIssues = [
+    ...new Set(publicShareViolations.flatMap((violation) => violation.issues)),
+  ];
+
   return {
     isPublic: results.isPublic,
     visibility: results.visibility,
     parentIsPublic: results.parent?.isPublic ?? false,
     parentVisibility: results.parent?.visibility ?? "private",
+    canSharePublicly: publicShareViolations.length === 0,
+    publicShareIssues,
     sharedWith,
     parentSharedWith,
   };
