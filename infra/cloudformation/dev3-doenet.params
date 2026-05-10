@@ -25,7 +25,7 @@
   },
   {
     "ParameterKey": "Priority",
-    "ParameterValue": "1"
+    "ParameterValue": "10"
   },
   {
     "ParameterKey": "EcsLaunchType",
@@ -134,5 +134,13 @@
   {
     "ParameterKey": "PathPattern",
     "ParameterValue": "/api"
+  },
+  {
+    "ParameterKey": "CloudwatchSNSWarningTopic",
+    "ParameterValue": "/dev3/CloudwatchSNSWarningTopic"
+  },
+  {
+    "ParameterKey": "CloudwatchSNSCriticalTopic",
+    "ParameterValue": "/dev3/CloudwatchSNSCriticalTopic"
   }
 ]
