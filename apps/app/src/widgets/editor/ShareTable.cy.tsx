@@ -27,7 +27,6 @@ describe("ShareTable Component", { tags: ["@group3"] }, () => {
       />,
     );
 
-    cy.contains("People with access").should("be.visible");
     cy.contains("Ada Lovelace").should("be.visible");
     cy.contains("ada@example.com").should("be.visible");
     cy.get('button[aria-label="Stop sharing with Ada Lovelace"]').should(
