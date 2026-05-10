@@ -1,5 +1,6 @@
 import { ReactElement, useState } from "react";
 import {
+  Badge,
   Text,
   Card as ChakraCard,
   CardBody,
@@ -26,7 +27,7 @@ import {
 import { Link as ReactRouterLink, useOutletContext } from "react-router";
 import { Content } from "../types";
 import { FaEllipsisVertical } from "react-icons/fa6";
-import { BsPeople } from "react-icons/bs";
+import { FiGlobe, FiLink2, FiLock } from "react-icons/fi";
 import {
   activityCategoryIcons,
   contentTypeToName,
@@ -98,6 +99,7 @@ export default function Card({
     name: title,
     isPublic,
     isShared,
+    visibility,
     licenseCode,
     categories,
     type: contentType,
@@ -124,7 +126,6 @@ export default function Card({
 
   const contentTypeIconSize = "1.6rem";
   const categoryIconSize = "1.2rem";
-  const sharedIconSize = "1.2rem";
   const variantsIconHeight = "1.6rem";
   const variantsBadgeWidth = "3.5rem";
 
@@ -210,35 +211,35 @@ export default function Card({
     }
   }
 
-  // Shared icon
-  const sharedIconMarginLeft = "0.2rem";
-  const sharedIcon =
-    showPublicStatus &&
-    (isPublic || isShared ? (
-      <Tooltip
-        openDelay={300}
-        label={(isPublic ? "Public " : "Shared ") + contentTypeName}
-      >
-        <Flex alignItems="center" marginLeft={sharedIconMarginLeft}>
-          <Icon
-            as={BsPeople}
-            color="#666699"
-            width={sharedIconSize}
-            height={sharedIconSize}
-          />
-        </Flex>
-      </Tooltip>
-    ) : (
-      <Flex width={sharedIconSize} marginLeft={sharedIconMarginLeft} />
-    ));
+  const visibilityPillConfig = getVisibilityPillConfig(visibility);
+  const visibilityBadge = showPublicStatus ? (
+    <Badge
+      marginLeft="0.5rem"
+      px="0.45rem"
+      py="0.15rem"
+      borderRadius="full"
+      borderWidth="1px"
+      borderColor={visibilityPillConfig.borderColor}
+      bg={visibilityPillConfig.bg}
+      color={visibilityPillConfig.color}
+      fontWeight="medium"
+      textTransform="none"
+    >
+      <HStack spacing="0.25rem">
+        <Icon as={visibilityPillConfig.icon} boxSize="0.75rem" />
+        <Text fontSize="xs">{visibilityPillConfig.label}</Text>
+      </HStack>
+    </Badge>
+  ) : null;
 
   // Title
   const titleBox = (
     <Tooltip openDelay={500} label={title} placement="bottom-start">
       <Flex alignItems="center" flexGrow={1} width={titleWidth}>
-        <Text paddingLeft={[".5rem", "1.5rem"]} flexGrow={3} noOfLines={1}>
+        <Text paddingLeft={[".5rem", "1.5rem"]} noOfLines={1}>
           {title}
         </Text>
+        {visibilityBadge}
       </Flex>
     </Tooltip>
   );
@@ -461,7 +462,6 @@ export default function Card({
               {contentTypeIcon}
               <Hide below="md">{categoryIcons}</Hide>
               {/* <Hide below="lg">{categoryIcons}</Hide> */}
-              {sharedIcon}
               {titleBox}
               <Spacer />
               {libraryEditorInfo}
@@ -484,4 +484,33 @@ export default function Card({
       </CardBody>
     </ChakraCard>
   );
+}
+
+function getVisibilityPillConfig(visibility: "private" | "unlisted" | "public") {
+  switch (visibility) {
+    case "private":
+      return {
+        icon: FiLock,
+        label: "Private",
+        borderColor: "gray.300",
+        bg: "white",
+        color: "gray.700",
+      };
+    case "unlisted":
+      return {
+        icon: FiLink2,
+        label: "Unlisted",
+        borderColor: "blue.300",
+        bg: "blue.50",
+        color: "blue.700",
+      };
+    case "public":
+      return {
+        icon: FiGlobe,
+        label: "Public",
+        borderColor: "green.300",
+        bg: "green.50",
+        color: "green.700",
+      };
+  }
 }
