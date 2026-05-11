@@ -26,11 +26,11 @@ const mockVersion: DoenetmlVersion = {
 type MockEditorProps = ComponentProps<typeof DoenetEditor>;
 
 describe("DocEditorEditModeComponent", { tags: ["@group1"] }, () => {
-  it("opens the requested diagnostics panel from the initial query param", () => {
+  it("passes the initial diagnostics tab on first mount", () => {
     const openDiagnosticsSpy = cy.spy().as("openDiagnosticsSpy");
 
     const MockEditor = forwardRef(function MockEditor(
-      _props: MockEditorProps,
+      props: MockEditorProps,
       ref: ForwardedRef<DoenetEditorHandle>,
     ) {
       useImperativeHandle(
@@ -44,7 +44,12 @@ describe("DocEditorEditModeComponent", { tags: ["@group1"] }, () => {
         [],
       );
 
-      return <div data-testid="mock-editor">Mock editor</div>;
+      return (
+        <>
+          <div data-testid="mock-editor">Mock editor</div>
+          <div data-testid="initial-open-tab">{props.initialOpenTab ?? ""}</div>
+        </>
+      );
     });
 
     function TestHarness() {
@@ -68,7 +73,8 @@ describe("DocEditorEditModeComponent", { tags: ["@group1"] }, () => {
       routerProps: { initialEntries: ["/?diagnostics=errors"] },
     });
 
-    cy.get("@openDiagnosticsSpy").should("have.been.calledOnceWith", "errors");
+    cy.get("@openDiagnosticsSpy").should("not.have.been.called");
+    cy.get("[data-testid='initial-open-tab']").should("have.text", "errors");
     cy.get("[data-testid='current-search']").should("have.text", "");
     cy.get("[data-testid='mock-editor']").should("be.visible");
   });

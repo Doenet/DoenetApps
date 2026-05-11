@@ -79,14 +79,16 @@ export function DocEditorEditModeComponent({
   editorComponent,
 }: DocEditorEditModeComponentProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialDiagnosticsTab = getRequestedDiagnosticsTab(searchParams);
+  const [initialDiagnosticsTab] = useState<EditorDiagnosticsTab | undefined>(
+    () => getRequestedDiagnosticsTab(searchParams) ?? undefined,
+  );
   const [diagnosticsPanelRequest, setDiagnosticsPanelRequest] =
     useState<DiagnosticsPanelRequest>(() => ({
-      diagnosticsTab: initialDiagnosticsTab ?? "errors",
-      requestId: initialDiagnosticsTab ? 1 : 0,
+      diagnosticsTab: "errors",
+      requestId: 0,
     }));
   const hasConsumedInitialDiagnosticsLink = useRef(
-    initialDiagnosticsTab === null,
+    initialDiagnosticsTab === undefined,
   );
 
   useEffect(() => {
@@ -116,6 +118,7 @@ export function DocEditorEditModeComponent({
       readOnly={readOnly}
       doenetmlVersion={doenetmlVersion}
       diagnosticsPanelRequest={diagnosticsPanelRequest}
+      initialDiagnosticsTab={initialDiagnosticsTab}
       editorComponent={editorComponent}
     />
   );
@@ -127,6 +130,7 @@ function DocumentEditor({
   readOnly,
   doenetmlVersion,
   diagnosticsPanelRequest,
+  initialDiagnosticsTab,
   editorComponent: EditorComponent = DoenetEditor,
 }: {
   contentId: string;
@@ -134,6 +138,7 @@ function DocumentEditor({
   readOnly: boolean;
   doenetmlVersion: DoenetmlVersion;
   diagnosticsPanelRequest: DiagnosticsPanelRequest;
+  initialDiagnosticsTab?: EditorDiagnosticsTab;
   editorComponent?: EditorComponent;
 }) {
   const textEditorDoenetML = useRef(source);
@@ -268,6 +273,7 @@ function DocumentEditor({
         }
         documentStructureChanged.current = true;
       }}
+      initialOpenTab={initialDiagnosticsTab}
       doenetmlVersion={doenetmlVersion.fullVersion}
       initialWarnings={initialWarnings}
       border="none"

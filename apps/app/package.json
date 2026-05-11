@@ -25,7 +25,7 @@
     "@chakra-ui/react": "^2.10.9",
     "@doenet-tools/shared": "*",
     "@doenet/assignment-viewer": "^0.1.0-alpha-15",
-    "@doenet/doenetml-iframe": "^0.7.6",
+    "@doenet/doenetml-iframe": "^0.7.17",
     "@doenet/v06-to-v07": "^0.7.6",
     "@fontsource/jost": "^5.2.6",
     "axios": "^1.11.0",
