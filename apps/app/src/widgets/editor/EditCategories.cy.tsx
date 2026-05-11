@@ -116,6 +116,42 @@ describe("EditCategories Component", { tags: ["@group3"] }, () => {
     cy.checkAccessibility("body");
   });
 
+  it("updates the required warning optimistically while the save is pending", () => {
+    const categoriesWithRequired: CategoryGroup[] = [
+      {
+        name: "Required Interactivity",
+        isRequired: true,
+        isExclusive: false,
+        categories: [
+          {
+            code: "isInteractive",
+            term: "Interactive",
+            description: "This content is interactive",
+          },
+        ],
+      },
+    ];
+
+    cy.mount(
+      <EditCategories
+        contentId={defaultProps.contentId}
+        categories={[]}
+        allCategories={categoriesWithRequired}
+        showRequired={true}
+      />,
+    );
+
+    cy.get('[data-test="Required Alert Required Interactivity"]').should(
+      "be.visible",
+    );
+    cy.get('[data-test="isInteractive Checkbox"]').click();
+    cy.get('[data-test="Required Alert Required Interactivity"]').should(
+      "have.attr",
+      "aria-hidden",
+      "true",
+    );
+  });
+
   it("is accessible with multiple categories selected", () => {
     const multipleCategories = [
       {
