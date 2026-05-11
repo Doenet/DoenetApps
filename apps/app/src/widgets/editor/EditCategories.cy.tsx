@@ -83,6 +83,35 @@ describe("EditCategories Component", { tags: ["@group3"] }, () => {
       />,
     );
 
+    cy.contains("Required").should("not.exist");
+    cy.checkAccessibility("body");
+  });
+
+  it("shows required warning only when a required group is missing", () => {
+    const categoriesWithRequired: CategoryGroup[] = [
+      {
+        name: "Required Question Type",
+        isRequired: true,
+        isExclusive: true,
+        categories: [
+          {
+            code: "isQuestion",
+            term: "Question",
+            description: "This is a question",
+          },
+        ],
+      },
+    ];
+
+    cy.mount(
+      <EditCategories
+        contentId={defaultProps.contentId}
+        categories={[]}
+        allCategories={categoriesWithRequired}
+        showRequired={true}
+      />,
+    );
+
     cy.contains("Required").should("be.visible");
     cy.checkAccessibility("body");
   });

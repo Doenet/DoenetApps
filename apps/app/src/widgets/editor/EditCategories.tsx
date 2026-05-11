@@ -34,11 +34,26 @@ export function EditCategories({
 
   for (const group of allCategories) {
     const groupBox = [];
+    const groupIsMissing = !group.categories.some((groupCategory) =>
+      categories.some((category) => category.code === groupCategory.code),
+    );
+
     if (showRequired && group.isRequired) {
       groupBox.push(
-        <Alert status="warning" key={`Required Alert ${group.name}`}>
-          <AlertIcon />
-          <AlertTitle>Required</AlertTitle>
+        <Alert
+          status="warning"
+          key={`Required Alert ${group.name}`}
+          visibility={groupIsMissing ? "visible" : "hidden"}
+          aria-hidden={!groupIsMissing}
+          py="0.35rem"
+          px="0.6rem"
+          mb="0.35rem"
+          borderRadius="md"
+        >
+          <AlertIcon boxSize="0.9rem" mr="0.4rem" />
+          <AlertTitle fontSize="sm" lineHeight="1.2">
+            Required
+          </AlertTitle>
         </Alert>,
       );
     }
