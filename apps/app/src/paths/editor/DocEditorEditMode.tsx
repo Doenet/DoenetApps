@@ -262,7 +262,11 @@ function DocumentEditor({
         handleSaveDoc();
       }}
       diagnosticsSummaryCallback={(diagnostics: Diagnostics) => {
-        handleDiagnosticsSummary(contentId, diagnostics);
+        handleDiagnosticsSummary(
+          contentId,
+          textEditorDoenetML.current,
+          diagnostics,
+        );
       }}
       immediateDoenetmlChangeCallback={(newDoenetML: string) => {
         textEditorDoenetML.current = newDoenetML;
@@ -303,9 +307,14 @@ type Diagnostics = {
   warningsCount: number;
 };
 
-function handleDiagnosticsSummary(contentId: string, diagnostics: Diagnostics) {
+function handleDiagnosticsSummary(
+  contentId: string,
+  source: string,
+  diagnostics: Diagnostics,
+) {
   axios.put(`/api/content/${contentId}/audit`, {
-    noErrorsConfirmed: diagnostics.errorsCount === 0,
-    accessibilityConfirmed: diagnostics.accessibilityLevel1Count === 0,
+    source,
+    errorsCheckPasses: diagnostics.errorsCount === 0,
+    accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
   });
 }

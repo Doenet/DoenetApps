@@ -45,8 +45,8 @@ import type { IconType } from "react-icons";
 import { editorDiagnosticsUrl, editorUrl } from "../utils/url";
 type PublicShareIssue =
   | "missingRequiredCategories"
-  | "documentErrors"
-  | "level1AccessibilityViolations";
+  | "errorsCheck"
+  | "accessibilityCheck";
 
 export async function loadShareStatus({ params }: { params: any }) {
   const { data } = await axios.get(
@@ -342,7 +342,7 @@ function SharePublicly({
     actionTo: string;
   }> = [
     {
-      issue: "documentErrors",
+      issue: "errorsCheck",
       label: "No syntax errors",
       failedLabel: "Syntax errors need to be fixed",
       dataTest: "Public Criteria Errors",
@@ -361,7 +361,7 @@ function SharePublicly({
           : `${editorUrl(contentId, contentType, "settings")}?showRequired`,
     },
     {
-      issue: "level1AccessibilityViolations",
+      issue: "accessibilityCheck",
       label: "No accessibility violations",
       failedLabel: "Accessibility violations need to be fixed",
       dataTest: "Public Criteria Accessibility",

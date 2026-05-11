@@ -261,7 +261,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       shareStatus: {
         ...shareStatusData,
         canSharePublicly: false,
-        publicShareIssues: ["missingRequiredCategories", "documentErrors"],
+        publicShareIssues: ["missingRequiredCategories", "errorsCheck"],
       },
     });
 
@@ -351,7 +351,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       ...shareStatusData,
       visibility: "public",
       canSharePublicly: false,
-      publicShareIssues: ["level1AccessibilityViolations"],
+      publicShareIssues: ["accessibilityCheck"],
     };
 
     const mountOptions = setupMocks({
@@ -413,8 +413,8 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
         canSharePublicly: false,
         publicShareIssues: [
           "missingRequiredCategories",
-          "documentErrors",
-          "level1AccessibilityViolations",
+          "errorsCheck",
+          "accessibilityCheck",
         ],
       },
     });
