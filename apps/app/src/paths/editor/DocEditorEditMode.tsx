@@ -261,12 +261,11 @@ function DocumentEditor({
         // See https://github.com/Doenet/DoenetML/issues/525
         handleSaveDoc();
       }}
-      diagnosticsSummaryCallback={(diagnostics: Diagnostics) => {
-        handleDiagnosticsSummary(
-          contentId,
-          textEditorDoenetML.current,
-          diagnostics,
-        );
+      diagnosticsSummaryCallback={(
+        diagnostics: Diagnostics,
+        doenetML: string,
+      ) => {
+        handleDiagnosticsSummary(contentId, doenetML, diagnostics);
       }}
       immediateDoenetmlChangeCallback={(newDoenetML: string) => {
         textEditorDoenetML.current = newDoenetML;
