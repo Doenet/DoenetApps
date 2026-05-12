@@ -261,7 +261,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       shareStatus: {
         ...shareStatusData,
         canSharePublicly: false,
-        publicShareIssues: ["missingRequiredCategories", "errorsCheck"],
+        publicShareIssues: ["missingRequiredCategories", "errorsCheckPending"],
       },
     });
 
@@ -278,10 +278,10 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     cy.get('[data-test="Share Publicly Button"]').should("not.be.disabled");
     cy.get('[data-test="Share Publicly Button"]').click();
     cy.contains(
-      "2 requirements remaining before this document can be public",
+      "2 requirements remaining before this document can be eligible for public discovery",
     ).should(
       "contain.text",
-      "2 requirements remaining before this document can be public",
+      "2 requirements remaining before this document can be eligible for public discovery",
     );
     cy.get('[data-test="Public Criteria Categories"]').should(
       "contain.text",
@@ -289,11 +289,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     );
     cy.get('[data-test="Public Criteria Errors"]').should(
       "contain.text",
-      "Syntax errors need to be fixed",
+      "Syntax check needs to complete",
     );
     cy.get('[data-test="Public Criteria Accessibility"]').should(
       "contain.text",
-      "Accessibility violations need to be fixed",
+      "No accessibility violations",
     );
     cy.contains("Open categories").should("be.visible");
     cy.contains("Open syntax errors").should("be.visible");
@@ -311,6 +311,47 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       "Cancel",
     );
     cy.contains("Copy link").should("not.exist");
+  });
+
+  it("shows a public discovery warning when current public content no longer qualifies", () => {
+    const mountOptions = setupMocks({
+      shareStatus: {
+        ...shareStatusData,
+        isPublic: true,
+        visibility: "public",
+        canSharePublicly: false,
+        publicShareIssues: ["missingRequiredCategories", "errorsCheckPending"],
+      },
+    });
+
+    cy.mount(
+      <ShareMyContentModal
+        contentId={contentId}
+        contentType={contentType}
+        isOpen={true}
+        onClose={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    cy.get('[data-test="Public Discovery Warning"]').should(
+      "contain.text",
+      "Not eligible for public discovery",
+    );
+    cy.get('[data-test="Public Requirements Card"]').should(
+      "contain.text",
+      "Fix 2 requirements to restore eligibility for public discovery",
+    );
+    cy.get('[data-test="Public Criteria Categories"]').should(
+      "contain.text",
+      "Categories need to be added",
+    );
+    cy.get('[data-test="Public Criteria Errors"]').should(
+      "contain.text",
+      "Syntax check needs to complete",
+    );
+    cy.get('[data-test="Share Submit Button"]').should("not.exist");
+    cy.get('[data-test="Share Cancel Button"]').should("not.exist");
   });
 
   it("cancels a pending visibility change", () => {
@@ -387,7 +428,8 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       ],
     });
 
-    cy.get('[data-test="Public Requirements Card"]').should("not.exist");
+    cy.get('[data-test="Public Requirements Card"]').should("be.visible");
+    cy.get('[data-test="Public Discovery Warning"]').should("be.visible");
     cy.get('[data-test="Share Cancel Button"]').should("not.exist");
     cy.get('[data-test="Share Submit Button"]').should("not.exist");
 
@@ -495,6 +537,33 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       cy.contains("Copy link").should("be.visible");
       cy.contains("Copy embed code").should("be.visible");
       cy.wait(100); // Wait for any dynamic content to load
+      cy.checkAccessibility("body");
+    });
+
+    it("is accessible when public discovery warning is shown", () => {
+      const mountOptions = setupMocks({
+        shareStatus: {
+          ...shareStatusData,
+          isPublic: true,
+          visibility: "public",
+          canSharePublicly: false,
+          publicShareIssues: ["accessibilityCheck"],
+        },
+      });
+
+      cy.mount(
+        <ShareMyContentModal
+          contentId={contentId}
+          contentType={contentType}
+          isOpen={true}
+          onClose={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Public Discovery Warning"]').should("be.visible");
+      cy.get('[data-test="Public Requirements Card"]').should("be.visible");
+      cy.wait(100);
       cy.checkAccessibility("body");
     });
 

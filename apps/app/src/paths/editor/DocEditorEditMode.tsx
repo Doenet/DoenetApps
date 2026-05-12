@@ -21,6 +21,10 @@ import {
   editorDiagnosticsSearchParam,
   type EditorDiagnosticsTab,
 } from "../../utils/url";
+import {
+  dispatchShareStatusRefresh,
+  shareStatusOpenEventName,
+} from "../../utils/shareStatus";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -195,6 +199,7 @@ function DocumentEditor({
         await axios.post("/api/updateContent/saveDoenetML", params);
         savedDoenetML.current = newDoenetML;
         documentStructureChanged.current = false;
+        dispatchShareStatusRefresh(contentId);
       } catch (error) {
         if (error instanceof AxiosError) {
           alert(error.message);
@@ -245,6 +250,31 @@ function DocumentEditor({
       diagnosticsPanelRequest.diagnosticsTab,
     );
   }, [diagnosticsPanelRequest]);
+
+  useEffect(() => {
+    async function handleShareModalOpen(event: Event) {
+      if (
+        event instanceof CustomEvent &&
+        event.detail?.contentId === contentId
+      ) {
+        try {
+          await handleSaveDoc();
+        } finally {
+          event.detail?.resolve?.();
+        }
+
+        editorRef.current?.updateRenderedView?.();
+      }
+    }
+
+    window.addEventListener(shareStatusOpenEventName, handleShareModalOpen);
+    return () => {
+      window.removeEventListener(
+        shareStatusOpenEventName,
+        handleShareModalOpen,
+      );
+    };
+  }, [contentId, handleSaveDoc]);
 
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
@@ -311,9 +341,13 @@ function handleDiagnosticsSummary(
   source: string,
   diagnostics: Diagnostics,
 ) {
-  axios.put(`/api/content/${contentId}/audit`, {
-    source,
-    errorsCheckPasses: diagnostics.errorsCount === 0,
-    accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
-  });
+  axios
+    .put(`/api/content/${contentId}/audit`, {
+      source,
+      errorsCheckPasses: diagnostics.errorsCount === 0,
+      accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
+    })
+    .then(() => {
+      dispatchShareStatusRefresh(contentId);
+    });
 }

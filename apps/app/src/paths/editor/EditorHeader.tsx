@@ -69,11 +69,11 @@ import { MenuDismissOverlay } from "../../components/MenuDismissOverlay";
 import { IFRAME_MENU_IDS } from "../../utils/iframeMenuIds";
 import { useControlledMenu } from "../../utils/useControlledMenu";
 import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression";
+import { loadShareStatus } from "../../popups/ShareMyContentModal";
 import {
-  hasRequiredCategories,
-  type Category,
-  type CategoryGroup,
-} from "@doenet-tools/shared";
+  requestShareStatusOpen,
+  shareStatusRefreshEventName,
+} from "../../utils/shareStatus";
 
 export async function loader({
   params,
@@ -160,28 +160,33 @@ export function EditorHeader() {
 
   const [searchParams, _] = useSearchParams();
   const inCurateMode = searchParams.get("curate") === null ? false : true;
+  const parent = contentDescription.parent;
+  const isSubActivity = (parent?.type ?? "folder") !== "folder";
+  const shareStatusWarningEnabled =
+    currentVisibility === "public" &&
+    contentType !== "folder" &&
+    !inLibrary &&
+    !isSubActivity;
 
-  // Loads settings on mount to check if required categories are filled.
-  const categoryCheckFetcher = useFetcher<typeof settingsLoader>();
+  // Load share status while public so the header can surface discovery issues.
+  const shareStatusFetcher = useFetcher<typeof loadShareStatus>({
+    key: `${contentId}-share-status`,
+  });
 
   useEffect(() => {
     if (
-      isPublic &&
-      contentType !== "folder" &&
-      categoryCheckFetcher.state === "idle" &&
-      !categoryCheckFetcher.data
+      shareStatusWarningEnabled &&
+      shareStatusFetcher.state === "idle" &&
+      !shareStatusFetcher.data
     ) {
-      categoryCheckFetcher.load(editorUrl(contentId, contentType, "settings"));
+      shareStatusFetcher.load(`/loadShareStatus/${contentId}`);
     }
-  }, [isPublic, contentType, contentId, categoryCheckFetcher]);
+  }, [contentId, shareStatusFetcher, shareStatusWarningEnabled]);
 
-  const isMissingRequiredCategories =
-    isPublic &&
-    categoryCheckFetcher.data &&
-    !hasRequiredCategories({
-      allCategories: categoryCheckFetcher.data.allCategories as CategoryGroup[],
-      categories: categoryCheckFetcher.data.categories as Category[],
-    });
+  const hasPublicDiscoveryIssues =
+    shareStatusWarningEnabled && shareStatusFetcher.data
+      ? !shareStatusFetcher.data.canSharePublicly
+      : false;
 
   const { anyMenuOpen, getMenuControl } = useIframeMenuDismissOverlay();
   const helpMenuControl = useControlledMenu(
@@ -200,45 +205,6 @@ export function EditorHeader() {
     onOpen: helpMenuControl.menuProps.onOpen,
     onClose: helpMenuControl.menuProps.onClose,
   });
-
-  const missingRequiredCategoriesMessage = isMissingRequiredCategories && (
-    <Alert status="warning" height="40px">
-      <AlertIcon />
-      <AlertTitle>Missing required categories</AlertTitle>
-      <AlertDescription>
-        This activity is public, but it is missing{" "}
-        <ChakraLink
-          as={ReactRouterLink}
-          to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
-          textDecoration="underline"
-        >
-          required activity categories
-        </ChakraLink>
-        .
-      </AlertDescription>
-    </Alert>
-  );
-
-  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
-
-  const editorHeaderHeight = isMissingRequiredCategories
-    ? `${40 + 40}px`
-    : "40px";
-  const totalHeaderHeight = isMissingRequiredCategories
-    ? `${40 + 40 + 40}px`
-    : `${40 + 40}px`;
-
-  const context = useOutletContext<SiteContext>();
-  const editorContext: EditorContext = {
-    ...context,
-    contentId,
-    contentType,
-    isPublic,
-    contentName,
-    assignmentStatus,
-    inLibrary,
-    headerHeight: totalHeaderHeight,
-  };
 
   const {
     isOpen: authorModePromptIsOpen,
@@ -288,6 +254,72 @@ export function EditorHeader() {
     onClose: shareContentOnClose,
   } = useDisclosure();
 
+  useEffect(() => {
+    function refreshShareStatus(event: Event) {
+      if (
+        shareStatusWarningEnabled &&
+        event instanceof CustomEvent &&
+        event.detail?.contentId === contentId &&
+        shareStatusFetcher.state === "idle"
+      ) {
+        shareStatusFetcher.load(`/loadShareStatus/${contentId}`);
+      }
+    }
+
+    window.addEventListener(shareStatusRefreshEventName, refreshShareStatus);
+    return () => {
+      window.removeEventListener(
+        shareStatusRefreshEventName,
+        refreshShareStatus,
+      );
+    };
+  }, [contentId, shareStatusFetcher, shareStatusWarningEnabled]);
+
+  const headerWarningMessage = hasPublicDiscoveryIssues ? (
+    <Alert
+      status="warning"
+      minHeight="40px"
+      py="0.35rem"
+      px="0.75rem"
+      cursor="pointer"
+      data-test="Editor Share Warning"
+      onClick={openShareModal}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openShareModal();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
+      <AlertIcon />
+      <AlertTitle mr="0.35rem">Not eligible for public discovery.</AlertTitle>
+      <AlertDescription>
+        Click to open sharing settings and review the issues.
+      </AlertDescription>
+    </Alert>
+  ) : null;
+
+  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
+
+  const editorHeaderHeight = headerWarningMessage ? `${40 + 40}px` : "40px";
+  const totalHeaderHeight = headerWarningMessage
+    ? `${40 + 40 + 40}px`
+    : `${40 + 40}px`;
+
+  const context = useOutletContext<SiteContext>();
+  const editorContext: EditorContext = {
+    ...context,
+    contentId,
+    contentType,
+    isPublic,
+    contentName,
+    assignmentStatus,
+    inLibrary,
+    headerHeight: totalHeaderHeight,
+  };
+
   // Fetchers for library editor controls
   const libraryEditorLoadFetcher = useFetcher<LibraryEditorData>({
     key: `${contentId}-library-load`,
@@ -296,8 +328,6 @@ export function EditorHeader() {
     key: `${contentId}-library-submit`,
   });
 
-  const parent = contentDescription.parent;
-  const isSubActivity = (parent?.type ?? "folder") !== "folder";
   const authorMode = context.user?.isAuthor || contentType !== "singleDoc";
   const discussHref = getDiscourseUrl(context.user);
 
@@ -634,39 +664,61 @@ export function EditorHeader() {
 
   const shareButtonConfig = getShareButtonConfig(currentVisibility);
   const shareButtonLabel = getVisibilityLabel(currentVisibility);
+  const shareButtonAriaLabel = hasPublicDiscoveryIssues
+    ? `Open sharing settings. Current access: ${shareButtonLabel}. Warning: not eligible for public discovery.`
+    : `Open sharing settings. Current access: ${shareButtonLabel}`;
+
+  async function openShareModal() {
+    await requestShareStatusOpen(contentId);
+    shareContentOnOpen();
+  }
 
   const actionButtons = !isSubActivity && (
     <ButtonGroup size="sm" mt="4px" mr={{ base: "5px", sm: "10px" }}>
-      <Button
-        variant="outline"
-        borderColor={shareButtonConfig.borderColor}
-        bg={shareButtonConfig.bg}
-        color={shareButtonConfig.color}
-        leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
-        rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
-        _hover={{
-          bg: shareButtonConfig.hoverBg,
-          borderColor: shareButtonConfig.hoverBorderColor,
-        }}
-        _active={{
-          bg: shareButtonConfig.hoverBg,
-        }}
-        _disabled={{
-          opacity: 0.6,
-          cursor: "not-allowed",
-        }}
-        isDisabled={inLibrary}
-        onClick={() => shareContentOnOpen()}
-        data-test="Share Button"
-        aria-label={`Open sharing settings. Current access: ${shareButtonLabel}`}
-      >
-        <HStack spacing="0.45rem">
-          <Text>Sharing settings</Text>
-          <Text fontWeight="medium" opacity={0.85}>
-            {shareButtonLabel}
-          </Text>
-        </HStack>
-      </Button>
+      <NotificationDot show={hasPublicDiscoveryIssues}>
+        <Button
+          variant="outline"
+          borderColor={
+            hasPublicDiscoveryIssues
+              ? "orange.300"
+              : shareButtonConfig.borderColor
+          }
+          bg={hasPublicDiscoveryIssues ? "orange.50" : shareButtonConfig.bg}
+          color={
+            hasPublicDiscoveryIssues ? "orange.800" : shareButtonConfig.color
+          }
+          leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
+          rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
+          _hover={{
+            bg: hasPublicDiscoveryIssues
+              ? "orange.100"
+              : shareButtonConfig.hoverBg,
+            borderColor: hasPublicDiscoveryIssues
+              ? "orange.400"
+              : shareButtonConfig.hoverBorderColor,
+          }}
+          _active={{
+            bg: hasPublicDiscoveryIssues
+              ? "orange.100"
+              : shareButtonConfig.hoverBg,
+          }}
+          _disabled={{
+            opacity: 0.6,
+            cursor: "not-allowed",
+          }}
+          isDisabled={inLibrary}
+          onClick={openShareModal}
+          data-test="Share Button"
+          aria-label={shareButtonAriaLabel}
+        >
+          <HStack spacing="0.45rem">
+            <Text>Sharing settings</Text>
+            <Text fontWeight="medium" opacity={0.85}>
+              {shareButtonLabel}
+            </Text>
+          </HStack>
+        </Button>
+      </NotificationDot>
       <Tooltip
         label={
           contentDescription.hasBadVersion &&
@@ -735,7 +787,7 @@ export function EditorHeader() {
               not a sub-part of a problem set */}
           {!isSubActivity && actionButtons}
         </HStack>
-      {missingRequiredCategoriesMessage}
+        {headerWarningMessage}
       </Box>
 
       <Box

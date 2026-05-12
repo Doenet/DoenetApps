@@ -14,6 +14,7 @@ import {
   Input,
   VStack,
   Alert,
+  AlertTitle,
   AlertDescription,
   AlertIcon,
   SimpleGrid,
@@ -43,10 +44,14 @@ import {
 import type { IconType } from "react-icons";
 
 import { editorDiagnosticsUrl, editorUrl } from "../utils/url";
+import { dispatchShareStatusRefresh } from "../utils/shareStatus";
+import { shareStatusRefreshEventName } from "../utils/shareStatus";
 type PublicShareIssue =
   | "missingRequiredCategories"
   | "errorsCheck"
-  | "accessibilityCheck";
+  | "errorsCheckPending"
+  | "accessibilityCheck"
+  | "accessibilityCheckPending";
 
 export async function loadShareStatus({ params }: { params: any }) {
   const { data } = await axios.get(
@@ -86,6 +91,30 @@ export function ShareMyContentModal({
       fetcher.load(`/loadShareStatus/${contentId}`);
     }
   }, [isOpen, contentId, fetcher]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function refreshShareStatus(event: Event) {
+      if (
+        event instanceof CustomEvent &&
+        event.detail?.contentId === contentId &&
+        fetcher.state === "idle"
+      ) {
+        fetcher.load(`/loadShareStatus/${contentId}`);
+      }
+    }
+
+    window.addEventListener(shareStatusRefreshEventName, refreshShareStatus);
+    return () => {
+      window.removeEventListener(
+        shareStatusRefreshEventName,
+        refreshShareStatus,
+      );
+    };
+  }, [contentId, fetcher, isOpen]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside" size="4xl">
@@ -295,9 +324,11 @@ function SharePublicly({
     ) {
       setCurrentVisibility(pendingVisibilityUpdate);
       onVisibilityChange?.(pendingVisibilityUpdate);
+      dispatchShareStatusRefresh(contentId);
       setPendingVisibilityUpdate(null);
     }
   }, [
+    contentId,
     fetcher.state,
     fetcher.data,
     onVisibilityChange,
@@ -334,17 +365,21 @@ function SharePublicly({
     },
   ];
   const publicCriteria: Array<{
-    issue: PublicShareIssue;
+    issue: "errorsCheck" | "missingRequiredCategories" | "accessibilityCheck";
+    pendingIssue?: PublicShareIssue;
     label: string;
     failedLabel: string;
+    pendingLabel?: string;
     dataTest: string;
     actionLabel: string;
     actionTo: string;
   }> = [
     {
       issue: "errorsCheck",
+      pendingIssue: "errorsCheckPending",
       label: "No syntax errors",
       failedLabel: "Syntax errors need to be fixed",
+      pendingLabel: "Syntax check needs to complete",
       dataTest: "Public Criteria Errors",
       actionLabel: "Open syntax errors",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "errors"),
@@ -362,17 +397,23 @@ function SharePublicly({
     },
     {
       issue: "accessibilityCheck",
+      pendingIssue: "accessibilityCheckPending",
       label: "No accessibility violations",
       failedLabel: "Accessibility violations need to be fixed",
+      pendingLabel: "Accessibility check needs to complete",
       dataTest: "Public Criteria Accessibility",
       actionLabel: "Open accessibility violations",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "accessibility"),
     },
   ];
   const completedRequirements = publicCriteria.filter(
-    ({ issue }) => !publicShareIssues.includes(issue),
+    ({ issue, pendingIssue }) =>
+      !publicShareIssues.includes(issue) &&
+      !(pendingIssue && publicShareIssues.includes(pendingIssue)),
   ).length;
   const remainingRequirements = publicCriteria.length - completedRequirements;
+  const isCurrentlyPublicButFailing =
+    currentVisibility === "public" && !canSharePublicly;
   const publicRequirementsComplete =
     selectedVisibility === "public" &&
     canSharePublicly &&
@@ -384,6 +425,9 @@ function SharePublicly({
   const showAccessCta = selectedVisibility !== "public" && canSubmitVisibility;
   const showPublicAccessCta =
     selectedVisibility === "public" && hasUnsavedVisibility;
+  const showPublicRequirementsCard =
+    (selectedVisibility === "public" && currentVisibility !== "public") ||
+    isCurrentlyPublicButFailing;
   const disablePublicAccessCta =
     !canSubmitVisibility ||
     !publicRequirementsComplete ||
@@ -442,6 +486,19 @@ function SharePublicly({
             </Text>
             .
           </Text>
+          {isCurrentlyPublicButFailing ? (
+            <Alert status="warning" data-test="Public Discovery Warning">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>Not eligible for public discovery</AlertTitle>
+                <AlertDescription>
+                  This content is currently public, but it no longer meets the
+                  requirements for public discovery. It will remain public until
+                  you fix the issues or change access.
+                </AlertDescription>
+              </Box>
+            </Alert>
+          ) : null}
           {hasUnsavedVisibility ? (
             <Text
               data-test="Access Unsaved Note"
@@ -492,7 +549,7 @@ function SharePublicly({
             </HStack>
           ) : null}
 
-          {selectedVisibility === "public" && currentVisibility !== "public" ? (
+          {showPublicRequirementsCard ? (
             <>
               <Box
                 width="100%"
@@ -510,24 +567,34 @@ function SharePublicly({
                     }
                     fontWeight="medium"
                   >
-                    {remainingRequirements === 0
-                      ? "All requirements complete"
-                      : `${remainingRequirements} requirement${
+                    {isCurrentlyPublicButFailing
+                      ? `Fix ${remainingRequirements} requirement${
                           remainingRequirements === 1 ? "" : "s"
-                        } remaining before this document can be public`}
+                        } to restore eligibility for public discovery`
+                      : remainingRequirements === 0
+                        ? "All requirements complete"
+                        : `${remainingRequirements} requirement${
+                            remainingRequirements === 1 ? "" : "s"
+                          } remaining before this document can be eligible for public discovery`}
                   </Text>
 
                   <VStack align="stretch" spacing="0.6rem">
                     {publicCriteria.map((criterion) => {
-                      const passed = !publicShareIssues.includes(
-                        criterion.issue,
-                      );
+                      const isPending = criterion.pendingIssue
+                        ? publicShareIssues.includes(criterion.pendingIssue)
+                        : false;
+                      const passed =
+                        !publicShareIssues.includes(criterion.issue) &&
+                        !isPending;
+                      const label = passed
+                        ? criterion.label
+                        : isPending
+                          ? (criterion.pendingLabel ?? criterion.failedLabel)
+                          : criterion.failedLabel;
                       return (
                         <PublicCriterion
                           key={criterion.issue}
-                          label={
-                            passed ? criterion.label : criterion.failedLabel
-                          }
+                          label={label}
                           passed={passed}
                           dataTest={criterion.dataTest}
                           actionLabel={criterion.actionLabel}

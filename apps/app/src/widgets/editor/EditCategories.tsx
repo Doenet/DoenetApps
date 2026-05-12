@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { activityCategoryIcons } from "../../utils/activity";
 import { Category, CategoryGroup } from "@doenet-tools/shared";
+import { dispatchShareStatusRefresh } from "../../utils/shareStatus";
 
 export function EditCategories({
   contentId,
@@ -34,10 +35,18 @@ export function EditCategories({
   const fetcher = useFetcher();
   const [optimisticCategoryOverrides, setOptimisticCategoryOverrides] =
     useState<Record<string, boolean>>({});
+  const [hasPendingSubmission, setHasPendingSubmission] = useState(false);
 
   useEffect(() => {
     setOptimisticCategoryOverrides({});
   }, [categories]);
+
+  useEffect(() => {
+    if (hasPendingSubmission && fetcher.state === "idle") {
+      dispatchShareStatusRefresh(contentId);
+      setHasPendingSubmission(false);
+    }
+  }, [contentId, fetcher.state, hasPendingSubmission]);
 
   const optimisticCategories = getOptimisticCategories({
     categories,
@@ -46,6 +55,7 @@ export function EditCategories({
   });
 
   function submitCategories(categoriesUpdate: Record<string, boolean>) {
+    setHasPendingSubmission(true);
     setOptimisticCategoryOverrides((prev) => ({
       ...prev,
       ...categoriesUpdate,
