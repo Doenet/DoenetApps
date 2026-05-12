@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { updateContentAudit } from "../content-audit";
 import { createContent } from "../query/activity";
+import { getEditorShareStatus } from "../query/editor";
 import { createTestUser } from "../test/utils";
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
@@ -125,6 +126,26 @@ describe("updateVisibility", () => {
     expect(error.message).toContain(
       "documents have no level 1 accessibility violations",
     );
+  });
+
+  test("reports pending diagnostics for new blank documents", async () => {
+    const user = await createTestUser();
+    const { contentId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+
+    const status = await getEditorShareStatus({
+      contentId,
+      loggedInUserId: user.userId,
+    });
+
+    expect(status.canSharePublicly).toBe(false);
+    expect(status.publicShareIssues).toContain("errorsCheckPending");
+    expect(status.publicShareIssues).toContain("accessibilityCheckPending");
+    expect(status.publicShareIssues).not.toContain("errorsCheck");
+    expect(status.publicShareIssues).not.toContain("accessibilityCheck");
   });
 
   test("treats trashed content as not found", async () => {

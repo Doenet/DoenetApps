@@ -20,7 +20,7 @@ import { createTestUser } from "../test/utils";
 import { InvalidRequestError } from "../utils/error";
 
 describe("content audit helpers", () => {
-  test("returns both issues for single documents missing both confirmations", () => {
+  test("returns pending issues for single documents missing both confirmations", () => {
     const content = {
       type: "singleDoc" as const,
       errorsCheck: AuditState.unchecked,
@@ -28,8 +28,8 @@ describe("content audit helpers", () => {
     };
 
     expect(getContentAuditIssues(content)).toEqual([
-      "errorsCheck",
-      "accessibilityCheck",
+      "errorsCheckPending",
+      "accessibilityCheckPending",
     ]);
     expect(contentAuditPasses(content)).toBe(false);
   });

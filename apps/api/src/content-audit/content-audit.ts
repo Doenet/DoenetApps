@@ -12,7 +12,11 @@ import { InvalidRequestError } from "../utils/error";
  * the conditions that must be confirmed before content is treated
  * as having passed the audit.
  */
-export type ContentAuditIssue = "errorsCheck" | "accessibilityCheck";
+export type ContentAuditIssue =
+  | "errorsCheck"
+  | "errorsCheckPending"
+  | "accessibilityCheck"
+  | "accessibilityCheckPending";
 
 /**
  * The audit status for a piece of content.
@@ -71,11 +75,19 @@ export function getContentAuditIssues(
   const issues: ContentAuditIssue[] = [];
   const { type, errorsCheck, accessibilityCheck } = contentAuditFields;
 
-  if (type === "singleDoc" && errorsCheck !== AuditState.pass) {
-    issues.push("errorsCheck");
+  if (type === "singleDoc") {
+    if (errorsCheck === AuditState.fail) {
+      issues.push("errorsCheck");
+    } else if (errorsCheck === AuditState.unchecked) {
+      issues.push("errorsCheckPending");
+    }
   }
-  if (type === "singleDoc" && accessibilityCheck !== AuditState.pass) {
-    issues.push("accessibilityCheck");
+  if (type === "singleDoc") {
+    if (accessibilityCheck === AuditState.fail) {
+      issues.push("accessibilityCheck");
+    } else if (accessibilityCheck === AuditState.unchecked) {
+      issues.push("accessibilityCheckPending");
+    }
   }
 
   return issues;
