@@ -91,7 +91,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
 
     cy.get('[data-test="Editor Share Warning"]').should(
       "contain.text",
-      "Public content is out of compliance.",
+      "Public content fails requirements",
     );
     cy.get('[data-test="Share Button"]').should("have.attr", "aria-label");
     cy.get('[data-test="Editor Share Warning"]').click();

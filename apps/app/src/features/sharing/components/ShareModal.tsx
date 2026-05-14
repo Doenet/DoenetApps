@@ -558,11 +558,10 @@ function SharePublicly({
             <Alert status="warning" data-test="Public Compliance Warning">
               <AlertIcon />
               <Box>
-                <AlertTitle>Public content is out of compliance</AlertTitle>
+                <AlertTitle>Public content fails requirements</AlertTitle>
                 <AlertDescription>
-                  This content is currently public, but it no longer meets the
-                  requirements for public listing. It will remain public until
-                  you fix the issues or change access.
+                  Your content is public but fails the requirements for public
+                  sharing. Either fix the issues below or unlist your content.
                 </AlertDescription>
               </Box>
             </Alert>

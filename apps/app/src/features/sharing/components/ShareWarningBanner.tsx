@@ -42,10 +42,8 @@ export function ShareWarningBanner({
       tabIndex={0}
     >
       <AlertIcon />
-      <AlertTitle mr="0.35rem">Public content is out of compliance.</AlertTitle>
-      <AlertDescription>
-        Click to open sharing settings and review the unmet requirements.
-      </AlertDescription>
+      <AlertTitle mr="0.35rem">Public content fails requirements</AlertTitle>
+      <AlertDescription>Click to open share settings</AlertDescription>
     </Alert>
   );
 }

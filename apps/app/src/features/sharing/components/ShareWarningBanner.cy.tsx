@@ -21,7 +21,7 @@ describe("ShareWarningBanner", { tags: ["@group3"] }, () => {
     );
 
     cy.get('[data-test="Editor Share Warning"]')
-      .should("contain.text", "Public content is out of compliance.")
+      .should("contain.text", "Public content fails requirements")
       .click();
 
     cy.get("@onClick").should("have.been.calledOnce");

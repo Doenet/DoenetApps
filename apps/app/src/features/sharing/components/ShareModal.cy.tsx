@@ -391,7 +391,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
 
     cy.get('[data-test="Public Compliance Warning"]').should(
       "contain.text",
-      "Public content is out of compliance",
+      "Public content fails requirements",
     );
     cy.get('[data-test="Public Requirements Card"]').should(
       "contain.text",
