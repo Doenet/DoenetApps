@@ -158,6 +158,7 @@ function DocumentEditor({
   registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
   refreshSharingState?: () => void;
 }) {
+  const initialDoenetML = useRef(source);
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
   const editorRef = useRef<DoenetEditorHandle>(null);
@@ -283,7 +284,7 @@ function DocumentEditor({
       ref={editorRef}
       height="100%"
       width="100%"
-      doenetML={textEditorDoenetML.current}
+      doenetML={initialDoenetML.current}
       doenetmlChangeCallback={() => {
         // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
         // when doenet ml first renders
