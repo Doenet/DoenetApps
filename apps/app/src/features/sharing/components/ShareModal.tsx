@@ -24,13 +24,12 @@ import {
   Td,
   Tr,
 } from "@chakra-ui/react";
-import { type ReactNode, useEffect, useState } from "react";
-import { contentTypeToName } from "../utils/activity";
-import { ContentType, UserInfoWithEmail, Visibility } from "../types";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { contentTypeToName } from "../../../utils/activity";
+import { ContentType, UserInfoWithEmail, Visibility } from "../../../types";
 import { Link as ReactRouterLink, useFetcher } from "react-router";
-import { SpinnerWhileFetching } from "../utils/optimistic_ui";
-import { ShareTable } from "../widgets/editor/ShareTable";
-import axios from "axios";
+import { SpinnerWhileFetching } from "../../../utils/optimistic_ui";
+import { ShareTable } from "../../../widgets/editor/ShareTable";
 import { IoMdLink, IoMdCheckmark } from "react-icons/io";
 import {
   FiCheckCircle,
@@ -43,33 +42,70 @@ import {
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
 
-import { editorDiagnosticsUrl, editorUrl } from "../utils/url";
-import { dispatchShareStatusRefresh } from "../utils/shareStatus";
-import { shareStatusRefreshEventName } from "../utils/shareStatus";
-type PublicShareIssue =
-  | "missingRequiredCategories"
-  | "errorsCheck"
-  | "errorsCheckPending"
-  | "accessibilityCheck"
-  | "accessibilityCheckPending";
+import { editorDiagnosticsUrl, editorUrl } from "../../../utils/url";
+import type { ShareController } from "../hooks/useShareController";
+import { loadShareStatus } from "../loaders";
+import type { PublicShareIssue, SharingData } from "../types";
 
-export async function loadShareStatus({ params }: { params: any }) {
-  const { data } = await axios.get(
-    `/api/editor/getEditorShareStatus/${params.contentId}`,
-  );
-  return data;
-}
+type ShareModalProps = Pick<ShareController, "modalIsOpen" | "closeModal"> &
+  Partial<Pick<ShareController, "groundTruth" | "refetchGroundTruth">> & {
+    contentId: string;
+    contentType: ContentType;
+    onVisibilityChange?: (visibility: Visibility) => void;
+  };
 
 /**
- * A modal to manage the sharing status of your activity.
- * Separate sections let you manage public visibility and invited users.
+ * The main sharing dialog for a content item.
  *
- * @param contentId - The ID of the content being shared
- * @param contentType - The type of content (doc, sequence, etc.)
- * @param isOpen - Whether the modal is open
- * @param onClose - Callback to close the modal
+ * This is the feature entry point used by editor pages and standalone pages to
+ * manage visibility, public compliance requirements, and person-to-person
+ * sharing from one place.
  */
-export function ShareMyContentModal({
+export function ShareModal({
+  contentId,
+  contentType,
+  modalIsOpen: isOpen,
+  closeModal: closeShareModal,
+  onVisibilityChange,
+  groundTruth: sharingFacts,
+  refetchGroundTruth: refetchSharingFacts,
+}: ShareModalProps) {
+  if (sharingFacts !== undefined || refetchSharingFacts) {
+    return (
+      <ShareModalLayout
+        contentId={contentId}
+        contentType={contentType}
+        isOpen={isOpen}
+        onClose={closeShareModal}
+      >
+        {sharingFacts ? (
+          <ShareModalBody
+            contentId={contentId}
+            contentType={contentType}
+            onClose={closeShareModal}
+            onVisibilityChange={onVisibilityChange}
+            reloadShareStatus={refetchSharingFacts}
+            shareStatus={sharingFacts}
+          />
+        ) : (
+          <p>Loading...</p>
+        )}
+      </ShareModalLayout>
+    );
+  }
+
+  return (
+    <UncontrolledShareModal
+      contentId={contentId}
+      contentType={contentType}
+      isOpen={isOpen}
+      onClose={closeShareModal}
+      onVisibilityChange={onVisibilityChange}
+    />
+  );
+}
+
+function UncontrolledShareModal({
   contentId,
   contentType,
   isOpen,
@@ -85,37 +121,54 @@ export function ShareMyContentModal({
   // ==== Load share data
   // Reload every time the modal opens so share status reflects changes made elsewhere
   const fetcher = useFetcher<typeof loadShareStatus>();
+  const reloadShareStatus = useCallback(() => {
+    fetcher.load(`/loadShareStatus/${contentId}`);
+  }, [contentId, fetcher]);
 
   useEffect(() => {
     if (isOpen) {
-      fetcher.load(`/loadShareStatus/${contentId}`);
+      reloadShareStatus();
     }
-  }, [isOpen, contentId, fetcher]);
+  }, [isOpen, reloadShareStatus]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+  return (
+    <ShareModalLayout
+      contentId={contentId}
+      contentType={contentType}
+      isOpen={isOpen}
+      onClose={onClose}
+    >
+      <VStack spacing="2rem" align="stretch">
+        {fetcher.data ? (
+          <ShareModalBody
+            contentId={contentId}
+            contentType={contentType}
+            onClose={onClose}
+            onVisibilityChange={onVisibilityChange}
+            reloadShareStatus={reloadShareStatus}
+            shareStatus={fetcher.data}
+          />
+        ) : (
+          <p>Loading...</p>
+        )}
+      </VStack>
+    </ShareModalLayout>
+  );
+}
 
-    function refreshShareStatus(event: Event) {
-      if (
-        event instanceof CustomEvent &&
-        event.detail?.contentId === contentId &&
-        fetcher.state === "idle"
-      ) {
-        fetcher.load(`/loadShareStatus/${contentId}`);
-      }
-    }
-
-    window.addEventListener(shareStatusRefreshEventName, refreshShareStatus);
-    return () => {
-      window.removeEventListener(
-        shareStatusRefreshEventName,
-        refreshShareStatus,
-      );
-    };
-  }, [contentId, fetcher, isOpen]);
-
+function ShareModalLayout({
+  contentId: _contentId,
+  contentType,
+  isOpen,
+  onClose,
+  children,
+}: {
+  contentId: string;
+  contentType: ContentType;
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside" size="4xl">
       <ModalOverlay />
@@ -126,40 +179,53 @@ export function ShareMyContentModal({
           </Heading>
         </ModalHeader>
         <ModalCloseButton data-test="Share Close Button" />
-        <ModalBody m="1rem">
-          <VStack spacing="2rem" align="stretch">
-            {fetcher.data ? (
-              <>
-                <SharePublicly
-                  visibility={fetcher.data.visibility}
-                  parentVisibility={fetcher.data.parentVisibility}
-                  canSharePublicly={fetcher.data.canSharePublicly}
-                  publicShareIssues={fetcher.data.publicShareIssues}
-                  contentId={contentId}
-                  contentType={contentType}
-                  closeModal={onClose}
-                  onVisibilityChange={onVisibilityChange}
-                  peopleSection={
-                    <Box>
-                      <Heading size="sm" mb="0.75rem">
-                        People
-                      </Heading>
-                      <ShareWithPeople
-                        contentId={contentId}
-                        sharedWith={fetcher.data.sharedWith}
-                        parentSharedWith={fetcher.data.parentSharedWith}
-                      />
-                    </Box>
-                  }
-                />
-              </>
-            ) : (
-              <p>Loading...</p>
-            )}
-          </VStack>
-        </ModalBody>
+        <ModalBody m="1rem">{children}</ModalBody>
       </ModalContent>
     </Modal>
+  );
+}
+
+function ShareModalBody({
+  contentId,
+  contentType,
+  onClose,
+  onVisibilityChange,
+  reloadShareStatus,
+  shareStatus,
+}: {
+  contentId: string;
+  contentType: ContentType;
+  onClose: () => void;
+  onVisibilityChange?: (visibility: Visibility) => void;
+  reloadShareStatus?: () => void;
+  shareStatus: SharingData;
+}) {
+  return (
+    <VStack spacing="2rem" align="stretch">
+      <SharePublicly
+        visibility={shareStatus.visibility}
+        parentVisibility={shareStatus.parentVisibility}
+        canSharePublicly={shareStatus.canSharePublicly}
+        publicShareIssues={shareStatus.publicShareIssues}
+        contentId={contentId}
+        contentType={contentType}
+        closeModal={onClose}
+        onVisibilityChange={onVisibilityChange}
+        reloadShareStatus={reloadShareStatus}
+        peopleSection={
+          <Box>
+            <Heading size="sm" mb="0.75rem">
+              People
+            </Heading>
+            <ShareWithPeople
+              contentId={contentId}
+              sharedWith={shareStatus.sharedWith}
+              parentSharedWith={shareStatus.parentSharedWith}
+            />
+          </Box>
+        }
+      />
+    </VStack>
   );
 }
 
@@ -282,6 +348,7 @@ function SharePublicly({
   contentType,
   closeModal,
   onVisibilityChange,
+  reloadShareStatus,
   peopleSection,
 }: {
   visibility: Visibility;
@@ -292,6 +359,7 @@ function SharePublicly({
   contentType: ContentType;
   closeModal: () => void;
   onVisibilityChange?: (visibility: Visibility) => void;
+  reloadShareStatus?: () => void;
   peopleSection?: ReactNode;
 }) {
   const fetcher = useFetcher();
@@ -324,15 +392,15 @@ function SharePublicly({
     ) {
       setCurrentVisibility(pendingVisibilityUpdate);
       onVisibilityChange?.(pendingVisibilityUpdate);
-      dispatchShareStatusRefresh(contentId);
+      reloadShareStatus?.();
       setPendingVisibilityUpdate(null);
     }
   }, [
-    contentId,
     fetcher.state,
     fetcher.data,
     onVisibilityChange,
     pendingVisibilityUpdate,
+    reloadShareStatus,
   ]);
 
   const visibilityOptions: Array<{
@@ -487,13 +555,13 @@ function SharePublicly({
             .
           </Text>
           {isCurrentlyPublicButFailing ? (
-            <Alert status="warning" data-test="Public Discovery Warning">
+            <Alert status="warning" data-test="Public Compliance Warning">
               <AlertIcon />
               <Box>
-                <AlertTitle>Not eligible for public discovery</AlertTitle>
+                <AlertTitle>Public content is out of compliance</AlertTitle>
                 <AlertDescription>
                   This content is currently public, but it no longer meets the
-                  requirements for public discovery. It will remain public until
+                  requirements for public listing. It will remain public until
                   you fix the issues or change access.
                 </AlertDescription>
               </Box>
@@ -570,12 +638,12 @@ function SharePublicly({
                     {isCurrentlyPublicButFailing
                       ? `Fix ${remainingRequirements} requirement${
                           remainingRequirements === 1 ? "" : "s"
-                        } to restore eligibility for public discovery`
+                        } to restore compliance for public listing`
                       : remainingRequirements === 0
                         ? "All requirements complete"
                         : `${remainingRequirements} requirement${
                             remainingRequirements === 1 ? "" : "s"
-                          } remaining before this document can be eligible for public discovery`}
+                          } remaining before this document can be listed publicly`}
                   </Text>
 
                   <VStack align="stretch" spacing="0.6rem">

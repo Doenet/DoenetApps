@@ -21,10 +21,6 @@ import {
   editorDiagnosticsSearchParam,
   type EditorDiagnosticsTab,
 } from "../../utils/url";
-import {
-  dispatchShareStatusRefresh,
-  shareStatusOpenEventName,
-} from "../../utils/shareStatus";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -54,10 +50,17 @@ export interface DocEditorEditModeComponentProps {
   readOnly: boolean;
   doenetmlVersion: DoenetmlVersion;
   editorComponent?: EditorComponent;
+  registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
+  refreshSharingState?: () => void;
 }
 
 export function DocEditorEditMode() {
-  const { contentId, assignmentStatus } = useOutletContext<EditorContext>();
+  const {
+    contentId,
+    assignmentStatus,
+    beforeShareModalOpens: registerBeforeShareModalOpens,
+    refreshSharingState,
+  } = useOutletContext<EditorContext>();
   const readOnly = assignmentStatus !== "Unassigned";
 
   const { source, doenetmlVersion } = useLoaderData() as {
@@ -71,6 +74,8 @@ export function DocEditorEditMode() {
       source={source}
       readOnly={readOnly}
       doenetmlVersion={doenetmlVersion}
+      registerBeforeShareModalOpens={registerBeforeShareModalOpens}
+      refreshSharingState={refreshSharingState}
     />
   );
 }
@@ -81,6 +86,8 @@ export function DocEditorEditModeComponent({
   readOnly,
   doenetmlVersion,
   editorComponent,
+  registerBeforeShareModalOpens,
+  refreshSharingState,
 }: DocEditorEditModeComponentProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [initialDiagnosticsTab] = useState<EditorDiagnosticsTab | undefined>(
@@ -124,6 +131,8 @@ export function DocEditorEditModeComponent({
       diagnosticsPanelRequest={diagnosticsPanelRequest}
       initialDiagnosticsTab={initialDiagnosticsTab}
       editorComponent={editorComponent}
+      registerBeforeShareModalOpens={registerBeforeShareModalOpens}
+      refreshSharingState={refreshSharingState}
     />
   );
 }
@@ -136,6 +145,8 @@ function DocumentEditor({
   diagnosticsPanelRequest,
   initialDiagnosticsTab,
   editorComponent: EditorComponent = DoenetEditor,
+  registerBeforeShareModalOpens,
+  refreshSharingState,
 }: {
   contentId: string;
   source: string;
@@ -144,6 +155,8 @@ function DocumentEditor({
   diagnosticsPanelRequest: DiagnosticsPanelRequest;
   initialDiagnosticsTab?: EditorDiagnosticsTab;
   editorComponent?: EditorComponent;
+  registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
+  refreshSharingState?: () => void;
 }) {
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
@@ -152,8 +165,6 @@ function DocumentEditor({
   const numVariants = useRef(1);
   const documentStructureChanged = useRef(false);
 
-  // const readOnly =
-  //   doc.assignmentInfo?.assignmentStatus ?? "Unassigned" !== "Unassigned";
   const readOnlyRef = useRef(readOnly);
 
   const initialWarnings = doenetmlVersion.deprecated
@@ -177,7 +188,6 @@ function DocumentEditor({
       (savedDoenetML.current === textEditorDoenetML.current &&
         !documentStructureChanged.current)
     ) {
-      // do not attempt to save doenetml if assigned
       return;
     }
 
@@ -199,7 +209,6 @@ function DocumentEditor({
         await axios.post("/api/updateContent/saveDoenetML", params);
         savedDoenetML.current = newDoenetML;
         documentStructureChanged.current = false;
-        dispatchShareStatusRefresh(contentId);
       } catch (error) {
         if (error instanceof AxiosError) {
           alert(error.message);
@@ -252,29 +261,19 @@ function DocumentEditor({
   }, [diagnosticsPanelRequest]);
 
   useEffect(() => {
-    async function handleShareModalOpen(event: Event) {
-      if (
-        event instanceof CustomEvent &&
-        event.detail?.contentId === contentId
-      ) {
-        try {
-          await handleSaveDoc();
-        } finally {
-          event.detail?.resolve?.();
-        }
-
-        editorRef.current?.updateRenderedView?.();
-      }
+    if (!registerBeforeShareModalOpens) {
+      return;
     }
 
-    window.addEventListener(shareStatusOpenEventName, handleShareModalOpen);
+    registerBeforeShareModalOpens(async () => {
+      await handleSaveDoc();
+      editorRef.current?.updateRenderedView?.();
+    });
+
     return () => {
-      window.removeEventListener(
-        shareStatusOpenEventName,
-        handleShareModalOpen,
-      );
+      registerBeforeShareModalOpens(null);
     };
-  }, [contentId, handleSaveDoc]);
+  }, [handleSaveDoc, registerBeforeShareModalOpens]);
 
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
@@ -295,7 +294,12 @@ function DocumentEditor({
         diagnostics: Diagnostics,
         doenetML: string,
       ) => {
-        handleDiagnosticsSummary(contentId, doenetML, diagnostics);
+        handleDiagnosticsSummary(
+          contentId,
+          doenetML,
+          diagnostics,
+          refreshSharingState,
+        );
       }}
       immediateDoenetmlChangeCallback={(newDoenetML: string) => {
         textEditorDoenetML.current = newDoenetML;
@@ -340,6 +344,7 @@ function handleDiagnosticsSummary(
   contentId: string,
   source: string,
   diagnostics: Diagnostics,
+  onRenderedContentChanged?: (() => void) | null,
 ) {
   axios
     .put(`/api/content/${contentId}/audit`, {
@@ -348,6 +353,6 @@ function handleDiagnosticsSummary(
       accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
     })
     .then(() => {
-      dispatchShareStatusRefresh(contentId);
+      onRenderedContentChanged?.();
     });
 }

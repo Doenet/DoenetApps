@@ -18,18 +18,19 @@ import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { activityCategoryIcons } from "../../utils/activity";
 import { Category, CategoryGroup } from "@doenet-tools/shared";
-import { dispatchShareStatusRefresh } from "../../utils/shareStatus";
 
 export function EditCategories({
   contentId,
   categories,
   allCategories,
   showRequired = false,
+  onCategoriesSaved,
 }: {
   contentId: string;
   categories: Category[];
   allCategories: CategoryGroup[];
   showRequired?: boolean;
+  onCategoriesSaved?: () => void;
 }) {
   const output = [];
   const fetcher = useFetcher();
@@ -43,10 +44,10 @@ export function EditCategories({
 
   useEffect(() => {
     if (hasPendingSubmission && fetcher.state === "idle") {
-      dispatchShareStatusRefresh(contentId);
+      onCategoriesSaved?.();
       setHasPendingSubmission(false);
     }
-  }, [contentId, fetcher.state, hasPendingSubmission]);
+  }, [fetcher.state, hasPendingSubmission, onCategoriesSaved]);
 
   const optimisticCategories = getOptimisticCategories({
     categories,

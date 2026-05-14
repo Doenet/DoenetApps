@@ -104,7 +104,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
-import { loadShareStatus } from "./popups/ShareMyContentModal";
+import { loadShareStatus } from "./features/sharing";
 import {
   DocEditorHistoryMode,
   loader as docEditorHistoryModeLoader,

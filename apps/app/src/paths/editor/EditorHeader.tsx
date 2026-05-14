@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useState } from "react";
+import { ReactElement, useCallback, useEffect, useState } from "react";
 import {
   useFetcher,
   Link as ReactRouterLink,
@@ -11,10 +11,6 @@ import {
   useSearchParams,
 } from "react-router";
 import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
   Box,
   Button,
   ButtonGroup,
@@ -42,8 +38,6 @@ import {
 import { FaHistory, FaCog, FaChevronRight, FaRegFolder } from "react-icons/fa";
 import { IoGitBranch } from "react-icons/io5";
 import { LuCircleHelp, LuLibraryBig } from "react-icons/lu";
-import { FiGlobe, FiLink2, FiLock } from "react-icons/fi";
-import type { IconType } from "react-icons";
 
 import axios from "axios";
 import {
@@ -57,7 +51,6 @@ import { SiteContext } from "../SiteHeader";
 import { getDiscourseUrl } from "../../utils/discourse";
 import { ActivateAuthorMode } from "../../popups/ActivateAuthorMode";
 import { ConfirmAssignModal } from "../../popups/ConfirmAssignModal";
-import { ShareMyContentModal } from "../../popups/ShareMyContentModal";
 import { NotificationDot } from "../../widgets/NotificationDot";
 import type { LibraryEditorData } from "../../widgets/editor/LibraryEditorControls";
 import { LibraryEditorControls } from "../../widgets/editor/LibraryEditorControls";
@@ -69,11 +62,12 @@ import { MenuDismissOverlay } from "../../components/MenuDismissOverlay";
 import { IFRAME_MENU_IDS } from "../../utils/iframeMenuIds";
 import { useControlledMenu } from "../../utils/useControlledMenu";
 import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression";
-import { loadShareStatus } from "../../popups/ShareMyContentModal";
 import {
-  requestShareStatusOpen,
-  shareStatusRefreshEventName,
-} from "../../utils/shareStatus";
+  ShareButton,
+  ShareModal,
+  ShareWarningBanner,
+  useShareController,
+} from "../../features/sharing";
 
 export async function loader({
   params,
@@ -118,6 +112,8 @@ export type EditorContext = SiteContext & {
   assignmentStatus: AssignmentStatus;
   inLibrary: boolean;
   headerHeight: string;
+  refreshSharingState?: () => void;
+  beforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
 };
 
 /**
@@ -146,47 +142,78 @@ export function EditorHeader() {
     contentDescription: ContentDescription;
   };
 
-  const [currentVisibility, setCurrentVisibility] =
-    useState<Visibility>(visibility);
-
   useEffect(() => {
-    setCurrentVisibility(visibility);
-  }, [visibility]);
-
-  const nameBarFetcher = useFetcher();
-
-  const location = useLocation();
-  const tab = location.pathname.split("/").pop()?.toLowerCase();
+    document.title = `${contentName} - Doenet`;
+  }, [contentName]);
 
   const [searchParams, _] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tab = location.pathname.split("/").pop()?.toLowerCase();
   const inCurateMode = searchParams.get("curate") === null ? false : true;
-  const parent = contentDescription.parent;
-  const isSubActivity = (parent?.type ?? "folder") !== "folder";
-  const shareStatusWarningEnabled =
-    currentVisibility === "public" &&
-    contentType !== "folder" &&
-    !inLibrary &&
-    !isSubActivity;
 
-  // Load share status while public so the header can surface discovery issues.
-  const shareStatusFetcher = useFetcher<typeof loadShareStatus>({
-    key: `${contentId}-share-status`,
+  const parent = contentDescription.parent;
+  const contentTypeName = contentTypeToName[contentType];
+  const isSubActivity = (parent?.type ?? "folder") !== "folder";
+
+  // __________________________________________________________________________
+  //
+  //
+  //                     Share button and modal
+  //
+  // __________________________________________________________________________
+  //
+
+  const [beforeShareModalOpens, setBeforeShareModalOpens] = useState<
+    (() => Promise<void>) | null
+  >(null);
+
+  const shareController = useShareController({
+    contentId,
+    contentType,
+    visibility,
+    inLibrary,
+    isSubActivity,
+    beforeShareModalOpens,
   });
 
-  useEffect(() => {
-    if (
-      shareStatusWarningEnabled &&
-      shareStatusFetcher.state === "idle" &&
-      !shareStatusFetcher.data
-    ) {
-      shareStatusFetcher.load(`/loadShareStatus/${contentId}`);
-    }
-  }, [contentId, shareStatusFetcher, shareStatusWarningEnabled]);
+  const setupBeforeShareModalOpens: EditorContext["beforeShareModalOpens"] =
+    useCallback<NonNullable<EditorContext["beforeShareModalOpens"]>>((fn) => {
+      setBeforeShareModalOpens(() => fn);
+    }, []);
 
-  const hasPublicDiscoveryIssues =
-    shareStatusWarningEnabled && shareStatusFetcher.data
-      ? !shareStatusFetcher.data.canSharePublicly
-      : false;
+  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
+
+  const editorHeaderHeight = shareController.shouldShowPublicComplianceWarning
+    ? `${40 + 40}px`
+    : "40px";
+  const totalHeaderHeight = shareController.shouldShowPublicComplianceWarning
+    ? `${40 + 40 + 40}px`
+    : `${40 + 40}px`;
+
+  const context = useOutletContext<SiteContext>();
+  const editorContext: EditorContext = {
+    ...context,
+    contentId,
+    contentType,
+    isPublic,
+    contentName,
+    assignmentStatus,
+    inLibrary,
+    headerHeight: totalHeaderHeight,
+    refreshSharingState: shareController.refetchGroundTruth,
+    beforeShareModalOpens: setupBeforeShareModalOpens,
+  };
+
+  const discussHref = getDiscourseUrl(context.user);
+
+  // __________________________________________________________________________
+  //
+  //
+  //                     IFrame and menu click interaction
+  //
+  // __________________________________________________________________________
+  //
 
   const { anyMenuOpen, getMenuControl } = useIframeMenuDismissOverlay();
   const helpMenuControl = useControlledMenu(
@@ -206,11 +233,46 @@ export function EditorHeader() {
     onClose: helpMenuControl.menuProps.onClose,
   });
 
+  // __________________________________________________________________________
+  //
+  //
+  //                     Author mode modal
+  //
+  // __________________________________________________________________________
+  //
+
+  // Used by ActivateAuthorMode popup to submit author mode activation
+  const authorModeFetcher = useFetcher();
+  const authorMode = context.user?.isAuthor || contentType !== "singleDoc";
+
   const {
     isOpen: authorModePromptIsOpen,
     onOpen: authorModePromptOnOpen,
     onClose: authorModePromptOnClose,
   } = useDisclosure();
+
+  const authorModeModal = (
+    <ActivateAuthorMode
+      isOpen={authorModePromptIsOpen}
+      onClose={authorModePromptOnClose}
+      desiredAction="edit"
+      assignmentStatus={assignmentStatus}
+      user={context.user!}
+      proceedCallback={() => {
+        navigate(editorUrl(contentId, contentType, "edit", inCurateMode));
+      }}
+      allowNo={true}
+      fetcher={authorModeFetcher}
+    />
+  );
+
+  // __________________________________________________________________________
+  //
+  //
+  //                     Assignment setup
+  //
+  // __________________________________________________________________________
+  //
 
   const {
     isOpen: confirmAssignIsOpen,
@@ -218,21 +280,14 @@ export function EditorHeader() {
     onClose: confirmAssignOnClose,
   } = useDisclosure();
 
-  // Used by ActivateAuthorMode popup to submit author mode activation
-  const authorModeFetcher = useFetcher();
-
   // Used by ConfirmAssignModal MoveCopyContent to copy/move content
   const assignmentMoveCopyFetcher = useFetcher();
-
   // Used by ConfirmAssignModal to submit assignment creation
   const assignmentSubmitFetcher = useFetcher();
-
   // Used by EditAssignmentSettings sub-components within ConfirmAssignModal
   const assignmentMaxAttemptsFetcher = useFetcher();
   const assignmentVariantFetcher = useFetcher();
   const assignmentModeFetcher = useFetcher();
-
-  const navigate = useNavigate();
 
   // Loads assignment settings when ConfirmAssignModal opens to populate the form
   const assignmentSettingsFetcher = useFetcher<typeof settingsLoader>();
@@ -248,77 +303,13 @@ export function EditorHeader() {
     }
   }, [confirmAssignIsOpen, assignmentSettingsFetcher, contentId, contentType]);
 
-  const {
-    isOpen: shareContentIsOpen,
-    onOpen: shareContentOnOpen,
-    onClose: shareContentOnClose,
-  } = useDisclosure();
-
-  useEffect(() => {
-    function refreshShareStatus(event: Event) {
-      if (
-        shareStatusWarningEnabled &&
-        event instanceof CustomEvent &&
-        event.detail?.contentId === contentId &&
-        shareStatusFetcher.state === "idle"
-      ) {
-        shareStatusFetcher.load(`/loadShareStatus/${contentId}`);
-      }
-    }
-
-    window.addEventListener(shareStatusRefreshEventName, refreshShareStatus);
-    return () => {
-      window.removeEventListener(
-        shareStatusRefreshEventName,
-        refreshShareStatus,
-      );
-    };
-  }, [contentId, shareStatusFetcher, shareStatusWarningEnabled]);
-
-  const headerWarningMessage = hasPublicDiscoveryIssues ? (
-    <Alert
-      status="warning"
-      minHeight="40px"
-      py="0.35rem"
-      px="0.75rem"
-      cursor="pointer"
-      data-test="Editor Share Warning"
-      onClick={openShareModal}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openShareModal();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-    >
-      <AlertIcon />
-      <AlertTitle mr="0.35rem">Not eligible for public discovery.</AlertTitle>
-      <AlertDescription>
-        Click to open sharing settings and review the issues.
-      </AlertDescription>
-    </Alert>
-  ) : null;
-
-  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
-
-  const editorHeaderHeight = headerWarningMessage ? `${40 + 40}px` : "40px";
-  const totalHeaderHeight = headerWarningMessage
-    ? `${40 + 40 + 40}px`
-    : `${40 + 40}px`;
-
-  const context = useOutletContext<SiteContext>();
-  const editorContext: EditorContext = {
-    ...context,
-    contentId,
-    contentType,
-    isPublic,
-    contentName,
-    assignmentStatus,
-    inLibrary,
-    headerHeight: totalHeaderHeight,
-  };
+  // __________________________________________________________________________
+  //
+  //
+  //                     Library editor setup
+  //
+  // __________________________________________________________________________
+  //
 
   // Fetchers for library editor controls
   const libraryEditorLoadFetcher = useFetcher<LibraryEditorData>({
@@ -327,13 +318,6 @@ export function EditorHeader() {
   const libraryEditorSubmitFetcher = useFetcher({
     key: `${contentId}-library-submit`,
   });
-
-  const authorMode = context.user?.isAuthor || contentType !== "singleDoc";
-  const discussHref = getDiscourseUrl(context.user);
-
-  useEffect(() => {
-    document.title = `${contentName} - Doenet`;
-  }, [contentName]);
 
   let editLabel: string;
   let editTooltip: string;
@@ -362,23 +346,6 @@ export function EditorHeader() {
       editTooltip = "Turn on author mode to see read-only view of source code";
     }
   }
-
-  const authorModeModal = (
-    <ActivateAuthorMode
-      isOpen={authorModePromptIsOpen}
-      onClose={authorModePromptOnClose}
-      desiredAction="edit"
-      assignmentStatus={assignmentStatus}
-      user={context.user!}
-      proceedCallback={() => {
-        navigate(editorUrl(contentId, contentType, "edit", inCurateMode));
-      }}
-      allowNo={true}
-      fetcher={authorModeFetcher}
-    />
-  );
-
-  const contentTypeName = contentTypeToName[contentType];
 
   const { iconImage, iconColor } = getIconInfo(contentType, false);
 
@@ -501,6 +468,14 @@ export function EditorHeader() {
     </Hide>
   );
 
+  // __________________________________________________________________________
+  //
+  //
+  //                     Name Bar
+  //
+  // __________________________________________________________________________
+  //
+  const nameBarFetcher = useFetcher();
   const editableName = (
     <NameBar
       contentId={contentId}
@@ -662,62 +637,17 @@ export function EditorHeader() {
     </ButtonGroup>
   );
 
-  const shareButtonConfig = getShareButtonConfig(currentVisibility);
-  const shareButtonLabel = getVisibilityLabel(currentVisibility);
-  const shareButtonAriaLabel = hasPublicDiscoveryIssues
-    ? `Open sharing settings. Current access: ${shareButtonLabel}. Warning: not eligible for public discovery.`
-    : `Open sharing settings. Current access: ${shareButtonLabel}`;
-
-  async function openShareModal() {
-    await requestShareStatusOpen(contentId);
-    shareContentOnOpen();
-  }
-
   const actionButtons = !isSubActivity && (
     <ButtonGroup size="sm" mt="4px" mr={{ base: "5px", sm: "10px" }}>
-      <NotificationDot show={hasPublicDiscoveryIssues}>
-        <Button
-          variant="outline"
-          borderColor={
-            hasPublicDiscoveryIssues
-              ? "orange.300"
-              : shareButtonConfig.borderColor
+      <NotificationDot show={shareController.shouldShowPublicComplianceWarning}>
+        <ShareButton
+          optimisticVisibility={shareController.optimisticVisibility}
+          shouldShowPublicComplianceWarning={
+            shareController.shouldShowPublicComplianceWarning
           }
-          bg={hasPublicDiscoveryIssues ? "orange.50" : shareButtonConfig.bg}
-          color={
-            hasPublicDiscoveryIssues ? "orange.800" : shareButtonConfig.color
-          }
-          leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
-          rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
-          _hover={{
-            bg: hasPublicDiscoveryIssues
-              ? "orange.100"
-              : shareButtonConfig.hoverBg,
-            borderColor: hasPublicDiscoveryIssues
-              ? "orange.400"
-              : shareButtonConfig.hoverBorderColor,
-          }}
-          _active={{
-            bg: hasPublicDiscoveryIssues
-              ? "orange.100"
-              : shareButtonConfig.hoverBg,
-          }}
-          _disabled={{
-            opacity: 0.6,
-            cursor: "not-allowed",
-          }}
           isDisabled={inLibrary}
-          onClick={openShareModal}
-          data-test="Share Button"
-          aria-label={shareButtonAriaLabel}
-        >
-          <HStack spacing="0.45rem">
-            <Text>Sharing settings</Text>
-            <Text fontWeight="medium" opacity={0.85}>
-              {shareButtonLabel}
-            </Text>
-          </HStack>
-        </Button>
+          openModal={shareController.openModal}
+        />
       </NotificationDot>
       <Tooltip
         label={
@@ -758,12 +688,14 @@ export function EditorHeader() {
         modeFetcher={assignmentModeFetcher}
         assignmentFetcher={assignmentSubmitFetcher}
       />
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={shareContentIsOpen}
-        onClose={shareContentOnClose}
-        onVisibilityChange={setCurrentVisibility}
+        modalIsOpen={shareController.modalIsOpen}
+        closeModal={shareController.closeModal}
+        onVisibilityChange={shareController.setOptimisticVisibility}
+        groundTruth={shareController.groundTruth}
+        refetchGroundTruth={shareController.refetchGroundTruth}
       />
 
       <Box
@@ -787,7 +719,12 @@ export function EditorHeader() {
               not a sub-part of a problem set */}
           {!isSubActivity && actionButtons}
         </HStack>
-        {headerWarningMessage}
+        <ShareWarningBanner
+          shouldShowPublicComplianceWarning={
+            shareController.shouldShowPublicComplianceWarning
+          }
+          openModal={shareController.openModal}
+        />
       </Box>
 
       <Box
@@ -821,54 +758,4 @@ export function EditorHeader() {
       </Box>
     </>
   );
-}
-
-function getVisibilityLabel(visibility: Visibility) {
-  switch (visibility) {
-    case "private":
-      return "Private";
-    case "unlisted":
-      return "Unlisted";
-    case "public":
-      return "Public";
-  }
-}
-
-function getShareButtonConfig(visibility: Visibility): {
-  icon: IconType;
-  borderColor: string;
-  bg: string;
-  color: string;
-  hoverBg: string;
-  hoverBorderColor: string;
-} {
-  switch (visibility) {
-    case "private":
-      return {
-        icon: FiLock,
-        borderColor: "gray.300",
-        bg: "white",
-        color: "gray.700",
-        hoverBg: "gray.50",
-        hoverBorderColor: "gray.400",
-      };
-    case "unlisted":
-      return {
-        icon: FiLink2,
-        borderColor: "blue.300",
-        bg: "blue.50",
-        color: "blue.700",
-        hoverBg: "blue.100",
-        hoverBorderColor: "blue.400",
-      };
-    case "public":
-      return {
-        icon: FiGlobe,
-        borderColor: "green.300",
-        bg: "green.50",
-        color: "green.700",
-        hoverBg: "green.100",
-        hoverBorderColor: "green.400",
-      };
-  }
 }

@@ -8,7 +8,6 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     contentId,
     contentName: "Test Activity",
     contentType: "sequence",
-    isPublic: true,
     visibility: "public",
     assignmentStatus: "Unassigned",
     remixSourceHasChanged: false,
@@ -37,9 +36,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
   };
 
   function mountEditorHeader(shareStatus: {
-    isPublic: boolean;
     visibility: string;
-    parentIsPublic: boolean;
     parentVisibility: string;
     canSharePublicly: boolean;
     publicShareIssues: string[];
@@ -82,11 +79,9 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     } as any);
   }
 
-  it("shows the public discovery warning and opens sharing settings on click", () => {
+  it("shows the public compliance warning and opens sharing settings on click", () => {
     mountEditorHeader({
-      isPublic: true,
       visibility: "public",
-      parentIsPublic: false,
       parentVisibility: "private",
       canSharePublicly: false,
       publicShareIssues: ["missingRequiredCategories"],
@@ -96,22 +91,17 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
 
     cy.get('[data-test="Editor Share Warning"]').should(
       "contain.text",
-      "Not eligible for public discovery.",
+      "Public content is out of compliance.",
     );
-    cy.get('[data-test="Share Button"]').should(
-      "have.attr",
-      "aria-label",
-    );
+    cy.get('[data-test="Share Button"]').should("have.attr", "aria-label");
     cy.get('[data-test="Editor Share Warning"]').click();
     cy.contains("Share problem set").should("be.visible");
-    cy.get('[data-test="Public Discovery Warning"]').should("be.visible");
+    cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
   });
 
-  it("does not show the warning when public discovery requirements pass", () => {
+  it("does not show the warning when public requirements pass", () => {
     mountEditorHeader({
-      isPublic: true,
       visibility: "public",
-      parentIsPublic: false,
       parentVisibility: "private",
       canSharePublicly: true,
       publicShareIssues: [],

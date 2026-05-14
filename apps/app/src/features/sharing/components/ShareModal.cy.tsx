@@ -1,8 +1,9 @@
-import { ShareMyContentModal } from "./ShareMyContentModal";
-import { UserInfoWithEmail } from "../types";
+import { ShareModal } from "./ShareModal";
+import { UserInfoWithEmail } from "../../../types";
 import { useState } from "react";
+import type { SharingData } from "../types";
 
-describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
+describe("ShareModal component tests", { tags: ["@group3"] }, () => {
   const contentId = "content-123";
   const contentType = "sequence";
 
@@ -13,10 +14,8 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     email: "test.user@example.com",
   };
 
-  const shareStatusData = {
-    isPublic: false,
+  const shareStatusData: SharingData = {
     visibility: "private",
-    parentIsPublic: false,
     parentVisibility: "private",
     canSharePublicly: true,
     publicShareIssues: [],
@@ -60,11 +59,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     const mountOptions = setupMocks();
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -95,11 +94,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     const mountOptions = setupMocks();
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -120,11 +119,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -155,11 +154,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -189,11 +188,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -222,11 +221,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -256,6 +255,62 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
   });
 
+  it("uses controlled mode callbacks after a successful visibility update", () => {
+    const actionSpy = cy.spy().as("actionSpy");
+    const onVisibilityChange = cy.spy().as("onVisibilityChange");
+    const reloadShareStatus = cy.spy().as("reloadShareStatus");
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType={contentType}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+        onVisibilityChange={onVisibilityChange}
+        refetchGroundTruth={reloadShareStatus}
+        groundTruth={{
+          ...shareStatusData,
+          visibility: "private",
+        }}
+      />,
+      {
+        action: async ({ request }) => {
+          const body = await request.json();
+          actionSpy(body);
+          return { status: 200 };
+        },
+        routes: [],
+      },
+    );
+
+    cy.get('[data-test="Share Unlisted Button"]').click();
+    cy.get('[data-test="Share Submit Button"]').click();
+
+    cy.get("@actionSpy").should("have.been.calledWith", {
+      path: `content/${contentId}/access`,
+      visibility: "unlisted",
+    });
+    cy.get("@onVisibilityChange").should("have.been.calledWith", "unlisted");
+    cy.get("@reloadShareStatus").should("have.been.calledOnce");
+  });
+
+  it("renders a loading state in controlled mode while share status is null", () => {
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType={contentType}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+        refetchGroundTruth={cy.spy().as("reloadShareStatus")}
+        groundTruth={null}
+      />,
+    );
+
+    cy.contains("Share problem set").should("be.visible");
+    cy.contains("Loading...").should("be.visible");
+    cy.get('[data-test="Access Heading"]').should("not.exist");
+  });
+
   it("shows public criteria before allowing public access", () => {
     const mountOptions = setupMocks({
       shareStatus: {
@@ -266,11 +321,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -278,10 +333,10 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     cy.get('[data-test="Share Publicly Button"]').should("not.be.disabled");
     cy.get('[data-test="Share Publicly Button"]').click();
     cy.contains(
-      "2 requirements remaining before this document can be eligible for public discovery",
+      "2 requirements remaining before this document can be listed publicly",
     ).should(
       "contain.text",
-      "2 requirements remaining before this document can be eligible for public discovery",
+      "2 requirements remaining before this document can be listed publicly",
     );
     cy.get('[data-test="Public Criteria Categories"]').should(
       "contain.text",
@@ -313,7 +368,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     cy.contains("Copy link").should("not.exist");
   });
 
-  it("shows a public discovery warning when current public content no longer qualifies", () => {
+  it("shows a public compliance warning when current public content no longer qualifies", () => {
     const mountOptions = setupMocks({
       shareStatus: {
         ...shareStatusData,
@@ -325,22 +380,22 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
 
-    cy.get('[data-test="Public Discovery Warning"]').should(
+    cy.get('[data-test="Public Compliance Warning"]').should(
       "contain.text",
-      "Not eligible for public discovery",
+      "Public content is out of compliance",
     );
     cy.get('[data-test="Public Requirements Card"]').should(
       "contain.text",
-      "Fix 2 requirements to restore eligibility for public discovery",
+      "Fix 2 requirements to restore compliance for public listing",
     );
     cy.get('[data-test="Public Criteria Categories"]').should(
       "contain.text",
@@ -364,11 +419,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -407,11 +462,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
           <button type="button" onClick={() => setIsOpen(true)}>
             Reopen modal
           </button>
-          <ShareMyContentModal
+          <ShareModal
             contentId={contentId}
             contentType={contentType}
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
+            modalIsOpen={isOpen}
+            closeModal={() => setIsOpen(false)}
           />
         </>
       );
@@ -429,7 +484,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.get('[data-test="Public Requirements Card"]').should("be.visible");
-    cy.get('[data-test="Public Discovery Warning"]').should("be.visible");
+    cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
     cy.get('[data-test="Share Cancel Button"]').should("not.exist");
     cy.get('[data-test="Share Submit Button"]').should("not.exist");
 
@@ -462,11 +517,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
     });
 
     cy.mount(
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType="singleDoc"
-        isOpen={true}
-        onClose={cy.spy().as("onClose")}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
       />,
       mountOptions,
     );
@@ -491,11 +546,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       const mountOptions = setupMocks();
 
       cy.mount(
-        <ShareMyContentModal
+        <ShareModal
           contentId={contentId}
           contentType={contentType}
-          isOpen={true}
-          onClose={cy.spy().as("onClose")}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
         />,
         mountOptions,
       );
@@ -519,11 +574,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       });
 
       cy.mount(
-        <ShareMyContentModal
+        <ShareModal
           contentId={contentId}
           contentType={contentType}
-          isOpen={true}
-          onClose={cy.spy().as("onClose")}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
         />,
         mountOptions,
       );
@@ -540,7 +595,7 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       cy.checkAccessibility("body");
     });
 
-    it("is accessible when public discovery warning is shown", () => {
+    it("is accessible when public compliance warning is shown", () => {
       const mountOptions = setupMocks({
         shareStatus: {
           ...shareStatusData,
@@ -552,16 +607,16 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       });
 
       cy.mount(
-        <ShareMyContentModal
+        <ShareModal
           contentId={contentId}
           contentType={contentType}
-          isOpen={true}
-          onClose={cy.spy().as("onClose")}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
         />,
         mountOptions,
       );
 
-      cy.get('[data-test="Public Discovery Warning"]').should("be.visible");
+      cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
       cy.get('[data-test="Public Requirements Card"]').should("be.visible");
       cy.wait(100);
       cy.checkAccessibility("body");
@@ -577,11 +632,11 @@ describe("ShareMyContentModal component tests", { tags: ["@group3"] }, () => {
       });
 
       cy.mount(
-        <ShareMyContentModal
+        <ShareModal
           contentId={contentId}
           contentType={contentType}
-          isOpen={true}
-          onClose={cy.spy().as("onClose")}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
         />,
         mountOptions,
       );
