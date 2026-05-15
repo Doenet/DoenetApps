@@ -26,9 +26,13 @@
   {
     "ParameterKey": "AppServiceName",
     "ParameterValue": "app"
-  },  
+  },
   {
     "ParameterKey": "SiteServiceName",
     "ParameterValue": "site"
+  },
+  {
+    "ParameterKey": "ForceUpdateToken",
+    "ParameterValue": "DUMMY"
   }
 ]

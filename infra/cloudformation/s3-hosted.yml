@@ -33,6 +33,10 @@ Parameters:
     Type: String
     Description: DNS name of the Application Load Balancer
 
+  ForceUpdateToken:
+    Type: String
+    Description: Changes on each deploy to force a StackSet update
+
 Resources:
   AppBucket:
     Type: AWS::S3::Bucket
@@ -322,6 +326,10 @@ Outputs:
   AppBucketName:
     Description: Name of the app S3 bucket
     Value: !Ref AppBucket
+
+  ForceUpdateToken:
+    Description: Echoes the force-update token used for this deployment
+    Value: !Ref ForceUpdateToken
 
   SiteBucketName:
     Description: Name of the site S3 bucket
