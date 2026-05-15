@@ -79,7 +79,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     } as any);
   }
 
-  it("shows the public compliance warning and opens sharing settings on click", () => {
+  it("shows the share-button warning state and opens sharing settings on click", () => {
     mountEditorHeader({
       visibility: "public",
       parentVisibility: "private",
@@ -89,17 +89,20 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       parentSharedWith: [],
     });
 
-    cy.get('[data-test="Editor Share Warning"]').should(
-      "contain.text",
-      "Public content fails requirements",
-    );
-    cy.get('[data-test="Share Button"]').should("have.attr", "aria-label");
-    cy.get('[data-test="Editor Share Warning"]').click();
+    cy.get('[data-test="Editor Share Warning"]').should("not.exist");
+    cy.get('[data-test="Share Button"]')
+      .should("contain.text", "Action required")
+      .and(
+        "have.attr",
+        "aria-label",
+        "Open sharing settings. Current access: Public. Action required: review sharing requirements for public content.",
+      )
+      .click();
     cy.contains("Share problem set").should("be.visible");
     cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
   });
 
-  it("does not show the warning when public requirements pass", () => {
+  it("does not show the warning state when public requirements pass", () => {
     mountEditorHeader({
       visibility: "public",
       parentVisibility: "private",
@@ -110,5 +113,9 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     });
 
     cy.get('[data-test="Editor Share Warning"]').should("not.exist");
+    cy.get('[data-test="Share Button"]').should(
+      "not.contain.text",
+      "Action required",
+    );
   });
 });

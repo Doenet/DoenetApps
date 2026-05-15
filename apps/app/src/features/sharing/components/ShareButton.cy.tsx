@@ -34,11 +34,13 @@ describe("ShareButton", { tags: ["@group3"] }, () => {
       />,
     );
 
-    cy.get('[data-test="Share Button"]').should(
-      "have.attr",
-      "aria-label",
-      "Open sharing settings. Current access: Public. Warning: public content does not meet requirements.",
-    );
+    cy.get('[data-test="Share Button"]')
+      .should("contain.text", "Action required")
+      .and(
+        "have.attr",
+        "aria-label",
+        "Open sharing settings. Current access: Public. Action required: review sharing requirements for public content.",
+      );
   });
 
   it("respects disabled state", () => {

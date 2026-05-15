@@ -65,7 +65,6 @@ import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression
 import {
   ShareButton,
   ShareModal,
-  ShareWarningBanner,
   useShareController,
 } from "../../features/sharing";
 
@@ -182,14 +181,8 @@ export function EditorHeader() {
       setBeforeShareModalOpens(() => fn);
     }, []);
 
-  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
-
-  const editorHeaderHeight = shareController.shouldShowPublicComplianceWarning
-    ? `${40 + 40}px`
-    : "40px";
-  const totalHeaderHeight = shareController.shouldShowPublicComplianceWarning
-    ? `${40 + 40 + 40}px`
-    : `${40 + 40}px`;
+  const editorHeaderHeight = "40px";
+  const totalHeaderHeight = `${40 + 40}px`;
 
   const context = useOutletContext<SiteContext>();
   const editorContext: EditorContext = {
@@ -719,12 +712,6 @@ export function EditorHeader() {
               not a sub-part of a problem set */}
           {!isSubActivity && actionButtons}
         </HStack>
-        <ShareWarningBanner
-          shouldShowPublicComplianceWarning={
-            shareController.shouldShowPublicComplianceWarning
-          }
-          openModal={shareController.openModal}
-        />
       </Box>
 
       <Box

@@ -1,4 +1,4 @@
-import { Button, HStack, Icon, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Icon, Text } from "@chakra-ui/react";
 import { FaChevronRight } from "react-icons/fa";
 import { FiGlobe, FiLink2, FiLock } from "react-icons/fi";
 import type { IconType } from "react-icons";
@@ -17,7 +17,7 @@ type ShareButtonProps = Pick<
  * The compact share-settings trigger shown in headers and action bars.
  *
  * It summarizes the current access level and reflects whether the content has
- * a public-discovery warning before the modal is opened.
+ * a public compliance warning before the modal is opened.
  */
 export function ShareButton({
   optimisticVisibility,
@@ -27,8 +27,11 @@ export function ShareButton({
 }: ShareButtonProps) {
   const shareButtonConfig = getShareButtonConfig(optimisticVisibility);
   const shareButtonLabel = getVisibilityLabel(optimisticVisibility);
+  const shareButtonText = shouldShowPublicComplianceWarning
+    ? "Action required"
+    : "Sharing settings";
   const shareButtonAriaLabel = shouldShowPublicComplianceWarning
-    ? `Open sharing settings. Current access: ${shareButtonLabel}. Warning: public content does not meet requirements.`
+    ? `Open sharing settings. Current access: ${shareButtonLabel}. Action required: review sharing requirements for public content.`
     : `Open sharing settings. Current access: ${shareButtonLabel}`;
 
   return (
@@ -36,30 +39,26 @@ export function ShareButton({
       variant="outline"
       borderColor={
         shouldShowPublicComplianceWarning
-          ? "orange.300"
+          ? "red.300"
           : shareButtonConfig.borderColor
       }
-      bg={
-        shouldShowPublicComplianceWarning ? "orange.50" : shareButtonConfig.bg
-      }
+      bg={shouldShowPublicComplianceWarning ? "red.50" : shareButtonConfig.bg}
       color={
-        shouldShowPublicComplianceWarning
-          ? "orange.800"
-          : shareButtonConfig.color
+        shouldShowPublicComplianceWarning ? "red.700" : shareButtonConfig.color
       }
       leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
       rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
       _hover={{
         bg: shouldShowPublicComplianceWarning
-          ? "orange.100"
+          ? "red.100"
           : shareButtonConfig.hoverBg,
         borderColor: shouldShowPublicComplianceWarning
-          ? "orange.400"
+          ? "red.400"
           : shareButtonConfig.hoverBorderColor,
       }}
       _active={{
         bg: shouldShowPublicComplianceWarning
-          ? "orange.100"
+          ? "red.100"
           : shareButtonConfig.hoverBg,
       }}
       _disabled={{
@@ -72,7 +71,12 @@ export function ShareButton({
       aria-label={shareButtonAriaLabel}
     >
       <HStack spacing="0.45rem">
-        <Text>Sharing settings</Text>
+        <Box position="relative">
+          <Text visibility="hidden">Sharing settings</Text>
+          <Text position="absolute" inset="0">
+            {shareButtonText}
+          </Text>
+        </Box>
         <Text fontWeight="medium" opacity={0.85}>
           {shareButtonLabel}
         </Text>
