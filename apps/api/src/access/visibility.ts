@@ -260,10 +260,10 @@ function formatPublicShareViolation(violations: PublicShareViolation[]) {
   if (issues.has("missingRequiredCategories")) {
     blockingCriteria.push("required categories are filled out");
   }
-  if (issues.has("documentErrors")) {
+  if (issues.has("errorsCheck")) {
     blockingCriteria.push("documents have no errors");
   }
-  if (issues.has("level1AccessibilityViolations")) {
+  if (issues.has("accessibilityCheck")) {
     blockingCriteria.push("documents have no level 1 accessibility violations");
   }
   return `Content cannot be made public until ${blockingCriteria.join(", ")}.`;

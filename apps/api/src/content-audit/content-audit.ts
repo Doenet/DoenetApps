@@ -1,6 +1,9 @@
+import { AuditState } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import { prisma } from "../model";
 import { filterEditableActivity, getIsEditor } from "../utils/permissions";
 import { ContentPayload, contentSelect } from "../utils/prismaSelect";
+import { InvalidRequestError } from "../utils/error";
 
 /**
  * Enumerates the content-audit issues that can affect a content node.
@@ -9,20 +12,17 @@ import { ContentPayload, contentSelect } from "../utils/prismaSelect";
  * the conditions that must be confirmed before content is treated
  * as having passed the audit.
  */
-export type ContentAuditIssue =
-  | "documentErrors"
-  | "level1AccessibilityViolations";
+export type ContentAuditIssue = "errorsCheck" | "accessibilityCheck";
 
 /**
  * The audit status for a piece of content.
  *
- * If a flag is `true`, the content passes the check.
- * If a flag is `false`, the content either fails the
- * check or has not yet been confirmed as passing.
+ * Each check stores whether the content is known to pass, known to fail,
+ * or has not been audited since the latest source change.
  */
 export type ContentAudit = {
-  noErrorsConfirmed: boolean;
-  accessibilityConfirmed: boolean;
+  errorsCheck: AuditState;
+  accessibilityCheck: AuditState;
 };
 
 /**
@@ -31,8 +31,8 @@ export type ContentAudit = {
  */
 export const selectContentAuditFields = contentSelect({
   type: true,
-  noErrorsConfirmed: true,
-  accessibilityConfirmed: true,
+  errorsCheck: true,
+  accessibilityCheck: true,
 });
 
 /**
@@ -52,8 +52,8 @@ export type ContentAuditFields = ContentPayload<
  * are reset to `false` until the updated document is reviewed again.
  */
 export const resetContentAuditFields: ContentAudit = {
-  noErrorsConfirmed: false,
-  accessibilityConfirmed: false,
+  errorsCheck: AuditState.unchecked,
+  accessibilityCheck: AuditState.unchecked,
 } satisfies ContentAudit;
 
 /**
@@ -69,14 +69,13 @@ export function getContentAuditIssues(
   contentAuditFields: ContentAuditFields,
 ): ContentAuditIssue[] {
   const issues: ContentAuditIssue[] = [];
-  const { type, noErrorsConfirmed, accessibilityConfirmed } =
-    contentAuditFields;
+  const { type, errorsCheck, accessibilityCheck } = contentAuditFields;
 
-  if (type === "singleDoc" && !noErrorsConfirmed) {
-    issues.push("documentErrors");
+  if (type === "singleDoc" && errorsCheck !== AuditState.pass) {
+    issues.push("errorsCheck");
   }
-  if (type === "singleDoc" && !accessibilityConfirmed) {
-    issues.push("level1AccessibilityViolations");
+  if (type === "singleDoc" && accessibilityCheck !== AuditState.pass) {
+    issues.push("accessibilityCheck");
   }
 
   return issues;
@@ -104,7 +103,7 @@ export function contentAuditPasses(
  *
  * When no new source is provided, this helper returns an empty update so the
  * existing confirmations are preserved. When source content is provided, both
- * confirmations are reset because the previous audit no longer applies.
+ * states are reset to `unchecked` because the previous audit no longer applies.
  *
  * @param source Updated source content, if one is being saved.
  * @returns An empty update or a reset audit state, depending on whether the
@@ -123,28 +122,44 @@ export function maintainContentAuditFields(source: string | undefined) {
 export async function updateContentAudit({
   contentId,
   loggedInUserId,
-  noErrorsConfirmed,
-  accessibilityConfirmed,
+  source,
+  errorsCheckPasses,
+  accessibilityCheckPasses,
 }: {
   contentId: Uint8Array;
   loggedInUserId: Uint8Array;
-} & ContentAudit): Promise<ContentAudit> {
+  source: string;
+  errorsCheckPasses: boolean;
+  accessibilityCheckPasses: boolean;
+}): Promise<ContentAuditFields> {
   const isEditor = await getIsEditor(loggedInUserId);
 
-  await prisma.content.findFirstOrThrow({
+  const content = await prisma.content.findFirstOrThrow({
     where: {
       id: contentId,
       ...filterEditableActivity(loggedInUserId, isEditor),
       type: "singleDoc",
     },
-    select: { id: true },
+    select: {
+      id: true,
+      source: true,
+    },
   });
+
+  if (content.source !== source) {
+    throw new InvalidRequestError(
+      "Content source is out of date",
+      StatusCodes.CONFLICT,
+    );
+  }
 
   return await prisma.content.update({
     where: { id: contentId },
     data: {
-      noErrorsConfirmed,
-      accessibilityConfirmed,
+      errorsCheck: errorsCheckPasses ? AuditState.pass : AuditState.fail,
+      accessibilityCheck: accessibilityCheckPasses
+        ? AuditState.pass
+        : AuditState.fail,
     },
     select: {
       ...selectContentAuditFields,

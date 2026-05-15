@@ -1,3 +1,5 @@
+import { AuditState } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import { describe, expect, test } from "vitest";
 import {
   createContent,
@@ -15,18 +17,19 @@ import {
 } from "./content-audit";
 import { prisma } from "../model";
 import { createTestUser } from "../test/utils";
+import { InvalidRequestError } from "../utils/error";
 
 describe("content audit helpers", () => {
   test("returns both issues for single documents missing both confirmations", () => {
     const content = {
       type: "singleDoc" as const,
-      noErrorsConfirmed: false,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     };
 
     expect(getContentAuditIssues(content)).toEqual([
-      "documentErrors",
-      "level1AccessibilityViolations",
+      "errorsCheck",
+      "accessibilityCheck",
     ]);
     expect(contentAuditPasses(content)).toBe(false);
   });
@@ -34,21 +37,19 @@ describe("content audit helpers", () => {
   test("returns only remaining issues for partially confirmed single documents", () => {
     const content = {
       type: "singleDoc" as const,
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.pass,
+      accessibilityCheck: AuditState.fail,
     };
 
-    expect(getContentAuditIssues(content)).toEqual([
-      "level1AccessibilityViolations",
-    ]);
+    expect(getContentAuditIssues(content)).toEqual(["accessibilityCheck"]);
     expect(contentAuditPasses(content)).toBe(false);
   });
 
   test("ignores audit confirmations for non-document content", () => {
     const content = {
       type: "sequence" as const,
-      noErrorsConfirmed: false,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     };
 
     expect(getContentAuditIssues(content)).toEqual([]);
@@ -64,56 +65,103 @@ describe("content audit helpers", () => {
 });
 
 describe("content audit updates", () => {
-  test("updateContentAudit stores confirmations on editable docs", async () => {
+  test("updateContentAudit stores pass/fail states on editable docs", async () => {
     const user = await createTestUser();
+    const source = "<document><text>Initial</text></document>";
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId: null,
-      doenetml: "<document><text>Initial</text></document>",
+      doenetml: source,
     });
 
     const result = await updateContentAudit({
       contentId,
       loggedInUserId: user.userId,
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      source,
+      errorsCheckPasses: true,
+      accessibilityCheckPasses: false,
     });
 
     expect(result).toMatchObject({
       type: "singleDoc",
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      errorsCheck: AuditState.pass,
+      accessibilityCheck: AuditState.fail,
     });
 
     const content = await prisma.content.findUniqueOrThrow({
       where: { id: contentId },
       select: {
-        noErrorsConfirmed: true,
-        accessibilityConfirmed: true,
+        errorsCheck: true,
+        accessibilityCheck: true,
       },
     });
 
     expect(content).toEqual({
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      errorsCheck: AuditState.pass,
+      accessibilityCheck: AuditState.fail,
+    });
+  });
+
+  test("updateContentAudit rejects stale source without changing audit state", async () => {
+    const user = await createTestUser();
+    const source = "<document><text>Initial</text></document>";
+    const { contentId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: null,
+      doenetml: source,
+    });
+
+    try {
+      await updateContentAudit({
+        contentId,
+        loggedInUserId: user.userId,
+        source: "<document><text>Outdated</text></document>",
+        errorsCheckPasses: true,
+        accessibilityCheckPasses: true,
+      });
+      expect.fail("Expected InvalidRequestError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(InvalidRequestError);
+      expect((error as InvalidRequestError).errorCode).toBe(
+        StatusCodes.CONFLICT,
+      );
+      expect((error as InvalidRequestError).message).toBe(
+        "Content source is out of date",
+      );
+    }
+
+    const content = await prisma.content.findUniqueOrThrow({
+      where: { id: contentId },
+      select: {
+        errorsCheck: true,
+        accessibilityCheck: true,
+      },
+    });
+
+    expect(content).toEqual({
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     });
   });
 
   test("updateContent resets audit confirmations when source changes", async () => {
     const user = await createTestUser();
+    const source = "<document><text>Initial</text></document>";
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId: null,
-      doenetml: "<document><text>Initial</text></document>",
+      doenetml: source,
     });
 
     await updateContentAudit({
       contentId,
       loggedInUserId: user.userId,
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      source,
+      errorsCheckPasses: true,
+      accessibilityCheckPasses: true,
     });
 
     await updateContent({
@@ -126,25 +174,26 @@ describe("content audit updates", () => {
       where: { id: contentId },
       select: {
         source: true,
-        noErrorsConfirmed: true,
-        accessibilityConfirmed: true,
+        errorsCheck: true,
+        accessibilityCheck: true,
       },
     });
 
     expect(content).toEqual({
       source: "<document><text>Changed</text></document>",
-      noErrorsConfirmed: false,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     });
   });
 
   test("revertToRevision resets audit confirmations when source changes", async () => {
     const user = await createTestUser();
+    const source = "<document><text>Initial</text></document>";
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId: null,
-      doenetml: "<document><text>Initial</text></document>",
+      doenetml: source,
     });
 
     const revision = await createContentRevision({
@@ -162,8 +211,9 @@ describe("content audit updates", () => {
     await updateContentAudit({
       contentId,
       loggedInUserId: user.userId,
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      source: "<document><text>Changed</text></document>",
+      errorsCheckPasses: true,
+      accessibilityCheckPasses: true,
     });
 
     await revertToRevision({
@@ -176,32 +226,34 @@ describe("content audit updates", () => {
       where: { id: contentId },
       select: {
         source: true,
-        noErrorsConfirmed: true,
-        accessibilityConfirmed: true,
+        errorsCheck: true,
+        accessibilityCheck: true,
       },
     });
 
     expect(content).toEqual({
       source: "<document><text>Initial</text></document>",
-      noErrorsConfirmed: false,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     });
   }, 30000);
 
   test("saveSyntaxUpdate resets audit confirmations when source changes", async () => {
     const user = await createTestUser();
+    const source = "<document><text>Initial</text></document>";
     const { contentId } = await createContent({
       loggedInUserId: user.userId,
       contentType: "singleDoc",
       parentId: null,
-      doenetml: "<document><text>Initial</text></document>",
+      doenetml: source,
     });
 
     await updateContentAudit({
       contentId,
       loggedInUserId: user.userId,
-      noErrorsConfirmed: true,
-      accessibilityConfirmed: true,
+      source,
+      errorsCheckPasses: true,
+      accessibilityCheckPasses: true,
     });
 
     const { doenetmlVersionId } = await prisma.content.findUniqueOrThrow({
@@ -224,15 +276,15 @@ describe("content audit updates", () => {
       where: { id: contentId },
       select: {
         source: true,
-        noErrorsConfirmed: true,
-        accessibilityConfirmed: true,
+        errorsCheck: true,
+        accessibilityCheck: true,
       },
     });
 
     expect(content).toEqual({
       source: "<document><text>Updated</text></document>",
-      noErrorsConfirmed: false,
-      accessibilityConfirmed: false,
+      errorsCheck: AuditState.unchecked,
+      accessibilityCheck: AuditState.unchecked,
     });
   });
 });

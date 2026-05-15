@@ -51,11 +51,17 @@ async function makeDocumentPubliclyShareable({
   userId: Uint8Array;
 }) {
   await connectRequiredCategories(contentId);
+  const { source } = await prisma.content.findUniqueOrThrow({
+    where: { id: contentId },
+    select: { source: true },
+  });
+
   await updateContentAudit({
     contentId,
     loggedInUserId: userId,
-    noErrorsConfirmed: true,
-    accessibilityConfirmed: true,
+    source: source ?? "",
+    errorsCheckPasses: true,
+    accessibilityCheckPasses: true,
   });
 }
 
