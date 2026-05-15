@@ -1,12 +1,11 @@
 import { EditorSettingsModeComponent } from "./EditorSettingsMode";
 import {
   AssignmentMode,
-  Category,
-  CategoryGroup,
   ContentClassification,
   DoenetmlVersion,
   LicenseCode,
 } from "../../types";
+import { Category, CategoryGroup } from "@doenet-tools/shared";
 import { FetcherWithComponents } from "react-router";
 
 describe("EditorSettingsModeComponent", { tags: ["@group1"] }, () => {

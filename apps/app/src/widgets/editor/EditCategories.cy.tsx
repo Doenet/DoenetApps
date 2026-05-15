@@ -1,5 +1,5 @@
 import { EditCategories } from "./EditCategories";
-import { CategoryGroup } from "../../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 
 describe("EditCategories Component", { tags: ["@group3"] }, () => {
   const mockAllCategories: CategoryGroup[] = [

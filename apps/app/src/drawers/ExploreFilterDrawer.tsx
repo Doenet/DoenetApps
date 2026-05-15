@@ -6,11 +6,8 @@ import {
   DrawerContent,
   DrawerOverlay,
 } from "@chakra-ui/react";
-import {
-  CategoryGroup,
-  PartialContentClassification,
-  UserInfo,
-} from "../types";
+import { PartialContentClassification, UserInfo } from "../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 import { NavigateFunction } from "react-router";
 import { FilterPanel } from "../widgets/FilterPanel";
 

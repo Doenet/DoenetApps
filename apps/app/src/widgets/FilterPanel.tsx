@@ -25,11 +25,8 @@ import { ReactElement } from "react";
 import { createNameNoTag } from "../utils/names";
 import { CloseIcon } from "@chakra-ui/icons";
 import { activityCategoryIcons } from "../utils/activity";
-import {
-  CategoryGroup,
-  PartialContentClassification,
-  UserInfo,
-} from "../types";
+import { PartialContentClassification, UserInfo } from "../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 import { intWithCommas } from "../utils/formatting";
 import { Link as ReactRouterLink, NavigateFunction } from "react-router";
 import { clearQueryParameter } from "../utils/explore";

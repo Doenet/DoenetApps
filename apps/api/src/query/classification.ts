@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../model";
 import {
-  CategoryGroup,
   ClassificationCategoryTree,
   ContentClassification,
   PartialContentClassification,
@@ -20,6 +19,7 @@ import {
   getIsEditor,
 } from "../utils/permissions";
 import { InvalidRequestError } from "../utils/error";
+import { CategoryGroup } from "@doenet-tools/shared";
 
 export async function getClassificationCategories() {
   const results = await prisma.classificationSystems.findMany({

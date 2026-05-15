@@ -36,12 +36,8 @@ import Searchbar from "../widgets/SearchBar";
 import { Form, useFetcher } from "react-router";
 import { CardContent } from "../widgets/Card";
 import { createNameNoTag, createNameCheckCurateTag } from "../utils/names";
-import {
-  Content,
-  UserInfo,
-  PartialContentClassification,
-  CategoryGroup,
-} from "../types";
+import { Content, UserInfo, PartialContentClassification } from "../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 import CardList from "../widgets/CardList";
 import { intWithCommas } from "../utils/formatting";
 import { MdFilterAlt, MdFilterAltOff } from "react-icons/md";

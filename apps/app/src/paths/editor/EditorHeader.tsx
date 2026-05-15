@@ -44,13 +44,7 @@ import { IoGitBranch } from "react-icons/io5";
 import { LuCircleHelp, LuLibraryBig } from "react-icons/lu";
 
 import axios from "axios";
-import {
-  AssignmentStatus,
-  ContentType,
-  ContentDescription,
-  CategoryGroup,
-  Category,
-} from "../../types";
+import { AssignmentStatus, ContentType, ContentDescription } from "../../types";
 import { contentTypeToName, getIconInfo } from "../../utils/activity";
 import { SiteContext } from "../SiteHeader";
 import { getDiscourseUrl } from "../../utils/discourse";
@@ -63,12 +57,16 @@ import { LibraryEditorControls } from "../../widgets/editor/LibraryEditorControl
 import { editorUrl } from "../../utils/url";
 import { NameBar } from "../../widgets/NameBar";
 import { loader as settingsLoader } from "./EditorSettingsMode";
-import { isActivityFullyCategorized } from "../../utils/classification";
 import { useIframeMenuDismissOverlay } from "../../utils/useIframeMenuDismissOverlay";
 import { MenuDismissOverlay } from "../../components/MenuDismissOverlay";
 import { IFRAME_MENU_IDS } from "../../utils/iframeMenuIds";
 import { useControlledMenu } from "../../utils/useControlledMenu";
 import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression";
+import {
+  isBrowsable,
+  type Category,
+  type CategoryGroup,
+} from "@doenet-tools/shared";
 
 export async function loader({
   params,
@@ -165,7 +163,7 @@ export function EditorHeader() {
   const notBrowsable =
     isPublic &&
     categoryCheckFetcher.data &&
-    !isActivityFullyCategorized({
+    !isBrowsable({
       allCategories: categoryCheckFetcher.data.allCategories as CategoryGroup[],
       categories: categoryCheckFetcher.data.categories as Category[],
     });

@@ -7,11 +7,10 @@ import {
 import {
   AssignmentMode,
   ContentClassification,
-  Category,
   DoenetmlVersion,
   LicenseCode,
-  CategoryGroup,
 } from "../../types";
+import { Category, CategoryGroup } from "@doenet-tools/shared";
 import axios from "axios";
 import { Box, Heading, VStack } from "@chakra-ui/react";
 import { BlueBanner } from "../../widgets/BlueBanner";

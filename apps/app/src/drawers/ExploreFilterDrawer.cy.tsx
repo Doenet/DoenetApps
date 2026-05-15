@@ -1,9 +1,6 @@
 import { ExploreFilterDrawer } from "./ExploreFilterDrawer";
-import {
-  CategoryGroup,
-  PartialContentClassification,
-  UserInfo,
-} from "../types";
+import { PartialContentClassification, UserInfo } from "../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 
 describe("ExploreFilterDrawer", { tags: ["@group1"] }, () => {
   const mockAuthors: UserInfo[] = [

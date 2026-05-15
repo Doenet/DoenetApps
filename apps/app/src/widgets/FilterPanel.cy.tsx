@@ -1,5 +1,6 @@
 import { FilterPanel } from "./FilterPanel";
-import { CategoryGroup, UserInfo } from "../types";
+import { UserInfo } from "../types";
+import { CategoryGroup } from "@doenet-tools/shared";
 
 type FilterPanelProps = React.ComponentProps<typeof FilterPanel>;
 

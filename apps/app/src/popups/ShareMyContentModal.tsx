@@ -34,7 +34,7 @@ import { FiCode } from "react-icons/fi";
 
 import { loader as settingsLoader } from "../paths/editor/EditorSettingsMode";
 import { editorUrl } from "../utils/url";
-import { isActivityFullyCategorized } from "../utils/classification";
+import { isBrowsable } from "@doenet-tools/shared";
 
 export async function loadShareStatus({ params }: { params: any }) {
   const { data } = await axios.get(
@@ -238,12 +238,12 @@ function SharePublicly({
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [copiedEmbedCode, setCopiedEmbedCode] = useState(false);
 
-  const unspecifiedCategories = !isActivityFullyCategorized({
+  const notBrowsable = !isBrowsable({
     allCategories: settings.allCategories,
     categories: settings.categories,
   });
 
-  const browseWarning = unspecifiedCategories && (
+  const browseWarning = notBrowsable && (
     <Alert status="warning">
       <AlertIcon />
       <AlertTitle>Not browsable</AlertTitle>

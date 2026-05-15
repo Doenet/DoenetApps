@@ -16,8 +16,8 @@ import {
 } from "@chakra-ui/react";
 import { useFetcher } from "react-router";
 import { optimistic } from "../../utils/optimistic_ui";
-import { Category, CategoryGroup } from "../../types";
 import { activityCategoryIcons } from "../../utils/activity";
+import { Category, CategoryGroup } from "@doenet-tools/shared";
 
 export function EditCategories({
   contentId,
