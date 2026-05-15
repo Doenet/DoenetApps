@@ -35,6 +35,10 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: DNS name of the Application Load Balancer
 
+  ForceUpdateToken:
+    Type: String
+    Description: Changes on each deploy to force a StackSet update
+
 Resources:
   StackSetAdministrationRole:
     Type: AWS::IAM::Role
@@ -120,6 +124,8 @@ Resources:
           ParameterValue: !Ref SiteServiceName
         - ParameterKey: LoadBalancerDnsName
           ParameterValue: !Ref LoadBalancerDnsName
+        - ParameterKey: ForceUpdateToken
+          ParameterValue: !Ref ForceUpdateToken
       TemplateURL: !Sub "https://${TemplateS3Bucket}.s3.amazonaws.com/${TemplateS3Key}"
 
 Outputs:
