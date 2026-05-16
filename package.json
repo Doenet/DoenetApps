@@ -13,7 +13,7 @@
     "postinstall": "npm run prisma:generate --workspace @doenet-tools/api",
     "setup": "node scripts/setup.js",
     "db:setup": "npm run prisma:migrate-dev --workspace @doenet-tools/api && npm run prisma:seed --workspace @doenet-tools/api",
-    "dev": "npm run build --workspace @doenet-tools/shared -- --force && concurrently \"npm run dev --workspace @doenet-tools/shared\" \"npm run dev --workspace @doenet-tools/api\" \"npm run dev --workspace @doenet-tools/app\" \"npm run dev --workspace @doenet-tools/web\"",
+    "dev": "npm run build --workspace @doenet-tools/shared && node scripts/dev.js",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "npm run lint --workspaces --if-present",

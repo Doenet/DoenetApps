@@ -19,28 +19,21 @@ We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h
 
 ### Steps
 
-**1. Clone the repository**
-
-```bash
-git clone https://github.com/Doenet/DoenetTools.git
-cd DoenetTools
-```
-
-**2. Install dependencies**
+**1. Install dependencies**
 
 ```bash
 npm install
 ```
 
-**3. Create the `.env` file**
+**2. Create the un-tracked `.env` file**
 
 ```bash
 npm run setup
 ```
 
-This copies `apps/api/.env.example` to `apps/api/.env`. The defaults work for local development, but edit as needed (e.g. change `DATABASE_HOST`, `DATABASE_PORT`, or `DATABASE_PASSWORD` if your MySQL setup differs — and update `DATABASE_URL` to match).
+This file (`apps/api/.env`) contains secrets like the database password and database url.
 
-**4. Start the database**
+**3. Start the database**
 
 ```bash
 docker compose --env-file apps/api/.env up -d
@@ -48,7 +41,7 @@ docker compose --env-file apps/api/.env up -d
 
 Wait until the MySQL container shows `(healthy)` in `docker container ls` before continuing.
 
-**5. Setup the database tables**
+**4. Setup the database tables**
 
 ```bash
 npm run db:setup
@@ -56,9 +49,9 @@ npm run db:setup
 
 This creates the required database tables and seeds them with minimal data.
 
-**6. Start the dev servers**
+**5. Start the dev servers**
 
-All dev processes can be started together with a single command:
+The main dev processes can be started together with a single command:
 
 ```bash
 npm run dev
@@ -66,24 +59,19 @@ npm run dev
 
 This starts:
 
-- Shared package watcher
 - Express API → http://localhost:3000
 - React SPA → http://localhost:8000 (proxies `/api/*` to the API)
 - Astro site → http://localhost:4321
 
-This command first builds `shared` once, then starts its watch process alongside
-the app, API, and web dev servers.
-
 Alternatively, run each in a separate terminal if needed:
 
 ```bash
-npm run dev --workspace @doenet-tools/shared   # Shared package watcher
+npm run build --workspace @doenet-tools/shared # Do this first
 npm run dev --workspace @doenet-tools/api   # Express API
 npm run dev --workspace @doenet-tools/app   # React SPA
 npm run dev --workspace @doenet-tools/web   # Astro site
+npm run watch --workspace @doenet-tools/shared # if making edits to this package
 ```
-
----
 
 ## Repository Structure
 

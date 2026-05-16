@@ -3,6 +3,8 @@ Environment:
     Value: 3000
   - Name: APP_URL
     Value: "https://dev3.doenet.org"
+  - Name: LOG_LEVEL
+    Value: "info"
   - Name: DATABASE_PORT
     Value: 3306
   - Name: DATABASE_NAME
@@ -18,6 +20,8 @@ Environment:
   - Name: ENABLE_TEST_ROUTES
     Value: "false"
   - Name: MOCK_SIGNIN_EMAIL
+    Value: "false"
+  - Name: PRETTY_LOGS
     Value: "false"
   - Name: NODE_OPTIONS
     Value: "--max-old-space-size=1950"

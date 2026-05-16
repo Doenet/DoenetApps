@@ -28,8 +28,10 @@ npm ci
 ### Dev servers
 
 ```bash
+npm run dev                                 # builds shared once, then runs api/app/web
 npm run dev --workspace @doenet-tools/api   # Express API on port 3000
 npm run dev --workspace @doenet-tools/app   # Vite dev server on port 8000 (proxies /api to port 3000)
+npm run watch --workspace @doenet-tools/shared # shared TypeScript watcher when needed
 ```
 
 ### Build

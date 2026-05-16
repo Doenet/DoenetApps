@@ -18,6 +18,7 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { nanoid } from "nanoid";
 import * as fs from "fs/promises";
 import { fromUUID, toUUID } from "./utils/uuid";
+import { formatApiReadyMessage } from "./utils/cli";
 import { UserInfo, UserInfoWithEmail } from "./types";
 import {
   findOrCreateUser,
@@ -49,6 +50,7 @@ import { generateHandle } from "./utils/names";
 import { codeRouter } from "./routes/code";
 import { metricsRouter } from "./routes/metricsRoutes";
 import { contentRouter } from "./routes/content.route";
+import { initRequestLogger } from "./middleware/requestLogger";
 
 // Type assertion to work around passport type declaration issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -394,6 +396,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use("/api", initRequestLogger());
 
 const port = process.env.PORT || 3000;
 
@@ -473,5 +476,6 @@ app.post(
 // );
 
 app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+  const localUrl = `http://localhost:${port}`;
+  console.log(formatApiReadyMessage(localUrl));
 });
