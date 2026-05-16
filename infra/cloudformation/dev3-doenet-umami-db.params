@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "ServiceName",
-    "ParameterValue": "doenet"
+    "ParameterValue": "umami-db"
   },
   {
     "ParameterKey": "S3AppBucket",
@@ -25,7 +25,7 @@
   },
   {
     "ParameterKey": "Priority",
-    "ParameterValue": "10"
+    "ParameterValue": "2"
   },
   {
     "ParameterKey": "EcsLaunchType",
@@ -33,11 +33,11 @@
   },
   {
     "ParameterKey": "HealthCheckUrl",
-    "ParameterValue": "/"
+    "ParameterValue": "/health"
   },
   {
     "ParameterKey": "UseLbForService",
-    "ParameterValue": "true"
+    "ParameterValue": "false"
   },
   {
     "ParameterKey": "InstanceType",
@@ -49,11 +49,11 @@
   },
   {
     "ParameterKey": "ImageUrl",
-    "ParameterValue": "568298704244.dkr.ecr.us-east-2.amazonaws.com/dev3/doenet:latest"
+    "ParameterValue": "postgres:15-alpine"
   },
   {
     "ParameterKey": "TaskDefIncludesFile",
-    "ParameterValue": "s3://doenet-cf-dev/dev3-doenet/dev3-doenet-taskdef-includes.yml"
+    "ParameterValue": "s3://doenet-cf-dev/dev3-doenet/dev3-umami-db-taskdef-includes.yml"
   },
   {
     "ParameterKey": "TaskRoleIncludesFile",
@@ -61,15 +61,15 @@
   },
   {
     "ParameterKey": "ContainerPort",
-    "ParameterValue": "3000"
+    "ParameterValue": "5432"
   },
   {
     "ParameterKey": "ContainerMemory",
-    "ParameterValue": "2048"
+    "ParameterValue": "1024"
   },
   {
     "ParameterKey": "ContainerCpu",
-    "ParameterValue": "1024"
+    "ParameterValue": "512"
   },
   {
     "ParameterKey": "HealthCheckGracePeriod",
@@ -133,6 +133,6 @@
   },
   {
     "ParameterKey": "PathPattern",
-    "ParameterValue": "/api"
+    "ParameterValue": "notapplicable"
   }
 ]

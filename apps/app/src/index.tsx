@@ -128,6 +128,7 @@ import { RawViewer, loader as rawViewerLoader } from "./paths/RawViewer";
 import { GetInvolved } from "./paths/GetInvolved";
 import { Events } from "./paths/Events";
 import { QuickLinks } from "./paths/QuickLinks";
+import { initializeAnalytics } from "./utils/analytics";
 
 const router = createBrowserRouter([
   {
@@ -435,6 +436,8 @@ const router = createBrowserRouter([
     ),
   },
 ]);
+
+initializeAnalytics();
 
 const root = createRoot(document.getElementById("root")!);
 root.render(<RouterProvider router={router} />);
