@@ -22,6 +22,7 @@ import { isEqualUUID } from "../utils/uuid";
 import { createAssignment } from "../query/assign";
 import { DateTime } from "luxon";
 import { prisma } from "../model";
+import { updateVisibility } from "../access";
 
 describe("Share tests", () => {
   test("setContentIsPublic sets content to public/private and returns result", async () => {
@@ -62,6 +63,33 @@ describe("Share tests", () => {
     });
     expect(content.isPublic).eq(false);
     expect(content.visibility).eq("private");
+  });
+
+  test("setContentIsPublic remains permissive while access updates stay strict", async () => {
+    const owner = await createTestUser();
+    const ownerId = owner.userId;
+
+    const { contentId } = await createContent({
+      loggedInUserId: ownerId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+
+    const legacyResult = await setContentIsPublic({
+      contentId,
+      isPublic: true,
+      loggedInUserId: ownerId,
+    });
+
+    expect(legacyResult).toEqual({ isPublic: true, visibility: "public" });
+
+    await expect(
+      updateVisibility({
+        contentId,
+        loggedInUserId: ownerId,
+        visibility: "public",
+      }),
+    ).rejects.toThrow("required categories are filled out");
   });
 
   test("shareContentWithEmail/unshareContent shares/unshares content and returns result", async () => {

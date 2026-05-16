@@ -120,6 +120,12 @@ test("New activity starts out private, then delete it", async () => {
   expect(sharing).eqls({
     isPublic: false,
     visibility: "private",
+    canSharePublicly: false,
+    publicShareIssues: [
+      "errorsCheckPending",
+      "accessibilityCheckPending",
+      "missingRequiredCategories",
+    ],
     sharedWith: [],
     parentIsPublic: false,
     parentVisibility: "private",
