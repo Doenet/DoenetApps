@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type Visibility } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import { prisma } from "../model";
-import { updateVisibility } from "../access";
 import { filterEditableContent } from "../utils/permissions";
 import { isEqualUUID } from "../utils/uuid";
 import { InvalidRequestError } from "../utils/error";
@@ -25,16 +25,64 @@ export async function setContentIsPublic({
   loggedInUserId: Uint8Array;
   isPublic: boolean;
 }) {
-  const visibility = isPublic ? "public" : "private";
-  const result = await updateVisibility({
-    contentId,
-    loggedInUserId,
-    visibility,
+  const visibility: Visibility = isPublic ? "public" : "private";
+
+  const content = await prisma.content.findFirst({
+    where: { id: contentId, isDeletedOn: null },
+    select: {
+      ownerId: true,
+      isAssignmentRoot: true,
+      parent: {
+        select: {
+          visibility: true,
+        },
+      },
+    },
   });
 
+  if (!content || !isEqualUUID(content.ownerId, loggedInUserId)) {
+    throw new InvalidRequestError("Content not found", StatusCodes.NOT_FOUND);
+  }
+
+  if (content.isAssignmentRoot) {
+    throw new InvalidRequestError("Assignment visibility cannot be changed");
+  }
+
+  if (!isPublic && content.parent?.visibility === "public") {
+    throw new InvalidRequestError(
+      "If content has a public parent, cannot make it private",
+    );
+  }
+
+  const descendantIds = await getDescendantIds(contentId, {
+    excludeAssignments: true,
+  });
+  const contentIds = [contentId, ...descendantIds];
+  const publiclySharedAt = isPublic ? new Date() : null;
+
+  const updateTimestamp = prisma.content.updateMany({
+    where: {
+      id: { in: contentIds },
+      NOT: { visibility },
+    },
+    data: { publiclySharedAt },
+  });
+
+  const updateContent = prisma.content.updateMany({
+    where: {
+      id: { in: contentIds },
+    },
+    data: {
+      visibility,
+      isPublic,
+    },
+  });
+
+  await prisma.$transaction([updateTimestamp, updateContent]);
+
   return {
-    isPublic: result.visibility === "public",
-    visibility: result.visibility,
+    isPublic,
+    visibility,
   };
 }
 

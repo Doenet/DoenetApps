@@ -2,15 +2,11 @@ import { ReactNode } from "react";
 import { UserInfoWithEmail } from "../../types";
 import {
   Text,
-  Td,
-  Tr,
   Box,
   Flex,
   Tooltip,
   CloseButton,
-  TableContainer,
-  Table,
-  Tbody,
+  VStack,
 } from "@chakra-ui/react";
 import { useFetcher } from "react-router";
 import { createNameNoTag } from "../../utils/names";
@@ -32,7 +28,7 @@ export function ShareTable({
   contentId: string;
   isPublic: boolean;
   parentIsPublic: boolean;
-  sharedWith: UserInfoWithEmail[]; 
+  sharedWith: UserInfoWithEmail[];
   parentSharedWith: UserInfoWithEmail[];
   footerRow?: ReactNode;
 }) {
@@ -88,14 +84,12 @@ export function ShareTable({
   }
 
   return (
-    <TableContainer maxHeight="200px" overflowY="auto">
-      <Table size="sm" variant="unstyled" data-test="Share Table">
-        <Tbody>
-          {rows}
-          {footerRow}
-        </Tbody>
-      </Table>
-    </TableContainer>
+    <Box maxHeight="200px" overflowY="auto" data-test="Share Table">
+      <VStack as="ul" align="stretch" spacing={0} listStyleType="none" m={0}>
+        {rows}
+        {footerRow}
+      </VStack>
+    </Box>
   );
 }
 
@@ -112,9 +106,15 @@ function ShareTableRow({
 }) {
   const closeLabel = `Stop sharing ${publicRow ? "publicly" : `with ${name}`}`;
   return (
-    <Tr>
-      <Td colSpan={3} px={0} py={0} borderBottomWidth="1px" borderColor="gray.100">
-        <Flex align="center" justify="space-between" gap="0.75rem" px="0.75rem" py="0.6rem">
+    <Box as="li" px={0} py={0} listStyleType="none">
+      <Box borderBottomWidth="1px" borderColor="gray.100">
+        <Flex
+          align="center"
+          justify="space-between"
+          gap="0.75rem"
+          px="0.75rem"
+          py="0.6rem"
+        >
           <Box flex="1" minWidth={0}>
             <Text noOfLines={1}>
               <Text as="span" fontWeight="medium">
@@ -136,12 +136,12 @@ function ShareTableRow({
               />
             </Tooltip>
           ) : (
-            <Text color="gray.500" fontSize="sm" flexShrink={0}>
+            <Text color="gray.700" fontSize="sm" flexShrink={0}>
               Inherited
             </Text>
           )}
         </Flex>
-      </Td>
-    </Tr>
+      </Box>
+    </Box>
   );
 }

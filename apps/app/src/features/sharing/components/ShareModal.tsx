@@ -10,6 +10,7 @@ import {
   Box,
   Button,
   FormControl,
+  FormErrorMessage,
   HStack,
   Input,
   VStack,
@@ -21,8 +22,7 @@ import {
   Tooltip,
   Flex,
   Icon,
-  Td,
-  Tr,
+  Divider,
 } from "@chakra-ui/react";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { contentTypeToName } from "../../../utils/activity";
@@ -277,62 +277,52 @@ function ShareWithPeople({
         sharedWith={sharedWith}
         parentSharedWith={parentSharedWith}
         footerRow={
-          <Tr data-test="Invite People Row">
-            <Td colSpan={3} px={0} py={0}>
-              <FormControl isInvalid={addEmailError ? true : false}>
-                <Flex
-                  align="center"
-                  justify="space-between"
-                  gap="0.75rem"
-                  px="0.75rem"
-                  py="0.6rem"
-                  borderBottomWidth="1px"
-                  borderColor="gray.100"
-                >
-                  <Input
-                    type="email"
-                    name="email"
-                    aria-label="Invite people with email address"
-                    placeholder="Invite people with email address"
-                    variant="unstyled"
-                    flex="1"
-                    minWidth="0"
-                    value={emailInput}
-                    data-test="Email address"
-                    onChange={(e) => {
-                      if (e.target.value !== emailInput) {
-                        setInputHasChanged(true);
-                        setEmailInput(e.target.value);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (inputHasChanged) {
-                        addEmail();
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key == "Enter" && inputHasChanged) {
-                        addEmail();
-                      }
-                    }}
-                  />
+          <Box as="li" listStyleType="none" data-test="Invite People Row">
+            <Divider borderColor="gray.100" />
+            <FormControl isInvalid={addEmailError ? true : false} px="0.75rem">
+              <Flex
+                align="center"
+                justify="space-between"
+                gap="0.75rem"
+                py="0.6rem"
+              >
+                <Input
+                  type="email"
+                  name="email"
+                  aria-label="Invite people with email address"
+                  placeholder="Invite people with email address"
+                  variant="unstyled"
+                  flex="1"
+                  minWidth="0"
+                  value={emailInput}
+                  data-test="Email address"
+                  onChange={(e) => {
+                    if (e.target.value !== emailInput) {
+                      setInputHasChanged(true);
+                      setEmailInput(e.target.value);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (inputHasChanged) {
+                      addEmail();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key == "Enter" && inputHasChanged) {
+                      addEmail();
+                    }
+                  }}
+                />
 
-                  {addEmailError ? (
-                    <Text
-                      color="red.500"
-                      fontSize="sm"
-                      textAlign="right"
-                      flexShrink={0}
-                    >
-                      {addEmailError}
-                    </Text>
-                  ) : null}
-
-                  <SpinnerWhileFetching state={addEmailFetcher.state} />
-                </Flex>
-              </FormControl>
-            </Td>
-          </Tr>
+                <SpinnerWhileFetching state={addEmailFetcher.state} />
+              </Flex>
+              {addEmailError ? (
+                <FormErrorMessage mt="0" mb="0.6rem">
+                  {addEmailError}
+                </FormErrorMessage>
+              ) : null}
+            </FormControl>
+          </Box>
         }
       />
     </>
@@ -630,7 +620,7 @@ function SharePublicly({
                 <VStack align="stretch" spacing="0.75rem">
                   <Text
                     color={
-                      remainingRequirements === 0 ? "green.700" : "gray.700"
+                      remainingRequirements === 0 ? "green.800" : "gray.800"
                     }
                     fontWeight="medium"
                   >
@@ -707,7 +697,7 @@ function SharePublicly({
             >
               Document link
             </Text>
-            <Text color="gray.600" fontSize="sm" mb="0.65rem">
+            <Text color="gray.700" fontSize="sm" mb="0.65rem">
               {documentLinkHelperText}
             </Text>
             <Tooltip
@@ -720,6 +710,7 @@ function SharePublicly({
                 variant="outline"
                 borderColor="gray.300"
                 bg="white"
+                color="gray.800"
                 onClick={() => {
                   navigator.clipboard.writeText(shareableLink);
                   setCopiedShareLink(true);
@@ -746,7 +737,7 @@ function SharePublicly({
             >
               Embed code
             </Text>
-            <Text color="gray.600" fontSize="sm" mb="0.65rem">
+            <Text color="gray.700" fontSize="sm" mb="0.65rem">
               Use this code to embed the document on another site or LMS.
             </Text>
             <Tooltip
@@ -759,6 +750,7 @@ function SharePublicly({
                 variant="outline"
                 borderColor="gray.300"
                 bg="white"
+                color="gray.800"
                 onClick={() => {
                   navigator.clipboard.writeText(embedCode);
                   setCopiedEmbedCode(true);
@@ -810,8 +802,8 @@ function VisibilityOptionCard({
       minHeight="5.6rem"
       borderWidth="1px"
       borderRadius="lg"
-      borderColor={isSelected ? "blue.400" : "gray.200"}
-      bg={isSelected ? "blue.50" : "white"}
+      borderColor={isSelected ? "blue.600" : "gray.300"}
+      bg={isSelected ? "blue.100" : "white"}
       boxShadow={isSelected ? "sm" : "none"}
       px="0.85rem"
       py="0.8rem"
@@ -824,7 +816,7 @@ function VisibilityOptionCard({
         isDisabled
           ? undefined
           : {
-              borderColor: isSelected ? "blue.400" : "blue.300",
+              borderColor: isSelected ? "blue.700" : "blue.400",
               boxShadow: "sm",
             }
       }
@@ -845,14 +837,18 @@ function VisibilityOptionCard({
             <Icon
               as={icon}
               boxSize="1rem"
-              color={isSelected ? "blue.600" : "gray.600"}
+              color={isSelected ? "blue.800" : "gray.700"}
               mt="0.1rem"
             />
             <Box>
-              <Text fontWeight="semibold" fontSize="sm">
+              <Text
+                color={isSelected ? "blue.900" : "gray.900"}
+                fontWeight="semibold"
+                fontSize="sm"
+              >
                 {title}
               </Text>
-              <Text color="gray.600" fontSize="xs">
+              <Text color={isSelected ? "blue.800" : "gray.700"} fontSize="xs">
                 {description}
               </Text>
             </Box>

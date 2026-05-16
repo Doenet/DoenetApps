@@ -486,7 +486,9 @@ export default function Card({
   );
 }
 
-function getVisibilityPillConfig(visibility: "private" | "unlisted" | "public") {
+function getVisibilityPillConfig(
+  visibility: "private" | "unlisted" | "public",
+) {
   switch (visibility) {
     case "private":
       return {

@@ -1,5 +1,4 @@
 import { Button, Text, VStack } from "@chakra-ui/react";
-import { Outlet } from "react-router";
 
 import { useShareController } from "./useShareController";
 
@@ -64,16 +63,12 @@ describe("useShareController", { tags: ["@group3"] }, () => {
   it("loads share status automatically when public warning checks are enabled", () => {
     const loaderSpy = cy.spy().as("loaderSpy");
 
-    cy.mount(<Outlet />, {
-      routerProps: { initialEntries: ["/"] },
+    cy.mount(<ShareControllerHarness visibility="public" />, {
       routes: [
         {
-          path: "/",
-          element: <ShareControllerHarness visibility="public" />,
-        },
-        {
-          path: `/loadShareStatus/${contentId}`,
-          loader: () => {
+          path: "/loadShareStatus/:contentId",
+          loader: ({ params }: { params: { contentId: string } }) => {
+            expect(params.contentId).to.equal(contentId);
             loaderSpy();
             return {
               visibility: "public",
@@ -96,18 +91,12 @@ describe("useShareController", { tags: ["@group3"] }, () => {
   it("does not auto-load when warning checks are disabled", () => {
     const loaderSpy = cy.spy().as("loaderSpy");
 
-    cy.mount(<Outlet />, {
-      routerProps: { initialEntries: ["/"] },
+    cy.mount(<ShareControllerHarness visibility="private" inLibrary={true} />, {
       routes: [
         {
-          path: "/",
-          element: (
-            <ShareControllerHarness visibility="private" inLibrary={true} />
-          ),
-        },
-        {
-          path: `/loadShareStatus/${contentId}`,
-          loader: () => {
+          path: "/loadShareStatus/:contentId",
+          loader: ({ params }: { params: { contentId: string } }) => {
+            expect(params.contentId).to.equal(contentId);
             loaderSpy();
             return {
               visibility: "private",
@@ -139,34 +128,31 @@ describe("useShareController", { tags: ["@group3"] }, () => {
         resolvePrepare = resolve;
       });
 
-    cy.mount(<Outlet />, {
-      routerProps: { initialEntries: ["/"] },
-      routes: [
-        {
-          path: "/",
-          element: (
-            <ShareControllerHarness
-              visibility="private"
-              beforeShareModalOpens={beforeShareModalOpens}
-            />
-          ),
-        },
-        {
-          path: `/loadShareStatus/${contentId}`,
-          loader: () => {
-            loaderSpy();
-            return {
-              visibility: "private",
-              parentVisibility: "private",
-              canSharePublicly: true,
-              publicShareIssues: [],
-              sharedWith: [],
-              parentSharedWith: [],
-            };
+    cy.mount(
+      <ShareControllerHarness
+        visibility="private"
+        beforeShareModalOpens={beforeShareModalOpens}
+      />,
+      {
+        routes: [
+          {
+            path: "/loadShareStatus/:contentId",
+            loader: ({ params }: { params: { contentId: string } }) => {
+              expect(params.contentId).to.equal(contentId);
+              loaderSpy();
+              return {
+                visibility: "private",
+                parentVisibility: "private",
+                canSharePublicly: true,
+                publicShareIssues: [],
+                sharedWith: [],
+                parentSharedWith: [],
+              };
+            },
           },
-        },
-      ],
-    } as any);
+        ],
+      } as any,
+    );
 
     cy.get('[data-test="Open Share Modal"]').click();
     cy.get('[data-test="Is Open"]').should("have.text", "false");

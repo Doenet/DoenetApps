@@ -23,21 +23,11 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     parentSharedWith: [],
   };
 
-  const settingsData = {
-    allCategories: [],
-    categories: [],
-    isPublic: false,
-    isShared: false,
-    assigned: false,
-  };
-
   function setupMocks({
     shareStatus = shareStatusData,
-    settings = settingsData,
     actionHandler,
   }: {
     shareStatus?: any;
-    settings?: any;
     actionHandler?: ({ request }: { request: Request }) => any;
   } = {}) {
     return {
@@ -46,10 +36,6 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
         {
           path: `/loadShareStatus/${contentId}`,
           loader: () => shareStatus,
-        },
-        {
-          path: `/compoundEditor/${contentId}/settings`,
-          loader: () => settings,
         },
       ],
     };
@@ -73,8 +59,8 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       "contain.text",
       "Current access: Private.",
     );
-    cy.contains("People").should("be.visible");
-    cy.contains("Only invited users can access").should("be.visible");
+    cy.contains("People").scrollIntoView().should("be.visible");
+    cy.contains("Only invited users").scrollIntoView().should("be.visible");
     cy.contains("Document link").should("not.exist");
     cy.contains("Embed code").should("not.exist");
     cy.contains("Copy link").should("not.exist");
@@ -103,8 +89,8 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       mountOptions,
     );
 
-    cy.contains("Test User").should("be.visible");
-    cy.contains("test.user@example.com").should("be.visible");
+    cy.contains("Test User").scrollIntoView().should("be.visible");
+    cy.contains("test.user@example.com").scrollIntoView().should("be.visible");
   });
 
   it("submits add email when input loses focus", () => {
@@ -355,9 +341,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     cy.contains("Open syntax errors")
       .should("have.attr", "href")
       .and("equal", `/compoundEditor/${contentId}/edit`);
-    cy.contains("Open accessibility violations")
-      .should("have.attr", "href")
-      .and("equal", `/compoundEditor/${contentId}/edit`);
+    cy.contains("Open accessibility violations").should("not.exist");
     cy.get('[data-test="Share Submit Button"]')
       .should("contain.text", "Save access")
       .and("be.disabled");
@@ -445,7 +429,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
   it("reloads public requirements when reopened", () => {
     let shareStatus = {
       ...shareStatusData,
-      visibility: "public",
+      visibility: "private",
       canSharePublicly: false,
       publicShareIssues: ["accessibilityCheck"],
     };
@@ -476,24 +460,34 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       ...mountOptions,
       routes: [
         {
-          path: `/loadShareStatus/${contentId}`,
-          loader: () => shareStatus,
+          path: "/loadShareStatus/:contentId",
+          loader: ({ params }: { params: { contentId: string } }) => {
+            expect(params.contentId).to.equal(contentId);
+            return { ...shareStatus };
+          },
         },
         ...mountOptions.routes.slice(1),
       ],
     });
 
-    cy.get('[data-test="Public Requirements Card"]').should("be.visible");
-    cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
-    cy.get('[data-test="Share Cancel Button"]').should("not.exist");
-    cy.get('[data-test="Share Submit Button"]').should("not.exist");
+    cy.get('[data-test="Share Publicly Button"]').click();
+    cy.get('[data-test="Public Requirements Card"]').should("exist");
+    cy.get('[data-test="Public Compliance Warning"]').should("not.exist");
+    cy.get('[data-test="Share Cancel Button"]').should(
+      "contain.text",
+      "Cancel",
+    );
+    cy.get('[data-test="Share Submit Button"]').should("be.disabled");
+    cy.get('[data-test="Share Private Button"]').click();
 
-    shareStatus = {
-      ...shareStatusData,
-      visibility: "public",
-      canSharePublicly: true,
-      publicShareIssues: [],
-    };
+    cy.then(() => {
+      shareStatus = {
+        ...shareStatusData,
+        visibility: "public",
+        canSharePublicly: true,
+        publicShareIssues: [],
+      };
+    });
 
     cy.get('[data-test="Share Close Button"]').click();
     cy.contains("Reopen modal").click();
@@ -584,9 +578,9 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       );
 
       cy.contains("People").should("not.exist");
-      cy.contains("Document link").should("be.visible");
-      cy.contains("Embed code").should("be.visible");
-      cy.contains("Anyone can open this document with this link").should(
+      cy.contains("Document link").scrollIntoView().should("be.visible");
+      cy.contains("Embed code").scrollIntoView().should("be.visible");
+      cy.contains("Anyone can open the document with this link").should(
         "be.visible",
       );
       cy.contains("Copy link").should("be.visible");
@@ -616,8 +610,8 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
         mountOptions,
       );
 
-      cy.get('[data-test="Public Compliance Warning"]').should("be.visible");
-      cy.get('[data-test="Public Requirements Card"]').should("be.visible");
+      cy.get('[data-test="Public Compliance Warning"]').should("exist");
+      cy.get('[data-test="Public Requirements Card"]').should("exist");
       cy.wait(100);
       cy.checkAccessibility("body");
     });

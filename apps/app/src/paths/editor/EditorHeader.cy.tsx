@@ -1,5 +1,12 @@
-import { Outlet } from "react-router";
+import { ChakraProvider } from "@chakra-ui/react";
+import { mount } from "cypress/react";
+import { MathJaxContext } from "better-react-mathjax";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
+import { mathjaxConfig } from "@doenet/doenetml-iframe";
+import type { LoaderFunctionArgs } from "react-router";
+
 import { EditorHeader } from "./EditorHeader";
+import { theme } from "../../theme";
 
 describe("EditorHeader", { tags: ["@group3"] }, () => {
   const contentId = "content-123";
@@ -9,10 +16,14 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     contentName: "Test Activity",
     contentType: "sequence",
     visibility: "public",
+    isPublic: true,
     assignmentStatus: "Unassigned",
     remixSourceHasChanged: false,
     inLibrary: false,
     contentDescription: {
+      contentId,
+      name: "Test Activity",
+      type: "sequence",
       parent: null,
       grandparentId: null,
       grandparentName: null,
@@ -23,6 +34,8 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
   const siteContext = {
     user: {
       userId: "user-123",
+      isAnonymous: false,
+      isAuthor: true,
       firstNames: "Test",
       lastNames: "User",
       email: "test.user@example.com",
@@ -43,40 +56,63 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     sharedWith: unknown[];
     parentSharedWith: unknown[];
   }) {
-    cy.mount(<Outlet />, {
-      routerProps: { initialEntries: [`/compoundEditor/${contentId}/edit`] },
-      routes: [
+    const router = createMemoryRouter(
+      [
         {
           path: "/",
           element: <Outlet context={siteContext} />,
           children: [
             {
-              path: "/compoundEditor/:contentId/edit",
+              path: "compoundEditor/:contentId/edit",
               element: <EditorHeader />,
-              loader: () => editorData,
+              loader: ({ params }: LoaderFunctionArgs) => {
+                expect(params.contentId).to.equal(contentId);
+                return editorData;
+              },
               children: [
                 {
-                  path: "",
+                  index: true,
                   element: <div data-test="Editor Content" />,
                 },
               ],
             },
+            {
+              path: "loadShareStatus/:contentId",
+              loader: ({ params }: LoaderFunctionArgs) => {
+                expect(params.contentId).to.equal(contentId);
+                return shareStatus;
+              },
+            },
+            {
+              path: "compoundEditor/:contentId/settings",
+              loader: ({ params }: LoaderFunctionArgs) => {
+                expect(params.contentId).to.equal(contentId);
+                return {
+                  maxAttempts: 1,
+                  individualizeByStudent: false,
+                  mode: "formative",
+                };
+              },
+            },
           ],
         },
-        {
-          path: `/loadShareStatus/${contentId}`,
-          loader: () => shareStatus,
-        },
-        {
-          path: `/compoundEditor/${contentId}/settings`,
-          loader: () => ({
-            maxAttempts: 1,
-            individualizeByStudent: false,
-            mode: "formative",
-          }),
-        },
       ],
-    } as any);
+      {
+        initialEntries: [`/compoundEditor/${contentId}/edit`],
+      },
+    );
+
+    mount(
+      <ChakraProvider theme={theme}>
+        <MathJaxContext
+          version={4}
+          config={mathjaxConfig}
+          src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"
+        >
+          <RouterProvider router={router} />
+        </MathJaxContext>
+      </ChakraProvider>,
+    );
   }
 
   it("shows the share-button warning state and opens sharing settings on click", () => {
