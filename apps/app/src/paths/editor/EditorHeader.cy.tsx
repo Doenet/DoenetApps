@@ -1,5 +1,4 @@
 import { ChakraProvider } from "@chakra-ui/react";
-import { mount } from "cypress/react";
 import { MathJaxContext } from "better-react-mathjax";
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { mathjaxConfig } from "@doenet/doenetml-iframe";
@@ -102,7 +101,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       },
     );
 
-    mount(
+    cy.mount(
       <ChakraProvider theme={theme}>
         <MathJaxContext
           version={4}
