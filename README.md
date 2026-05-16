@@ -32,13 +32,15 @@ cd DoenetTools
 npm install
 ```
 
-**3. Create the `.env` file**
+**3. Create the API `.env` file**
 
 ```bash
 npm run setup
 ```
 
-This copies `apps/api/.env.example` to `apps/api/.env`. The defaults work for local development, but edit as needed (e.g. change `DATABASE_HOST`, `DATABASE_PORT`, or `DATABASE_PASSWORD` if your MySQL setup differs — and update `DATABASE_URL` to match).
+This copies `apps/api/.env.example` to `apps/api/.env`.
+
+The API defaults work for local development, but edit as needed (e.g. change `DATABASE_HOST`, `DATABASE_PORT`, or `DATABASE_PASSWORD` if your MySQL setup differs — and update `DATABASE_URL` to match). The web defaults are already committed in `apps/web/.env`; use `apps/web/.env.local` for machine-specific overrides.
 
 **4. Start the database**
 
@@ -68,11 +70,16 @@ This starts:
 
 - Shared package watcher
 - Express API → http://localhost:3000
-- React SPA → http://localhost:8000 (proxies `/api/*` to the API)
+- React SPA → http://localhost:8000 (proxies `/api/*` to the API and `/blog/*` to Astro)
 - Astro site → http://localhost:4321
 
 This command first builds `shared` once, then starts its watch process alongside
 the app, API, and web dev servers.
+
+For local development, use the app origin for both frontends:
+
+- app pages → `http://localhost:8000/...`
+- blog pages → `http://localhost:8000/blog/...`
 
 Alternatively, run each in a separate terminal if needed:
 

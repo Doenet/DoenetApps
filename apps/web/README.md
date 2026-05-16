@@ -70,7 +70,7 @@ Build commands:
 
 Public env vars:
 
-- `PUBLIC_DOENET_MAIN_URL`: URL for the main Doenet site. If not specified, the header shows a plain image.
+- `PUBLIC_APP_URL`: URL for the main Doenet app. If not specified, the header shows a plain image.
 - `PUBLIC_SITE_URL`: canonical site URL used for build-time metadata and sitemap generation.
 
 ## 👀 Want to learn more?

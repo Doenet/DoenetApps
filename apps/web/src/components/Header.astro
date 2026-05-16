@@ -1,6 +1,6 @@
 ---
 import { getImage } from "astro:assets";
-import { BLOG_BASE_URL, DOENET_MAIN_URL } from "../consts";
+import { APP_URL, BLOG_BASE_URL } from "../consts";
 import HeaderLink from "./HeaderLink.astro";
 import doenetLogo from "../../public/Doenet_Logo_Frontpage_color_text.png";
 
@@ -11,8 +11,8 @@ const optimizedLogo = await getImage({ src: doenetLogo });
   <nav>
     <div class="nav-left">
       {
-        DOENET_MAIN_URL ? (
-          <a class="logo-link" href={DOENET_MAIN_URL}>
+        APP_URL ? (
+          <a class="logo-link" href={APP_URL}>
             <img src={optimizedLogo.src} alt="Doenet" width="140" height="32" />
           </a>
         ) : (

@@ -36,6 +36,11 @@ export default defineConfig({
   server: {
     port: 8000,
     proxy: {
+      // Route blog pages and Astro-generated assets through the same frontend
+      // entry point used by the app in production.
+      "/blog": "http://localhost:4321",
+      "/_astro": "http://localhost:4321",
+      "/_image": "http://localhost:4321",
       "/cyapi": "http://apache",
       //"/media": "http://apache",
       "/api": "http://localhost:3000",

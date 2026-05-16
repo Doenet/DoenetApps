@@ -6,4 +6,4 @@ export const SITE_DESCRIPTION =
   "A place where the Doenet community shares thoughts and ideas about math education";
 
 export const BLOG_BASE_URL = "/blog";
-export const DOENET_MAIN_URL = import.meta.env.PUBLIC_DOENET_MAIN_URL;
+export const APP_URL = import.meta.env.PUBLIC_APP_URL;

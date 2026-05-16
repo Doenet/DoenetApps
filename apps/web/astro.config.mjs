@@ -16,6 +16,9 @@ const env = loadEnv(mode, process.cwd(), "");
 
 // https://astro.build/config
 export default defineConfig({
+  devToolbar: {
+    enabled: false,
+  },
   site: env.PUBLIC_SITE_URL,
   integrations: [mdx(), sitemap(), react()],
   markdown: {
