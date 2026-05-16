@@ -17,8 +17,12 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# newsletter content (untracked for easy editing)
+newsletter-events.md
+
 # macOS-specific files
 .DS_Store
 
 # jetbrains setting folder
 .idea/
+
