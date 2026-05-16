@@ -25,6 +25,7 @@
     "ipfs-only-hash": "^4.0.0"
   },
   "devDependencies": {
-    "@doenet-tools/eslint-config": "*"
+    "@doenet-tools/eslint-config": "*",
+    "vitest": "^3.2.4"
   }
 }
