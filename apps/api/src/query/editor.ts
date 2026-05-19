@@ -358,6 +358,7 @@ export async function getEditorShareStatus({
       ...filterEditableContent(loggedInUserId, false),
     },
     select: {
+      type: true,
       isPublic: true,
       visibility: true,
       sharedWith: {
@@ -413,7 +414,8 @@ export async function getEditorShareStatus({
     visibility: results.visibility,
     parentIsPublic: results.parent?.isPublic ?? false,
     parentVisibility: results.parent?.visibility ?? "private",
-    canSharePublicly: publicShareViolations.length === 0,
+    canSharePublicly:
+      results.type !== "folder" && publicShareViolations.length === 0,
     publicShareIssues,
     sharedWith,
     parentSharedWith,

@@ -92,6 +92,35 @@ describe("Share tests", () => {
     ).rejects.toThrow("required categories are filled out");
   });
 
+  test("setContentIsPublic cannot make a child private under an unlisted parent", async () => {
+    const owner = await createTestUser();
+    const { contentId: parentId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "folder",
+      parentId: null,
+    });
+
+    await updateVisibility({
+      contentId: parentId,
+      loggedInUserId: owner.userId,
+      visibility: "unlisted",
+    });
+
+    const { contentId: childId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
+      parentId,
+    });
+
+    await expect(
+      setContentIsPublic({
+        contentId: childId,
+        isPublic: false,
+        loggedInUserId: owner.userId,
+      }),
+    ).rejects.toThrow("non-private parent");
+  });
+
   test("shareContentWithEmail/unshareContent shares/unshares content and returns result", async () => {
     const owner = await createTestUser();
     const ownerId = owner.userId;
@@ -2144,6 +2173,73 @@ describe("setContentIsPublic()", () => {
 
     expect(folderMetric).toBeNull();
     expect(childMetric).toBeNull();
+  });
+});
+
+describe("getSharedContent()", () => {
+  test("opens unlisted folders by link and includes unlisted children", async () => {
+    const owner = await createTestUser();
+    const recipient = await createTestUser();
+
+    const { contentId: folderId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "folder",
+      parentId: null,
+    });
+    const { contentId: childId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
+      parentId: folderId,
+    });
+
+    await updateVisibility({
+      contentId: folderId,
+      loggedInUserId: owner.userId,
+      visibility: "unlisted",
+    });
+
+    const shared = await getSharedContent({
+      ownerId: owner.userId,
+      loggedInUserId: recipient.userId,
+      parentId: folderId,
+    });
+
+    expect(shared.parent?.contentId).toEqual(folderId);
+    expect(shared.content.map((item) => item.contentId)).toEqual([childId]);
+    expect(shared.content[0]?.visibility).toBe("unlisted");
+  });
+
+  test("includes explicitly shared unlisted content in the base shared view", async () => {
+    const owner = await createTestUser();
+    const recipient = await createTestUser();
+
+    const { contentId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+
+    await updateVisibility({
+      contentId,
+      loggedInUserId: owner.userId,
+      visibility: "unlisted",
+    });
+    await modifyContentSharedWith({
+      action: "share",
+      contentId,
+      loggedInUserId: owner.userId,
+      users: [recipient.userId],
+    });
+
+    const shared = await getSharedContent({
+      ownerId: owner.userId,
+      loggedInUserId: recipient.userId,
+      parentId: null,
+    });
+
+    expect(
+      shared.content.some((item) => isEqualUUID(item.contentId, contentId)),
+    ).toBe(true);
   });
 });
 

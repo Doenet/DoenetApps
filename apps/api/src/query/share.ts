@@ -8,13 +8,13 @@ import { UserInfoWithEmail } from "../types";
 import { getDescendantIds } from "./activity";
 
 /**
- * @deprecated Superceded by {@link updateVisibility}
+ * @deprecated Superseded by {@link updateVisibility}
  *
  * Set the `isPublic` flag on a content `id` along with all of its children.
  * Recurses to grandchildren/subfolders.
  * Skips assignments since they cannot be made public.
  *
- * If parent is public, however, it does not allow the content to be set to private.
+ * If parent is not private, however, it does not allow the content to be set to private.
  */
 export async function setContentIsPublic({
   contentId,
@@ -48,9 +48,9 @@ export async function setContentIsPublic({
     throw new InvalidRequestError("Assignment visibility cannot be changed");
   }
 
-  if (!isPublic && content.parent?.visibility === "public") {
+  if (!isPublic && content.parent && content.parent.visibility !== "private") {
     throw new InvalidRequestError(
-      "If content has a public parent, cannot make it private",
+      "If content has a non-private parent, cannot make it private",
     );
   }
 

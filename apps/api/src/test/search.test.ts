@@ -33,6 +33,7 @@ import {
 import { searchMyContent } from "../query/content_list";
 import { updateUser } from "../query/user";
 import { Content } from "../types";
+import { updateVisibility } from "../access";
 
 describe("searchSharedContent Tests", function () {
   test("searchSharedContent returns public/shared activities and folders matching the query", async () => {
@@ -290,6 +291,46 @@ describe("searchSharedContent Tests", function () {
       publicFolderName,
       sharedFolderName,
     ]);
+  });
+
+  test("searchSharedContent keeps directly shared unlisted content discoverable", async () => {
+    const owner = await createTestUser();
+    const recipient = await createTestUser();
+
+    const code = Date.now().toString();
+    const sharedActivityName = `shared unlisted activity ${code}`;
+
+    const { contentId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+    await updateContent({
+      contentId,
+      name: sharedActivityName,
+      loggedInUserId: owner.userId,
+    });
+    await modifyContentSharedWith({
+      action: "share",
+      contentId,
+      loggedInUserId: owner.userId,
+      users: [recipient.userId],
+    });
+    await updateVisibility({
+      contentId,
+      loggedInUserId: owner.userId,
+      visibility: "unlisted",
+    });
+
+    const searchResults = await searchSharedContent({
+      query: code,
+      isCurated: false,
+      loggedInUserId: recipient.userId,
+    });
+
+    expect(
+      searchResults.some((result) => isEqualUUID(result.contentId, contentId)),
+    ).toBe(true);
   });
 
   test("searchSharedContent, document source matches", async () => {

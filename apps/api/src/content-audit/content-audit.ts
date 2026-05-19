@@ -53,7 +53,7 @@ export type ContentAuditFields = ContentPayload<
  * Default audit state used after document content changes.
  *
  * Any source change invalidates earlier confirmations, so both audit flags
- * are reset to `false` until the updated document is reviewed again.
+ * are reset to `unchecked` until the updated document is reviewed again.
  */
 export const resetContentAuditFields: ContentAudit = {
   errorsCheck: AuditState.unchecked,
@@ -118,11 +118,20 @@ export function contentAuditPasses(
  * states are reset to `unchecked` because the previous audit no longer applies.
  *
  * @param source Updated source content, if one is being saved.
+ * @param doenetmlVersionId Updated DoenetML version, if one is being saved.
  * @returns An empty update or a reset audit state, depending on whether the
- * source changed.
+ * content definition changed.
  */
-export function maintainContentAuditFields(source: string | undefined) {
-  return source === undefined ? {} : resetContentAuditFields;
+export function maintainContentAuditFields({
+  source,
+  doenetmlVersionId,
+}: {
+  source?: string;
+  doenetmlVersionId?: number;
+}) {
+  return source === undefined && doenetmlVersionId === undefined
+    ? {}
+    : resetContentAuditFields;
 }
 
 /**
@@ -135,46 +144,68 @@ export async function updateContentAudit({
   contentId,
   loggedInUserId,
   source,
+  doenetmlVersionId,
   errorsCheckPasses,
   accessibilityCheckPasses,
 }: {
   contentId: Uint8Array;
   loggedInUserId: Uint8Array;
   source: string;
+  doenetmlVersionId: number | null;
   errorsCheckPasses: boolean;
   accessibilityCheckPasses: boolean;
 }): Promise<ContentAuditFields> {
   const isEditor = await getIsEditor(loggedInUserId);
 
-  const content = await prisma.content.findFirstOrThrow({
-    where: {
-      id: contentId,
-      ...filterEditableActivity(loggedInUserId, isEditor),
-      type: "singleDoc",
-    },
-    select: {
-      id: true,
-      source: true,
-    },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const updateResult = await tx.content.updateMany({
+      where: {
+        id: contentId,
+        ...filterEditableActivity(loggedInUserId, isEditor),
+        type: "singleDoc",
+        source,
+        doenetmlVersionId,
+      },
+      data: {
+        errorsCheck: errorsCheckPasses ? AuditState.pass : AuditState.fail,
+        accessibilityCheck: accessibilityCheckPasses
+          ? AuditState.pass
+          : AuditState.fail,
+      },
+    });
 
-  if (content.source !== source) {
-    throw new InvalidRequestError(
-      "Content source is out of date",
-      StatusCodes.CONFLICT,
-    );
-  }
+    if (updateResult.count === 0) {
+      const matchingContent = await tx.content.findFirst({
+        where: {
+          id: contentId,
+          ...filterEditableActivity(loggedInUserId, isEditor),
+          type: "singleDoc",
+        },
+        select: {
+          source: true,
+          doenetmlVersionId: true,
+        },
+      });
 
-  return await prisma.content.update({
-    where: { id: contentId },
-    data: {
-      errorsCheck: errorsCheckPasses ? AuditState.pass : AuditState.fail,
-      accessibilityCheck: accessibilityCheckPasses
-        ? AuditState.pass
-        : AuditState.fail,
-    },
-    select: {
-      ...selectContentAuditFields,
-    },
+      if (
+        matchingContent &&
+        (matchingContent.source !== source ||
+          matchingContent.doenetmlVersionId !== doenetmlVersionId)
+      ) {
+        throw new InvalidRequestError(
+          "Content source is out of date",
+          StatusCodes.CONFLICT,
+        );
+      }
+
+      throw new InvalidRequestError("Content not found", StatusCodes.NOT_FOUND);
+    }
+
+    return await tx.content.findUniqueOrThrow({
+      where: { id: contentId },
+      select: {
+        ...selectContentAuditFields,
+      },
+    });
   });
 }

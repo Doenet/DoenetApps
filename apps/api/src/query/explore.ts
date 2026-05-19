@@ -20,12 +20,7 @@ function returnExploreVisibilityWhere(loggedInUserId: Uint8Array) {
   return {
     OR: [
       { visibility: "public" as const },
-      {
-        AND: [
-          { visibility: "private" as const },
-          { sharedWith: { some: { userId: loggedInUserId } } },
-        ],
-      },
+      { sharedWith: { some: { userId: loggedInUserId } } },
     ],
   };
 }
@@ -33,10 +28,7 @@ function returnExploreVisibilityWhere(loggedInUserId: Uint8Array) {
 function returnExploreVisibilityWhereClause(loggedInUserId: Uint8Array) {
   return Prisma.sql`
     content.visibility = 'public'
-    OR (
-      content.visibility = 'private'
-      AND content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
-    )
+    OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
   `;
 }
 

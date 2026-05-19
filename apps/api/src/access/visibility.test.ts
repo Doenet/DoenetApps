@@ -52,15 +52,16 @@ async function makeDocumentPubliclyShareable({
   userId: Uint8Array;
 }) {
   await connectRequiredCategories(contentId);
-  const { source } = await prisma.content.findUniqueOrThrow({
+  const { source, doenetmlVersionId } = await prisma.content.findUniqueOrThrow({
     where: { id: contentId },
-    select: { source: true },
+    select: { source: true, doenetmlVersionId: true },
   });
 
   await updateContentAudit({
     contentId,
     loggedInUserId: userId,
     source: source ?? "",
+    doenetmlVersionId,
     errorsCheckPasses: true,
     accessibilityCheckPasses: true,
   });
@@ -146,6 +147,22 @@ describe("updateVisibility", () => {
     expect(status.publicShareIssues).toContain("accessibilityCheckPending");
     expect(status.publicShareIssues).not.toContain("errorsCheck");
     expect(status.publicShareIssues).not.toContain("accessibilityCheck");
+  });
+
+  test("reports folders as not publicly shareable", async () => {
+    const user = await createTestUser();
+    const { contentId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "folder",
+      parentId: null,
+    });
+
+    const status = await getEditorShareStatus({
+      contentId,
+      loggedInUserId: user.userId,
+    });
+
+    expect(status.canSharePublicly).toBe(false);
   });
 
   test("treats trashed content as not found", async () => {
