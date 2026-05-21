@@ -23,7 +23,6 @@
     "network": {
       "allowedDomains": [
         "github.com",
-        "ssh.github.com",
         "api.github.com"
       ]
     }
