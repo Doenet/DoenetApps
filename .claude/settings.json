@@ -17,5 +17,15 @@
       "Bash(git branch -D *)",
       "Bash(git checkout -- *)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "ssh.github.com",
+        "api.github.com"
+      ]
+    }
   }
 }
