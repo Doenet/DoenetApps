@@ -8,7 +8,7 @@ Middleware wrappers in `src/middleware/queryMiddleware.ts` handle auth, Zod vali
 
 ```ts
 router.post("/endpoint", queryLoggedIn(queryFunction, zodSchema));
-router.get("/endpoint",  queryOptionalLoggedIn(queryFunction, zodSchema));
+router.get("/endpoint", queryOptionalLoggedIn(queryFunction, zodSchema));
 ```
 
 Zod schemas live in `src/schemas/` by domain. Pass them to the wrapper — do not validate inside route handlers.
@@ -16,6 +16,7 @@ Zod schemas live in `src/schemas/` by domain. Pass them to the wrapper — do no
 ## Error Handling
 
 Throw typed errors in query functions; `src/errors/routeErrorHandler.ts` maps them:
+
 - `InvalidRequestError` → 400 (or specified code)
 - `ZodError` → 400 with `{ error: "Invalid data", details: ... }`
 - Prisma `P2001/P2003/P2025` → 404
@@ -24,6 +25,7 @@ Throw typed errors in query functions; `src/errors/routeErrorHandler.ts` maps th
 ## UUID Convention
 
 UUIDs are stored as 16-byte binary (`Bytes`) in MySQL:
+
 - `toUUID(shortId)` → `Uint8Array` (for DB queries)
 - `fromUUID(uint8array)` → short string (for API responses)
 - `convertUUID(obj)` — recursively converts all `Uint8Array` values (called automatically by middleware wrappers)
@@ -37,6 +39,7 @@ Client-side `Uuid` type is a branded `string`.
 ## Access Control
 
 Content visibility is managed in `src/access/`. Three levels: `private` < `unlisted` < `public`. Key rules enforced there:
+
 - Only the owner can change visibility
 - Assignments are always `private` — their visibility cannot be changed
 - A child cannot have lower visibility than its parent
@@ -55,6 +58,7 @@ Four content types throughout the domain model: `"singleDoc"`, `"select"` (quest
 ## Test Utilities
 
 Env vars for test-only features:
+
 - `ENABLE_TEST_AUTH_BYPASS=true` — bypass real auth (used by Cypress)
 - `ENABLE_TEST_ROUTES=true` — mounts `/api/test` routes from `src/test/testRoutes.ts`
 - `MOCK_SIGNIN_EMAIL=true` — logs magic-link emails to console instead of sending via SES

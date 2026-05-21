@@ -9,6 +9,7 @@ See root `AGENTS.md` for commands and overall architecture.
 - **`types_module_specific.ts`** (in each workspace) — types that differ between app and api
 
 If you add to `packages/shared`, rebuild it before `app` or `api` will pick up the change:
+
 ```bash
 npm run build --workspace @doenet-tools/shared
 ```
