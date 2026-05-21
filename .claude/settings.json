@@ -23,7 +23,14 @@
     "network": {
       "allowedDomains": [
         "github.com",
-        "api.github.com"
+        "api.github.com",
+        "registry.npmjs.org"
+      ]
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm/",
+        "~/.cache/prisma/"
       ]
     }
   }
