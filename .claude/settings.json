@@ -24,17 +24,10 @@
   "sandbox": {
     "enabled": true,
     "network": {
-      "allowedDomains": [
-        "github.com",
-        "api.github.com",
-        "registry.npmjs.org"
-      ]
+      "allowedDomains": ["github.com", "api.github.com", "registry.npmjs.org"]
     },
     "filesystem": {
-      "allowWrite": [
-        "~/.npm/",
-        "~/.cache/prisma/"
-      ]
+      "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
     }
   }
 }
