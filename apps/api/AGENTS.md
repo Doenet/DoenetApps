@@ -42,6 +42,7 @@ Content visibility is managed in `src/access/`. Three levels: `private` < `unlis
 
 - Only the owner can change visibility
 - Assignments are always `private` — their visibility cannot be changed
+- Content within an assignment also cannot have its visibility changed
 - A child cannot have lower visibility than its parent
 - Changing visibility cascades to all non-assignment descendants
 
