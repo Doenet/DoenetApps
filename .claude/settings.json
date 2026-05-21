@@ -17,8 +17,5 @@
       "Bash(git branch -D *)",
       "Bash(git checkout -- *)"
     ]
-  },
-  "sandbox": {
-    "enabled": true
   }
 }
