@@ -18,6 +18,9 @@ __pycache__
 !apps/web/.env.dev3
 !apps/web/.env.prod
 
+# Claude Code personal settings (project settings.json is committed; local overrides are not)
+.claude/settings.local.json
+
 # misc
 
 npm-debug.log*

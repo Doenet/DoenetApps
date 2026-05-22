@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push origin *)",
+      "Bash(gh pr *)",
+      "Bash(npm ci)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(docker compose *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin --force*)",
+      "Bash(git push origin -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D *)",
+      "Bash(git checkout -- *)",
+      "Bash(gh pr merge *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "mode": "auto-allow",
+    "excludedCommands": ["docker"],
+    "allowedDomains": ["registry.npmjs.org", "api.github.com"],
+    "filesystem": {
+      "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
+    }
+  }
+}
