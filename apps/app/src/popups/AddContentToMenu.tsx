@@ -201,7 +201,9 @@ export function AddContentToMenu({
         }),
       ),
     );
-    const foundTypes = contentTypes.filter((_, i) => results[i].data.containsType);
+    const foundTypes = contentTypes.filter(
+      (_, i) => results[i].data.containsType,
+    );
 
     setBaseContains(foundTypes);
   }
