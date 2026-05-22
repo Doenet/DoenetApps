@@ -23,9 +23,9 @@
   },
   "sandbox": {
     "enabled": true,
-    "network": {
-      "allowedDomains": ["github.com", "api.github.com", "registry.npmjs.org"]
-    },
+    "mode": "auto-allow",
+    "excludedCommands": ["docker"],
+    "allowedDomains": ["registry.npmjs.org", "api.github.com"],
     "filesystem": {
       "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
     }
