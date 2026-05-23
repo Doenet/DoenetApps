@@ -6,6 +6,7 @@ import { isEqualUUID } from "../utils/uuid";
 import { InvalidRequestError } from "../utils/error";
 import { UserInfoWithEmail } from "../types";
 import { getDescendantIds } from "./activity";
+import { isAssignment } from "../assignments";
 
 /**
  * @deprecated Superseded by {@link updateVisibility}
@@ -34,6 +35,7 @@ export async function setContentIsPublic({
       isAssignmentRoot: true,
       parent: {
         select: {
+          isAssignmentRoot: true,
           visibility: true,
         },
       },
@@ -44,7 +46,7 @@ export async function setContentIsPublic({
     throw new InvalidRequestError("Content not found", StatusCodes.NOT_FOUND);
   }
 
-  if (content.isAssignmentRoot) {
+  if (isAssignment(content)) {
     throw new InvalidRequestError("Assignment visibility cannot be changed");
   }
 

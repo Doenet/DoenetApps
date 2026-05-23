@@ -193,7 +193,7 @@ export async function updateContentAudit({
           matchingContent.doenetmlVersionId !== doenetmlVersionId)
       ) {
         throw new InvalidRequestError(
-          "Content source is out of date",
+          "Content source or DoenetML version is out of date",
           StatusCodes.CONFLICT,
         );
       }

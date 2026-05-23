@@ -149,7 +149,7 @@ describe("content audit updates", () => {
         StatusCodes.CONFLICT,
       );
       expect((error as InvalidRequestError).message).toBe(
-        "Content source is out of date",
+        "Content source or DoenetML version is out of date",
       );
     }
 
@@ -431,7 +431,7 @@ describe("content audit updates", () => {
         StatusCodes.CONFLICT,
       );
       expect((error as InvalidRequestError).message).toBe(
-        "Content source is out of date",
+        "Content source or DoenetML version is out of date",
       );
     }
 
