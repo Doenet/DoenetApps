@@ -97,6 +97,19 @@ function writeApiEnv(offset, dbName) {
   fs.writeFileSync(apiEnvPath, out);
 }
 
+// The blog's committed apps/web/.env hardcodes the primary-checkout URLs.
+// For an offset worktree, write a .env.local override so links from the blog
+// (Header logo, MDX content) and the sitemap's canonical URL point at this
+// worktree's app and blog ports. Vite/Astro auto-load .env.local with higher
+// precedence than .env. Skipped at offset 0 — the committed file is correct.
+function writeWebEnvLocal(offset) {
+  const target = path.join(repoRoot, "apps/web/.env.local");
+  const content =
+    `PUBLIC_DOENET_MAIN_URL=http://localhost:${BASE.app + offset}\n` +
+    `PUBLIC_SITE_URL=http://localhost:${BASE.web + offset}\n`;
+  fs.writeFileSync(target, content);
+}
+
 async function main() {
   if (!isWorktree && fs.statSync(path.join(repoRoot, ".git")).isFile()) {
     log(
@@ -125,6 +138,10 @@ async function main() {
     log(
       `✅ Created apps/api/.env (port ${BASE.api + offset}, database ${dbName})`,
     );
+    if (offset > 0) {
+      writeWebEnvLocal(offset);
+      log(`✅ Created apps/web/.env.local (blog URLs at offset ${offset})`);
+    }
   }
 
   // 2. Shared MySQL container. The fixed `-p doenet` project name means every
