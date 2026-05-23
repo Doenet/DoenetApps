@@ -12,7 +12,10 @@
   "scripts": {
     "postinstall": "npm run prisma:generate --workspace @doenet-tools/api",
     "setup": "node scripts/setup.js",
+    "worktree:init": "node scripts/setup.js --worktree",
+    "db:start": "docker compose -p doenet up -d --wait",
     "db:setup": "npm run prisma:migrate-dev --workspace @doenet-tools/api && npm run prisma:seed --workspace @doenet-tools/api",
+    "predev": "node scripts/dev-preflight.js",
     "dev": "npm run build --workspace @doenet-tools/shared -- --force && concurrently \"npm run dev --workspace @doenet-tools/shared\" \"npm run dev --workspace @doenet-tools/api\" \"npm run dev --workspace @doenet-tools/app\" \"npm run dev --workspace @doenet-tools/web\"",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
