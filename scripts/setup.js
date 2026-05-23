@@ -148,11 +148,10 @@ async function main() {
   // worktree reuses the same container regardless of which directory starts it.
   log("🐳 Starting MySQL container...");
   try {
-    execFileSync(
-      "docker",
-      ["compose", "-p", "doenet", "up", "-d", "--wait"],
-      { cwd: repoRoot, stdio: "inherit" },
-    );
+    execFileSync("docker", ["compose", "-p", "doenet", "up", "-d", "--wait"], {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
   } catch {
     fail("Failed to start MySQL. Is Docker running (with Compose v2)?");
   }
