@@ -192,18 +192,18 @@ export function CompoundActivityEditor({
     onClose: authorModePromptOnClose,
   } = useDisclosure();
 
-  const authorModeModal = (
+  const authorModeModal = user ? (
     <ActivateAuthorMode
       isOpen={authorModePromptIsOpen}
       onClose={authorModePromptOnClose}
       desiredAction="create doc"
-      user={user!}
+      user={user}
       proceedCallback={() => {
         createNewDocument(createDocumentParentId);
       }}
       fetcher={fetcher}
     />
-  );
+  ) : null;
 
   // TODO: figure out functions inside hooks
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -475,52 +475,53 @@ export function CompoundActivityEditor({
       {selectedItemsActions}
 
       <Spacer />
-      <Menu>
-        <MenuButton
-          hidden={readOnlyStructure}
-          as={Button}
-          size="sm"
-          colorScheme="blue"
-          data-test="New Button"
-        >
-          {haveContentSpinner ? <Spinner size="sm" /> : "Add"}
-        </MenuButton>
-        <MenuList>
-          <MenuItem
-            as={ReactRouterLink}
-            data-test="Add Explore Items"
-            to={`/explore`}
-            onClick={() => {
-              setAddTo(activity);
-            }}
+      {!readOnlyStructure && (
+        <Menu>
+          <MenuButton
+            as={Button}
+            size="sm"
+            colorScheme="blue"
+            data-test="New Button"
           >
-            Items from Explore
-          </MenuItem>
-          <MenuItem
-            as={ReactRouterLink}
-            data-test="Add My Activities Items"
-            to={`/activities/${user!.userId}`}
-            onClick={() => {
-              setAddTo(activity);
-            }}
-          >
-            Items from My Activities
-          </MenuItem>
-          <MenuItem
-            data-test="Add Document Button"
-            onClick={() => {
-              if (user?.isAuthor) {
-                createNewDocument();
-              } else {
-                setCreateDocumentParentId(activity.contentId);
-                authorModePromptOnOpen();
-              }
-            }}
-          >
-            Blank Document {!user?.isAuthor && <>(with source code)</>}
-          </MenuItem>
-        </MenuList>
-      </Menu>
+            {haveContentSpinner ? <Spinner size="sm" /> : "Add"}
+          </MenuButton>
+          <MenuList>
+            <MenuItem
+              as={ReactRouterLink}
+              data-test="Add Explore Items"
+              to={`/explore`}
+              onClick={() => {
+                setAddTo(activity);
+              }}
+            >
+              Items from Explore
+            </MenuItem>
+            <MenuItem
+              as={ReactRouterLink}
+              data-test="Add My Activities Items"
+              to={`/activities/${user!.userId}`}
+              onClick={() => {
+                setAddTo(activity);
+              }}
+            >
+              Items from My Activities
+            </MenuItem>
+            <MenuItem
+              data-test="Add Document Button"
+              onClick={() => {
+                if (user?.isAuthor) {
+                  createNewDocument();
+                } else {
+                  setCreateDocumentParentId(activity.contentId);
+                  authorModePromptOnOpen();
+                }
+              }}
+            >
+              Blank Document {!user?.isAuthor && <>(with source code)</>}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      )}
     </Flex>
   );
 
