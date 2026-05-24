@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Grid, GridItem, SkipNavLink, SkipNavContent } from "@chakra-ui/react";
-import { Outlet, useLoaderData } from "react-router";
+import { Outlet, useLoaderData, useLocation } from "react-router";
 import axios from "axios";
 import {
   ContentDescription,
@@ -20,6 +20,7 @@ export type SiteContext = {
   setAddTo: (_: ContentDescription | null) => void;
   allLicenses: License[];
   allDoenetmlVersions: DoenetmlVersion[];
+  mainRef: React.RefObject<HTMLDivElement | null>;
 };
 
 export async function loader() {
@@ -44,6 +45,20 @@ export async function loader() {
  * and a hamburger menu with drill-down navigation on mobile.
  * Includes skip navigation link for accessibility.
  */
+function ScrollToTop({
+  scrollRef,
+}: {
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [pathname, scrollRef]);
+
+  return null;
+}
+
 export function SiteHeader() {
   const { user, allLicenses, allDoenetmlVersions } = useLoaderData() as {
     user?: UserInfoWithEmail;
@@ -55,6 +70,8 @@ export function SiteHeader() {
 
   const [addTo, setAddTo] = useState<ContentDescription | null>(null);
 
+  const mainRef = useRef<HTMLDivElement>(null);
+
   const siteContext: SiteContext = {
     user,
     exploreTab,
@@ -63,6 +80,7 @@ export function SiteHeader() {
     setAddTo,
     allLicenses,
     allDoenetmlVersions,
+    mainRef,
   };
 
   return (
@@ -84,8 +102,16 @@ export function SiteHeader() {
         >
           <Navbar user={user} />
         </GridItem>
-        <GridItem as="main" area="main" margin="0" overflowY="auto">
+        <GridItem
+          ref={mainRef}
+          as="main"
+          area="main"
+          margin="0"
+          overflowY="auto"
+          data-test="Main Content"
+        >
           <SkipNavContent />
+          <ScrollToTop scrollRef={mainRef} />
           <Outlet context={siteContext} />
         </GridItem>
       </Grid>
