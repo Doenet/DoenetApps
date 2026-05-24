@@ -1,6 +1,6 @@
-import { Container, Button, Heading, Text } from "@chakra-ui/react";
+import { Container, Button, Heading, Text, VStack } from "@chakra-ui/react";
 
-import { useNavigate, useRouteError } from "react-router";
+import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router";
 
 const mouths = [
   "M 23.485 28.879 C 23.474 28.835 22.34 24.5 18 24.5 S 12.526 28.835 12.515 28.879 C 12.462 29.092 12.559 29.31 12.747 29.423 C 12.935 29.535 13.18 29.509 13.343 29.363 C 13.352 29.355 14.356 28.5 18 28.5 C 21.59 28.5 22.617 29.33 22.656 29.363 C 22.751 29.453 22.875 29.5 23 29.5 C 23.084 29.5 23.169 29.479 23.246 29.436 C 23.442 29.324 23.54 29.097 23.485 28.879 Z",
@@ -21,76 +21,128 @@ const rightEyes = [
   "M 19.35 3.281 C 20.209 0.85 22.875 -0.426 25.306 0.431 C 26.782 0.951 27.827 2.142 28.235 3.535 C 29.426 2.706 30.986 2.435 32.46 2.955 C 34.89 3.813 36.167 6.48 35.31 8.911 C 35.187 9.255 35.026 9.574 34.837 9.869 C 32.886 13.451 27.249 15.969 23.835 16 C 21.198 13.833 18.39 8.335 19.118 4.323 C 19.155 3.975 19.23 3.625 19.35 3.281 Z",
 ];
 
+function SadFace() {
+  return (
+    <Container centerContent padding="36px">
+      <svg
+        width="240"
+        height="240"
+        viewBox="0 0 36 36"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="18" cy="18" r="18" fill="#eea177" />
+        <circle cx="18" cy="18" r="15" fill="#6d4445" />
+        <circle cx="18" cy="18" r="6" fill="white" />
+        <path d={rightEyes[0]} fill={"black"} />
+        <path d={leftEyes[0]} fill={"black"} />
+        <path d={mouths[0]} fill={"black"} />
+      </svg>
+    </Container>
+  );
+}
+
+export function NotFoundErrorContent({
+  onGoHome,
+  onExplore,
+}: {
+  onGoHome: () => void;
+  onExplore: () => void;
+}) {
+  return (
+    <Container padding="70px 0" textAlign="center" maxWidth="800px">
+      <Heading data-test="Error Title">Page Not Found</Heading>
+      <Text mt={4}>
+        This content doesn&apos;t exist or may have been removed. If you think
+        you should have access, ask the author to share it with you or make it
+        public.
+      </Text>
+      <SadFace />
+      <VStack spacing={4}>
+        <Button colorScheme="blue" onClick={onGoHome}>
+          Go to Home
+        </Button>
+        <Button variant="outline" onClick={onExplore}>
+          Explore Public Content
+        </Button>
+      </VStack>
+    </Container>
+  );
+}
+
+export function AccessDeniedErrorContent({
+  onGoHome,
+  onExplore,
+}: {
+  onGoHome: () => void;
+  onExplore: () => void;
+}) {
+  return (
+    <Container padding="70px 0" textAlign="center" maxWidth="800px">
+      <Heading data-test="Error Title">Access Denied</Heading>
+      <Text mt={4}>
+        You don&apos;t have permission to view this content. The author may have
+        set it to private. Ask the author to share it with you or make it
+        public.
+      </Text>
+      <SadFace />
+      <VStack spacing={4}>
+        <Button colorScheme="blue" onClick={onGoHome}>
+          Go to Home
+        </Button>
+        <Button variant="outline" onClick={onExplore}>
+          Explore Public Content
+        </Button>
+      </VStack>
+    </Container>
+  );
+}
+
+export function GenericErrorContent({ onGoHome }: { onGoHome: () => void }) {
+  return (
+    <Container padding="70px 0" textAlign="center" maxWidth="800px">
+      <Heading data-test="Error Title">Something Went Wrong</Heading>
+      <Text mt={4}>
+        An unexpected error occurred. Please try again later or return to the
+        home page.
+      </Text>
+      <SadFace />
+      <Button colorScheme="blue" onClick={onGoHome}>
+        Go to Home
+      </Button>
+    </Container>
+  );
+}
+
 function ErrorPage() {
   const navigate = useNavigate();
   const error: any = useRouteError();
   console.error(error);
 
-  let errorDescription;
-
-  if (
-    !error.response ||
-    error.response.status === 404 ||
-    error.response.status === 403
-  ) {
-    errorDescription = (
-      <Text>
-        We are very sorry for the inconvenience. It looks like you&apos;re
-        trying to access a page that is unavailable.
-      </Text>
-    );
+  let status: number | undefined;
+  if (isRouteErrorResponse(error)) {
+    status = error.status;
   } else {
-    errorDescription = (
-      <Text>
-        We are very sorry for for the inconvenience. It appears that we have
-        encountered an error.
-      </Text>
-    );
+    status = error?.response?.status;
   }
 
-  let errorMessage;
-  if (
-    typeof error.response?.data === "string" &&
-    error.response.data.length > 0 &&
-    error.response.data.length < 50
-  ) {
-    errorMessage = error.response.data;
+  if (status === 403) {
+    return (
+      <AccessDeniedErrorContent
+        onGoHome={() => navigate("/")}
+        onExplore={() => navigate("/explore")}
+      />
+    );
+  } else if (!status || status === 404) {
+    return (
+      <NotFoundErrorContent
+        onGoHome={() => navigate("/")}
+        onExplore={() => navigate("/explore")}
+      />
+    );
   } else {
-    errorMessage = error.message;
+    return <GenericErrorContent onGoHome={() => navigate("/")} />;
   }
-
-  return (
-    <Container padding="70px 0" textAlign="center" maxWidth="800px">
-      {/* <Heading>Oops! Page not found.</Heading> */}
-      <Heading data-test="Error Message">{errorMessage}</Heading>
-      {/* <Heading fontSize="96">404</Heading> */}
-      {errorDescription}
-      <Container centerContent padding="36px">
-        <svg
-          width="240"
-          height="240"
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle cx="18" cy="18" r="18" fill="#eea177" />
-          <circle cx="18" cy="18" r="15" fill="#6d4445" />
-          <circle cx="18" cy="18" r="6" fill="white" />
-          <path d={rightEyes[0]} fill={"black"} />
-          <path d={leftEyes[0]} fill={"black"} />
-          <path d={mouths[0]} fill={"black"} />
-        </svg>
-      </Container>
-      <Button
-        colorScheme="blue"
-        onClick={() => {
-          navigate("/");
-        }}
-      >
-        Back to Home
-      </Button>
-    </Container>
-  );
 }
 
 export default ErrorPage;
