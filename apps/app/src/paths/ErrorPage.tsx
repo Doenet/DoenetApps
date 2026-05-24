@@ -1,4 +1,4 @@
-import { Container, Button, Heading, Text } from "@chakra-ui/react";
+import { Container, Button, Heading, Text, VStack } from "@chakra-ui/react";
 
 import { useNavigate, useRouteError } from "react-router";
 
@@ -26,45 +26,52 @@ function ErrorPage() {
   const error: any = useRouteError();
   console.error(error);
 
-  let errorDescription;
+  const status = error?.response?.status;
 
-  if (
-    !error.response ||
-    error.response.status === 404 ||
-    error.response.status === 403
-  ) {
-    errorDescription = (
-      <Text>
-        We are very sorry for the inconvenience. It looks like you&apos;re
-        trying to access a page that is unavailable.
-      </Text>
+  let heading: string;
+  let description: React.ReactNode;
+
+  if (status === 404) {
+    heading = "Page Not Found";
+    description = (
+      <VStack gap={3}>
+        <Text>
+          This page doesn&apos;t exist, or you may not have permission to view
+          it.
+        </Text>
+        <Text>
+          If someone shared this link with you, ask them to make their content
+          public.
+        </Text>
+      </VStack>
+    );
+  } else if (status === 403) {
+    heading = "Access Denied";
+    description = (
+      <VStack gap={3}>
+        <Text>
+          This content is private and you don&apos;t have permission to view it.
+        </Text>
+        <Text>
+          If someone shared this link with you, ask them to make their content
+          public.
+        </Text>
+      </VStack>
     );
   } else {
-    errorDescription = (
+    heading = "Something Went Wrong";
+    description = (
       <Text>
-        We are very sorry for for the inconvenience. It appears that we have
-        encountered an error.
+        We encountered an unexpected error. Please try again or return to the
+        home page.
       </Text>
     );
-  }
-
-  let errorMessage;
-  if (
-    typeof error.response?.data === "string" &&
-    error.response.data.length > 0 &&
-    error.response.data.length < 50
-  ) {
-    errorMessage = error.response.data;
-  } else {
-    errorMessage = error.message;
   }
 
   return (
     <Container padding="70px 0" textAlign="center" maxWidth="800px">
-      {/* <Heading>Oops! Page not found.</Heading> */}
-      <Heading data-test="Error Message">{errorMessage}</Heading>
-      {/* <Heading fontSize="96">404</Heading> */}
-      {errorDescription}
+      <Heading data-test="Error Message">{heading}</Heading>
+      <Container padding="16px 0">{description}</Container>
       <Container centerContent padding="36px">
         <svg
           width="240"
@@ -81,14 +88,25 @@ function ErrorPage() {
           <path d={mouths[0]} fill={"black"} />
         </svg>
       </Container>
-      <Button
-        colorScheme="blue"
-        onClick={() => {
-          navigate("/");
-        }}
-      >
-        Back to Home
-      </Button>
+      <VStack gap={3}>
+        <Button
+          colorScheme="blue"
+          onClick={() => {
+            navigate("/");
+          }}
+        >
+          Back to Home
+        </Button>
+        <Button
+          variant="outline"
+          colorScheme="blue"
+          onClick={() => {
+            navigate("/explore");
+          }}
+        >
+          Browse Public Activities
+        </Button>
+      </VStack>
     </Container>
   );
 }
