@@ -103,6 +103,7 @@ export function configOrganizeContentList({
   cardSelections,
   cardMovement,
   forceDisableMoveUpAndDown = false,
+  anyAssignmentSelected = false,
   onMoveTo,
   onCopy,
   onDelete,
@@ -111,6 +112,7 @@ export function configOrganizeContentList({
   cardSelections: CardSelections;
   cardMovement: CardMovement;
   forceDisableMoveUpAndDown?: boolean;
+  anyAssignmentSelected?: boolean;
   onMoveTo: () => void;
   onCopy: () => void;
   onDelete: () => void;
@@ -156,7 +158,7 @@ export function configOrganizeContentList({
     {
       label: "Make a copy",
       onClick: onCopy,
-      isDisabled: cardSelections.count === 0,
+      isDisabled: cardSelections.count === 0 || anyAssignmentSelected,
     },
   ];
   return { context, actions };

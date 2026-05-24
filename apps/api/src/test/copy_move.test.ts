@@ -899,6 +899,50 @@ test("cannot copy into assigned problem set", async () => {
   ).rejects.toThrow("Cannot copy content into an assigned activity");
 });
 
+test("cannot copy an assignment", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [problemSetId] = await setupTestContent(ownerId, {
+    "problem set 1": pset({
+      "doc 1": doc(""),
+    }),
+  });
+  const { assignmentId } = await createAssignment({
+    contentId: problemSetId,
+    loggedInUserId: ownerId,
+    destinationParentId: null,
+    closedOn: DateTime.now(),
+  });
+
+  await expect(
+    copyContent({
+      contentIds: [assignmentId],
+      loggedInUserId: ownerId,
+      parentId: null,
+    }),
+  ).rejects.toThrow("Cannot copy an assignment");
+});
+
+test("cannot copy an assignment (singleDoc)", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [docId] = await setupTestContent(ownerId, {
+    "doc 1": doc(""),
+  });
+  const { assignmentId } = await createAssignment({
+    contentId: docId,
+    loggedInUserId: ownerId,
+    destinationParentId: null,
+    closedOn: DateTime.now(),
+  });
+
+  await expect(
+    copyContent({
+      contentIds: [assignmentId],
+      loggedInUserId: ownerId,
+      parentId: null,
+    }),
+  ).rejects.toThrow("Cannot copy an assignment");
+});
+
 test("MoveCopyContent does not allow singleDoc` as parent type", async () => {
   const { userId: loggedInUserId } = await createTestUser();
 
