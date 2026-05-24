@@ -392,6 +392,19 @@ export async function copyContent({
     throw new InvalidRequestError("Content not found or not visible");
   }
 
+  // Prevent copying assignment roots
+  const assignmentRoots = await prisma.content.findMany({
+    where: {
+      id: { in: contentIds },
+      isAssignmentRoot: true,
+    },
+    select: { id: true },
+  });
+
+  if (assignmentRoots.length > 0) {
+    throw new InvalidRequestError("Cannot copy an assignment");
+  }
+
   let desiredParentIsPublic = false;
   let desiredParentLicenseCode: LicenseCode = "CCDUAL";
   let desiredParentShares: Uint8Array[] = [];
