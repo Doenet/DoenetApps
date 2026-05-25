@@ -128,22 +128,39 @@ export default function Card({
   const variantsIconHeight = "1.6rem";
   const variantsBadgeWidth = "3.5rem";
 
-  // Select checkbox
+  // Select checkbox — the Flex wrapper extends the click target to the full row
+  // height so that clicking above or below the checkbox still toggles it.
   const selectCheckbox = includeSelectionBox && (
-    <Checkbox
-      data-test="Card Select"
-      margin="5px"
-      isDisabled={disableSelect || disableAsSelected}
-      isChecked={isSelected || disableAsSelected}
-      onChange={(e) => {
-        if (e.target.checked) {
-          onSelected?.();
-        } else {
+    <Flex
+      alignSelf="stretch"
+      alignItems="center"
+      paddingX="8px"
+      cursor={disableSelect || disableAsSelected ? "default" : "pointer"}
+      onClick={() => {
+        if (disableSelect || disableAsSelected) return;
+        if (isSelected) {
           onDeselected?.();
+        } else {
+          onSelected?.();
         }
       }}
-      aria-label={`Select item ${idx + 1}: ${title}`}
-    ></Checkbox>
+    >
+      <Checkbox
+        data-test="Card Select"
+        size="lg"
+        isDisabled={disableSelect || disableAsSelected}
+        isChecked={isSelected || disableAsSelected}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          if (e.target.checked) {
+            onSelected?.();
+          } else {
+            onDeselected?.();
+          }
+        }}
+        aria-label={`Select item ${idx + 1}: ${title}`}
+      />
+    </Flex>
   );
 
   // Content type icon
