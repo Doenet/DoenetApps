@@ -341,6 +341,38 @@ describe("NameBar", { tags: ["@group4"] }, () => {
       cy.checkAccessibility("body");
     });
 
+    it("long name is clipped to single line without showing second line", () => {
+      const longName =
+        "A very long activity title that should not wrap ".repeat(5);
+      const fetcher = createMockFetcher();
+
+      cy.viewport(800, 600);
+
+      cy.mount(
+        <NameBar
+          contentId="test-id"
+          contentName={longName}
+          isEditable={true}
+          leftIcon={defaultIcon}
+          dataTest="Long Title Editable"
+          fetcher={fetcher}
+        />,
+      );
+
+      cy.get('[data-test="Editable Title"]')
+        .should("have.css", "white-space", "nowrap")
+        .and("have.css", "overflow", "hidden")
+        .and("have.css", "text-overflow", "ellipsis");
+
+      // Height should be approximately one line (lineHeight 1.2 × default font size ~16px ≈ 19px).
+      // Two lines would be ~38px. We verify the element is not taller than ~32px.
+      cy.get('[data-test="Editable Title"]')
+        .invoke("prop", "clientHeight")
+        .should("be.lessThan", 32);
+
+      cy.checkAccessibility("body");
+    });
+
     it("handles empty string as initial name", () => {
       const fetcher = createMockFetcher();
 

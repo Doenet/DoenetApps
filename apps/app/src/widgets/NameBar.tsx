@@ -132,7 +132,11 @@ export function NameBar({
           as={EditablePreview}
           className="editable-name"
           data-test="Editable Title"
-          noOfLines={1}
+          display="block"
+          width="100%"
+          whiteSpace="nowrap"
+          overflow="hidden"
+          textOverflow="ellipsis"
           lineHeight="1.2"
           pl={{ base: "0rem", md: "1.8rem" }}
           rounded="none"

@@ -380,7 +380,7 @@ export function EditorHeader() {
           icon={folderIcon}
           size="sm"
           variant="ghost"
-          aria-label={"Folder"}
+          aria-label={`Go to folder: ${folderName}`}
           to={folderLink}
           data-test="Folder Breadcrumb Icon"
         />
@@ -391,6 +391,7 @@ export function EditorHeader() {
           as={ReactRouterLink}
           to={folderLink}
           _hover={{ fontWeight: "bold", textDecoration: "none" }}
+          data-test="Folder Breadcrumb Link"
         >
           <HStack spacing="0.3rem">
             {folderIcon}
@@ -427,7 +428,7 @@ export function EditorHeader() {
           icon={outerActivityIcon}
           size="sm"
           variant="ghost"
-          aria-label={"Problem set"}
+          aria-label={`Go to problem set: ${parent!.name!}`}
           to={`/compoundEditor/${parent!.contentId}/${tab}`}
         />
       </Show>
@@ -436,6 +437,7 @@ export function EditorHeader() {
           as={ReactRouterLink}
           to={`/compoundEditor/${parent!.contentId}/${tab}`}
           _hover={{ fontWeight: "bold", textDecoration: "none" }}
+          data-test="Problem Set Breadcrumb Link"
         >
           <HStack spacing="0.3rem">
             {outerActivityIcon}
