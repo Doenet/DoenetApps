@@ -22,6 +22,7 @@ export function FolderContext() {
       flexShrink={0}
       align="flex-start"
       borderRight={{ base: "none", md: "solid 2px black" }}
+      borderBottom={{ base: "solid 2px black", md: "none" }}
       p={{ base: "0px", xl: "10px" }}
       minHeight={{ base: "fit-content", md: "100%" }}
       flexDir={{ base: "row", md: "column" }}
@@ -31,7 +32,10 @@ export function FolderContext() {
         to={activitiesPath}
         variant="ghost"
         justifyContent="flex-start"
-        width={isActivitiesActive ? "100%" : "calc(100% - 4px)"}
+        width={{
+          base: "auto",
+          md: isActivitiesActive ? "100%" : "calc(100% - 4px)",
+        }}
         backgroundColor={
           isActivitiesActive ? "doenet.lightBlue" : "transparent"
         }
@@ -40,9 +44,14 @@ export function FolderContext() {
             ? { backgroundColor: "doenet.lightBlue" }
             : { backgroundColor: "gray.50" }
         }
-        borderLeftWidth={isActivitiesActive ? "4px" : "0"}
-        marginLeft={isActivitiesActive ? "0" : "4px"}
+        borderLeftWidth={{ base: "0", md: isActivitiesActive ? "4px" : "0" }}
+        marginLeft={{ base: "0", md: isActivitiesActive ? "0" : "4px" }}
         borderLeftColor={isActivitiesActive ? "doenet.mainBlue" : "transparent"}
+        borderBottomWidth={{ base: isActivitiesActive ? "3px" : "0", md: "0" }}
+        borderBottomColor={
+          isActivitiesActive ? "doenet.mainBlue" : "transparent"
+        }
+        opacity={{ base: isActivitiesActive ? 1 : 0.5, md: 1 }}
         aria-current={isActivitiesActive ? "page" : undefined}
         data-test="My Activities Link"
       >
@@ -54,7 +63,10 @@ export function FolderContext() {
         to={`/sharedWithMe/${context.user?.userId ?? ""}`}
         variant="ghost"
         justifyContent="flex-start"
-        width={isSharedWithMeActive ? "100%" : "calc(100% - 4px)"}
+        width={{
+          base: "auto",
+          md: isSharedWithMeActive ? "100%" : "calc(100% - 4px)",
+        }}
         backgroundColor={
           isSharedWithMeActive ? "doenet.lightBlue" : "transparent"
         }
@@ -63,11 +75,19 @@ export function FolderContext() {
             ? { backgroundColor: "doenet.lightBlue" }
             : { backgroundColor: "gray.50" }
         }
-        borderLeftWidth={isSharedWithMeActive ? "4px" : "0"}
-        marginLeft={isSharedWithMeActive ? "0" : "4px"}
+        borderLeftWidth={{ base: "0", md: isSharedWithMeActive ? "4px" : "0" }}
+        marginLeft={{ base: "0", md: isSharedWithMeActive ? "0" : "4px" }}
         borderLeftColor={
           isSharedWithMeActive ? "doenet.mainBlue" : "transparent"
         }
+        borderBottomWidth={{
+          base: isSharedWithMeActive ? "3px" : "0",
+          md: "0",
+        }}
+        borderBottomColor={
+          isSharedWithMeActive ? "doenet.mainBlue" : "transparent"
+        }
+        opacity={{ base: isSharedWithMeActive ? 1 : 0.5, md: 1 }}
         aria-current={isSharedWithMeActive ? "page" : undefined}
         data-test="Shared With Me Button"
       >
@@ -82,16 +102,22 @@ export function FolderContext() {
         to={`/trash`}
         variant="ghost"
         justifyContent="flex-start"
-        width={isTrashActive ? "100%" : "calc(100% - 4px)"}
+        width={{
+          base: "auto",
+          md: isTrashActive ? "100%" : "calc(100% - 4px)",
+        }}
         backgroundColor={isTrashActive ? "doenet.lightBlue" : "transparent"}
         _hover={
           isTrashActive
             ? { backgroundColor: "doenet.lightBlue" }
             : { backgroundColor: "gray.50" }
         }
-        borderLeftWidth={isTrashActive ? "4px" : "0"}
-        marginLeft={isTrashActive ? "0" : "4px"}
+        borderLeftWidth={{ base: "0", md: isTrashActive ? "4px" : "0" }}
+        marginLeft={{ base: "0", md: isTrashActive ? "0" : "4px" }}
         borderLeftColor={isTrashActive ? "doenet.mainBlue" : "transparent"}
+        borderBottomWidth={{ base: isTrashActive ? "3px" : "0", md: "0" }}
+        borderBottomColor={isTrashActive ? "doenet.mainBlue" : "transparent"}
+        opacity={{ base: isTrashActive ? 1 : 0.5, md: 1 }}
         aria-current={isTrashActive ? "page" : undefined}
         data-test="Trash Link"
       >
