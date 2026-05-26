@@ -94,6 +94,8 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
     cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Add To Problem Set"]').should("be.visible");
     cy.get('[data-test="Add To Folder"]').should("be.visible");
@@ -128,6 +130,7 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
     cy.wait("@getRecentContent");
     cy.wait("@checkContains");
     cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Add To Problem Set"]').should("be.disabled");
     cy.get('[data-test="Add To Folder"]').should("not.be.disabled");
@@ -159,6 +162,7 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
     cy.wait("@checkContains");
     cy.wait("@checkContains");
 
@@ -211,6 +215,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.contains("Recent").should("be.visible");
     cy.get('[data-test="Recent Item"]').should("have.length", 2);
@@ -254,6 +261,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Recent Item"]').should("be.disabled");
   });
@@ -276,6 +286,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Load into Scratch Pad"]').should("be.visible");
     cy.get('[data-test="Load into Scratch Pad"]').should("not.be.disabled");
@@ -317,6 +330,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Load into Scratch Pad"]').should("be.disabled");
   });
@@ -372,6 +388,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Load into Scratch Pad"]').should("not.exist");
   });
@@ -394,6 +413,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Load into Scratch Pad"]').click();
     cy.get("@onNavigate").should(
@@ -421,6 +443,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Suggest this to be curated"]').should("be.visible");
   });
@@ -444,6 +469,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Suggest this to be curated"]').click();
 
@@ -477,6 +505,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Suggest this to be curated"]').click();
     cy.get('[data-test="Copy Header"]').should("be.visible");
@@ -524,6 +555,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
     cy.get('[data-test="Add To"]').click();
     cy.wait("@getRecentContent");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
+    cy.wait("@checkContains");
 
     cy.get('[data-test="Recent Item"]')
       .eq(0)
@@ -568,6 +602,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
       cy.get('[data-test="Add To"]').click();
       cy.wait("@getRecentContent");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
       cy.checkAccessibility("body");
     });
 
@@ -609,6 +646,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
       cy.get('[data-test="Add To"]').click();
       cy.wait("@getRecentContent");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
       cy.checkAccessibility("body");
     });
 
@@ -631,6 +671,9 @@ describe("AddContentToMenu component tests", { tags: ["@group2"] }, () => {
 
       cy.get('[data-test="Add To"]').click();
       cy.wait("@getRecentContent");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
+      cy.wait("@checkContains");
       cy.get('[data-test="Suggest this to be curated"]').click();
       cy.checkAccessibility("body");
     });
