@@ -84,17 +84,61 @@ function dbNameFromBranch(branch, offset) {
   return `doenet_${slug || `wt${offset}`}`.slice(0, 64);
 }
 
-function writeApiEnv(offset, dbName) {
+function writeApiEnv(offset, dbName, dbPort) {
   const out = fs
     .readFileSync(apiEnvExamplePath, "utf8")
     .replace(/^PORT=.*$/m, `PORT="${BASE.api + offset}"`)
     .replace(/^APP_URL=.*$/m, `APP_URL="http://localhost:${BASE.app + offset}"`)
     .replace(
       /^DATABASE_URL=.*$/m,
-      `DATABASE_URL="mysql://myuser:mypassword@localhost:3306/${dbName}"`,
+      `DATABASE_URL="mysql://myuser:mypassword@localhost:${dbPort}/${dbName}"`,
     )
+    .replace(/^DATABASE_PORT=.*$/m, `DATABASE_PORT="${dbPort}"`)
     .replace(/^DATABASE_NAME=.*$/m, `DATABASE_NAME="${dbName}"`);
   fs.writeFileSync(apiEnvPath, out);
+}
+
+// Rewrites only DATABASE_PORT and the port inside DATABASE_URL on an existing
+// apps/api/.env, leaving everything else (including dbName, user-edits) intact.
+function realignDbPort(dbPort) {
+  const out = fs
+    .readFileSync(apiEnvPath, "utf8")
+    .replace(/^DATABASE_PORT=.*$/m, `DATABASE_PORT="${dbPort}"`)
+    .replace(/^(DATABASE_URL="mysql:\/\/[^@]+@[^:]+):\d+\//m, `$1:${dbPort}/`);
+  fs.writeFileSync(apiEnvPath, out);
+}
+
+// Returns the host port for the shared doenet-mysql-1 container. If the
+// container is already running, its published port is authoritative (every
+// worktree must connect to the same instance). Otherwise probes from 3306
+// upward for a free port. A non-running stale container is removed so compose
+// can recreate it with the chosen port mapping.
+async function determineDbPort() {
+  try {
+    const out = execFileSync(
+      "docker",
+      [
+        "inspect",
+        "doenet-mysql-1",
+        "--format",
+        '{{.State.Status}}|{{with index .NetworkSettings.Ports "3306/tcp"}}{{(index . 0).HostPort}}{{end}}',
+      ],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    const [status, hostPort] = out.split("|");
+    if (status === "running" && hostPort) {
+      return { port: Number(hostPort), reused: true };
+    }
+    log(`🧹 Removing stale doenet-mysql-1 container (state: ${status})...`);
+    execFileSync("docker", ["rm", "-f", "doenet-mysql-1"], { stdio: "ignore" });
+  } catch {
+    // No container exists — fall through to probe.
+  }
+  for (let port = 3306; port < 3406; port++) {
+    if (await portFree(port)) return { port, reused: false };
+  }
+  fail("Could not find a free port for MySQL between 3306 and 3406.");
+  return { port: 0, reused: false }; // unreachable, satisfies the type checker
 }
 
 // The blog's committed apps/web/.env hardcodes the primary-checkout URLs.
@@ -118,12 +162,25 @@ async function main() {
     );
   }
 
-  // 1. Per-worktree env file (single source of truth for ports + database).
+  // 1. Determine the host port for the shared MySQL container. Done before
+  // writing the env file so the chosen port is recorded in DATABASE_URL.
+  const { port: dbPort, reused } = await determineDbPort();
+  if (reused) {
+    log(`✅ Reusing running doenet-mysql-1 on port ${dbPort}`);
+  } else if (dbPort !== 3306) {
+    log(`ℹ️  Port 3306 is taken; using ${dbPort} for MySQL instead`);
+  }
+
+  // 2. Per-worktree env file (single source of truth for ports + database).
   if (fs.existsSync(apiEnvPath)) {
     const env = parseEnvFile(apiEnvPath);
     log(
       `✅ apps/api/.env already exists (port ${env.PORT}, database ${env.DATABASE_NAME})`,
     );
+    if (Number(env.DATABASE_PORT) !== dbPort) {
+      realignDbPort(dbPort);
+      log(`🔧 Updated apps/api/.env DATABASE_PORT to ${dbPort}`);
+    }
   } else {
     if (!fs.existsSync(apiEnvExamplePath)) {
       fail(`Example file not found: ${apiEnvExamplePath}`);
@@ -134,9 +191,9 @@ async function main() {
       offset = await nextFreeOffset();
       dbName = dbNameFromBranch(git(["branch", "--show-current"]), offset);
     }
-    writeApiEnv(offset, dbName);
+    writeApiEnv(offset, dbName, dbPort);
     log(
-      `✅ Created apps/api/.env (port ${BASE.api + offset}, database ${dbName})`,
+      `✅ Created apps/api/.env (port ${BASE.api + offset}, database ${dbName}, db-port ${dbPort})`,
     );
     if (offset > 0) {
       writeWebEnvLocal(offset);
@@ -144,19 +201,21 @@ async function main() {
     }
   }
 
-  // 2. Shared MySQL container. The fixed `-p doenet` project name means every
+  // 3. Shared MySQL container. The fixed `-p doenet` project name means every
   // worktree reuses the same container regardless of which directory starts it.
+  // DATABASE_PORT is passed explicitly so compose binds to the port we picked.
   log("🐳 Starting MySQL container...");
   try {
     execFileSync("docker", ["compose", "-p", "doenet", "up", "-d", "--wait"], {
       cwd: repoRoot,
       stdio: "inherit",
+      env: { ...process.env, DATABASE_PORT: String(dbPort) },
     });
   } catch {
     fail("Failed to start MySQL. Is Docker running (with Compose v2)?");
   }
 
-  // 3. Migrate + seed this worktree's database. Prisma creates the database if
+  // 4. Migrate + seed this worktree's database. Prisma creates the database if
   // it does not exist yet (myuser has global CREATE — see configs/mysql).
   log("🗄️  Migrating and seeding the database...");
   try {
