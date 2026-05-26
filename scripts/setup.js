@@ -11,8 +11,6 @@ import {
   BASE,
 } from "./worktree-env.js";
 
-const isWorktree = process.argv.includes("--worktree");
-
 function log(msg) {
   console.log(msg);
 }
@@ -155,12 +153,10 @@ function writeWebEnvLocal(offset) {
 }
 
 async function main() {
-  if (!isWorktree && fs.statSync(path.join(repoRoot, ".git")).isFile()) {
-    log(
-      "⚠️  This looks like a linked git worktree. " +
-        "Use `npm run worktree:init` instead so it gets its own ports and database.\n",
-    );
-  }
+  // A linked git worktree has `.git` as a file rather than a directory. In that
+  // case we assign this checkout its own port offset and database so it does
+  // not collide with the primary checkout or any other worktree.
+  const isWorktree = fs.statSync(path.join(repoRoot, ".git")).isFile();
 
   // 1. Determine the host port for the shared MySQL container. Done before
   // writing the env file so the chosen port is recorded in DATABASE_URL.

@@ -8,8 +8,7 @@ import { apiEnvPath, dbPort } from "./worktree-env.js";
 
 if (!fs.existsSync(apiEnvPath)) {
   console.error(
-    "\n❌ This worktree is not set up yet.\n" +
-      "   Run `npm run setup` (or `npm run worktree:init` for an extra worktree).\n",
+    "\n❌ This checkout is not set up yet.\n" + "   Run `npm run setup`.\n",
   );
   process.exit(1);
 }
@@ -17,7 +16,7 @@ if (!fs.existsSync(apiEnvPath)) {
 function notReachable() {
   console.error(
     `\n❌ MySQL is not reachable on port ${dbPort}.\n` +
-      "   Start it with `npm run db:start`.\n",
+      "   Run `npm run setup` to start it.\n",
   );
   process.exit(1);
 }

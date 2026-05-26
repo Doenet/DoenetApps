@@ -38,7 +38,7 @@ migrates, and seeds the database. It is idempotent — safe to re-run at any tim
 - Astro site → http://localhost:4321
 
 If you need to edit connection details, see the comments in `apps/api/.env`.
-If the database container is stopped later, restart it with `npm run db:start`.
+If the database container is stopped later, re-run `npm run setup` to start it.
 
 #### Running dev servers individually
 
@@ -54,20 +54,20 @@ npm run dev --workspace @doenet-tools/web   # Astro site
 ### Working in multiple worktrees
 
 Running `npm run dev` from several [git worktrees](https://git-scm.com/docs/git-worktree)
-at once would collide on ports and on the database. Give each worktree its own:
+at once would collide on ports and on the database. The same setup command
+handles this — it detects a linked worktree and assigns it the next free set
+of ports and a dedicated database:
 
 ```bash
 git worktree add ../doenet-feature feature-branch
 cd ../doenet-feature
 npm install
-npm run worktree:init
+npm run setup
 npm run dev
 ```
 
-`npm run worktree:init` assigns the next free set of ports and a dedicated
-database to that worktree. Run it once per worktree, before starting any dev
-servers or AI coding sessions in it. The MySQL container is shared across all
-worktrees — only the database (and the ports) differ.
+The MySQL container is shared across all worktrees — only the database
+(and the ports) differ.
 
 ---
 
