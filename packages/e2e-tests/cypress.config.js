@@ -2,6 +2,8 @@ import { defineConfig } from "cypress";
 import addAccessibilityTasks from "wick-a11y/accessibility-tasks";
 import { plugin as cypressGrepPlugin } from "@cypress/grep/plugin";
 
+import { appPort } from "../../scripts/worktree-env.js";
+
 // // This is for db data testing/checking (CANNOT GET DATA AND CHECK VIA CYPRESS)
 // //For connecting to SQL Server
 // const mysql = require("mysql2");
@@ -53,7 +55,7 @@ export default defineConfig({
     supportFile: "support/e2e.ts",
     specPattern: "e2e/**/*.cy.ts",
 
-    baseUrl: "http://localhost:8000",
+    baseUrl: `http://localhost:${appPort}`,
   },
   // env: {
   //   db: {

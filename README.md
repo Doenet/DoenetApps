@@ -15,66 +15,34 @@ We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 24+
-- [Docker](https://www.docker.com/) (for the MySQL database)
+- [Docker](https://www.docker.com/) with Compose v2 (for the MySQL database)
 
 ### Steps
-
-**1. Clone the repository**
 
 ```bash
 git clone https://github.com/Doenet/DoenetTools.git
 cd DoenetTools
-```
-
-**2. Install dependencies**
-
-```bash
 npm install
-```
-
-**3. Create the `.env` file**
-
-```bash
 npm run setup
-```
-
-This copies `apps/api/.env.example` to `apps/api/.env`. The defaults work for local development, but edit as needed (e.g. change `DATABASE_HOST`, `DATABASE_PORT`, or `DATABASE_PASSWORD` if your MySQL setup differs — and update `DATABASE_URL` to match).
-
-**4. Start the database**
-
-```bash
-docker compose --env-file apps/api/.env up -d
-```
-
-Wait until the MySQL container shows `(healthy)` in `docker container ls` before continuing.
-
-**5. Setup the database tables**
-
-```bash
-npm run db:setup
-```
-
-This creates the required database tables and seeds them with minimal data.
-
-**6. Start the dev servers**
-
-All dev processes can be started together with a single command:
-
-```bash
 npm run dev
 ```
 
-This starts:
+`npm run setup` creates `apps/api/.env`, starts the MySQL container, and creates,
+migrates, and seeds the database. It is idempotent — safe to re-run at any time.
+
+`npm run dev` starts all dev processes:
 
 - Shared package watcher
 - Express API → http://localhost:3000
 - React SPA → http://localhost:8000 (proxies `/api/*` to the API)
 - Astro site → http://localhost:4321
 
-This command first builds `shared` once, then starts its watch process alongside
-the app, API, and web dev servers.
+If you need to edit connection details, see the comments in `apps/api/.env`.
+If the database container is stopped later, re-run `npm run setup` to start it.
 
-Alternatively, run each in a separate terminal if needed:
+#### Running dev servers individually
+
+Instead of `npm run dev`, you can run each process in a separate terminal:
 
 ```bash
 npm run dev --workspace @doenet-tools/shared   # Shared package watcher
@@ -82,6 +50,24 @@ npm run dev --workspace @doenet-tools/api   # Express API
 npm run dev --workspace @doenet-tools/app   # React SPA
 npm run dev --workspace @doenet-tools/web   # Astro site
 ```
+
+### Working in multiple worktrees
+
+Running `npm run dev` from several [git worktrees](https://git-scm.com/docs/git-worktree)
+at once would collide on ports and on the database. The same setup command
+handles this — it detects a linked worktree and assigns it the next free set
+of ports and a dedicated database:
+
+```bash
+git worktree add ../doenet-feature feature-branch
+cd ../doenet-feature
+npm install
+npm run setup
+npm run dev
+```
+
+The MySQL container is shared across all worktrees — only the database
+(and the ports) differ.
 
 ---
 
