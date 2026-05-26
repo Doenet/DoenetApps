@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 
 import {
@@ -39,6 +39,7 @@ export function AssignmentItemResponseStudent({
   doenetML,
   doenetmlVersion,
   requestScrollTo,
+  viewerContainerRef,
 }: {
   assignment: {
     name: string;
@@ -70,6 +71,7 @@ export function AssignmentItemResponseStudent({
   doenetML: string;
   doenetmlVersion: DoenetmlVersion;
   requestScrollTo: (_offset: number) => void;
+  viewerContainerRef?: RefObject<HTMLDivElement | null>;
 }) {
   useEffect(() => {
     document.title = `${assignment?.name} - Doenet`;
@@ -372,6 +374,7 @@ export function AssignmentItemResponseStudent({
             overflow="hidden"
           >
             <Box
+              ref={viewerContainerRef}
               minHeight="calc(100vh - 80px)"
               background="var(--canvas)"
               borderWidth="1px"
