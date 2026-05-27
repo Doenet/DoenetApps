@@ -54,7 +54,8 @@
       "cdn.jsdelivr.net",
       "api.github.com",
       "github.com",
-      "api.cypress.io"
+      "api.cypress.io",
+      "localhost"
     ],
     "filesystem": {
       "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
