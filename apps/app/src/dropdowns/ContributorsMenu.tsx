@@ -125,21 +125,12 @@ export default function ContributorsMenu({
             data-test={"contributors menu item author"}
             padding="0px"
             paddingRight="12px"
-            cursor="default"
+            as={ReactRouterLink}
+            to={`/sharedActivities/${activity.owner.userId}`}
+            aria-label={`Go to ${ownerAvatarName}'s shared activities`}
           >
-            <Tooltip
-              label={`Go to ${ownerAvatarName}'s shared activities`}
-              openDelay={1000}
-            >
-              <ChakraLink
-                as={ReactRouterLink}
-                to={`/sharedActivities/${activity.owner.userId}`}
-                aria-label={`Go to ${ownerAvatarName}'s shared activities`}
-              >
-                {avatars[0]}{" "}
-              </ChakraLink>
-            </Tooltip>
-            <HStack cursor="default">
+            {avatars[0]}{" "}
+            <HStack>
               <Text noOfLines={1} maxWidth="400px">
                 {activity.name}
               </Text>{" "}
@@ -150,8 +141,6 @@ export default function ContributorsMenu({
             const menuText = `${contrib_hist.originContent.name} by ${createNameCheckCurateTag(contrib_hist.originContent.owner)}`;
             const activityRef = `/activityViewer/${contrib_hist.originContent.contentId}`;
             const activityLabel = `Go to ${contrib_hist.originContent.name}`;
-            const userRef = `/sharedActivities/${contrib_hist.originContent.owner.userId}`;
-            const userLabel = `Go to ${createNameNoTag(contrib_hist.originContent.owner)}'s shared activities`;
             return (
               <MenuItem
                 key={`mi${i}`}
@@ -161,25 +150,7 @@ export default function ContributorsMenu({
                 to={activityRef}
                 aria-label={activityLabel}
               >
-                <Tooltip label={userLabel} openDelay={1000}>
-                  <ChakraLink
-                    as={ReactRouterLink}
-                    to={userRef}
-                    aria-label={userLabel}
-                  >
-                    {avatars[i + 1]}{" "}
-                  </ChakraLink>
-                </Tooltip>
-
-                <Tooltip label={activityLabel} openDelay={1000}>
-                  <ChakraLink
-                    as={ReactRouterLink}
-                    to={activityRef}
-                    aria-label={activityLabel}
-                  >
-                    <Text padding="10px 0px">{menuText}</Text>
-                  </ChakraLink>
-                </Tooltip>
+                {avatars[i + 1]} <Text padding="10px 0px">{menuText}</Text>
               </MenuItem>
             );
           })}
