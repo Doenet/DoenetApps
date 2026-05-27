@@ -8,7 +8,7 @@ import {
 } from "../utils/permissions";
 import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { Content } from "../types";
-import { getAllCategories } from "./classification";
+import { getAllCategories } from "../categories";
 import { sanitizeQuery } from "../utils/search";
 import { Prisma } from "@prisma/client";
 import {
@@ -20,6 +20,47 @@ import { getAllDoenetmlVersions } from "./activity";
 import { getAllLicenses } from "./license";
 import { recordRecentContent } from "./recent";
 import { recordContentView } from "./popularity";
+
+function sharedWithLoggedInUser(loggedInUserId: Uint8Array) {
+  return { sharedWith: { some: { userId: loggedInUserId } } };
+}
+
+function isDiscoverableSharedContent(loggedInUserId: Uint8Array) {
+  return {
+    OR: [
+      { visibility: "public" as const },
+      sharedWithLoggedInUser(loggedInUserId),
+    ],
+  } satisfies Prisma.contentWhereInput;
+}
+
+function isOpenableSharedFolder(loggedInUserId: Uint8Array) {
+  return {
+    OR: [
+      { visibility: { in: ["public", "unlisted"] } },
+      sharedWithLoggedInUser(loggedInUserId),
+    ],
+  } satisfies Prisma.contentWhereInput;
+}
+
+function parentIsVisibleInSharedBreadcrumb(
+  parent: {
+    visibility: string;
+    sharedWith: { userId: Uint8Array }[];
+  } | null,
+  loggedInUserId: Uint8Array,
+) {
+  if (!parent) {
+    return false;
+  }
+
+  return (
+    parent.visibility !== "private" ||
+    parent.sharedWith.findIndex((cs) =>
+      isEqualUUID(cs.userId, loggedInUserId),
+    ) !== -1
+  );
+}
 
 export async function getMyContent({
   ownerId,
@@ -328,31 +369,24 @@ export async function getSharedContent({
 
   if (parentId !== null) {
     // if ask for a parent, make sure it exists and is viewable by logged in user
-    const preliminaryParent = await prisma.content.findUniqueOrThrow({
+    const preliminaryParent = await prisma.content.findFirstOrThrow({
       where: {
         ownerId,
         id: parentId,
         type: "folder",
         // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
         isDeletedOn: null,
-
-        OR: [
-          { isPublic: true },
-          { sharedWith: { some: { userId: loggedInUserId } } },
-        ],
+        ...isOpenableSharedFolder(loggedInUserId),
       },
-      select: returnContentSelect({}),
+      select: returnContentSelect({ includeShareDetails: false }),
     });
 
     // If parent is not public or not shared with me,
     // make it look like it doesn't have a parent.
     if (
-      !(
-        preliminaryParent.parent &&
-        (preliminaryParent.parent.isPublic ||
-          preliminaryParent.parent.sharedWith.findIndex((cs) =>
-            isEqualUUID(cs.userId, loggedInUserId),
-          ) !== -1)
+      !parentIsVisibleInSharedBreadcrumb(
+        preliminaryParent.parent,
+        loggedInUserId,
       )
     ) {
       preliminaryParent.parent = null;
@@ -368,10 +402,9 @@ export async function getSharedContent({
       parentId: parentId,
       // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
       isDeletedOn: null,
-      OR: [
-        { isPublic: true },
-        { sharedWith: { some: { userId: loggedInUserId } } },
-      ],
+      ...(parentId === null
+        ? isDiscoverableSharedContent(loggedInUserId)
+        : isOpenableSharedFolder(loggedInUserId)),
     },
     select: returnContentSelect({ includeOwnerDetails: true }),
     orderBy: { sortIndex: "asc" },
@@ -388,16 +421,15 @@ export async function getSharedContent({
         ownerId,
         parent: {
           AND: [
-            { isPublic: false },
-            { sharedWith: { none: { userId: loggedInUserId } } },
+            { visibility: { notIn: ["public", "unlisted"] } },
+            {
+              sharedWith: { none: { userId: loggedInUserId } },
+            },
           ],
         },
         // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
         isDeletedOn: null,
-        OR: [
-          { isPublic: true },
-          { sharedWith: { some: { userId: loggedInUserId } } },
-        ],
+        ...isDiscoverableSharedContent(loggedInUserId),
       },
       select: returnContentSelect({ includeOwnerDetails: true }),
       orderBy: { sortIndex: "asc" },

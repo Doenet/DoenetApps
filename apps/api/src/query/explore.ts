@@ -12,8 +12,25 @@ import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { fromUUID } from "../utils/uuid";
 import { getLibraryAccountId, maskLibraryUserInfo } from "./curate";
 import { PartialContentClassification, UserInfo } from "../types";
-import { getAllCategories, getClassificationInfo } from "./classification";
+import { getClassificationInfo } from "./classification";
+import { getAllCategories } from "../categories";
 import { getAuthorInfo } from "./user";
+
+function returnExploreVisibilityWhere(loggedInUserId: Uint8Array) {
+  return {
+    OR: [
+      { visibility: "public" as const },
+      { sharedWith: { some: { userId: loggedInUserId } } },
+    ],
+  };
+}
+
+function returnExploreVisibilityWhereClause(loggedInUserId: Uint8Array) {
+  return Prisma.sql`
+    content.visibility = 'public'
+    OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+  `;
+}
 
 export async function searchSharedContent({
   query,
@@ -75,8 +92,7 @@ export async function searchSharedContent({
     content.isDeletedOn IS NULL
     AND users.isLibrary = ${isCurated ? Prisma.sql`TRUE` : Prisma.sql`FALSE`}
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND
     (
@@ -180,10 +196,7 @@ export async function browseSharedContent({
     where: {
       isDeletedOn: null,
       owner: { isLibrary: isCurated },
-      OR: [
-        { isPublic: true },
-        { sharedWith: { some: { userId: loggedInUserId } } },
-      ],
+      OR: [...returnExploreVisibilityWhere(loggedInUserId).OR],
       AND: categoriesToRequire.map((category) => ({
         categories: { some: { code: category } },
       })),
@@ -263,8 +276,7 @@ export async function browseTrendingContent({
     content.isDeletedOn IS NULL
     AND content.ownerId <> ${libraryId}
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     ${returnClassificationFilterWhereClauses({ systemId, categoryId, subCategoryId, classificationId, isUnclassified })}
     ${returnCategoryWhereClauses(categories)}
@@ -359,8 +371,7 @@ export async function searchUsersWithSharedContent({
         ${returnCategoryJoins(categories)}
         WHERE
           isDeletedOn IS NULL AND (
-            isPublic = TRUE
-            OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+            ${returnExploreVisibilityWhereClause(loggedInUserId)}
           )
           ${returnClassificationFilterWhereClauses({ systemId, categoryId, subCategoryId, classificationId, isUnclassified })}
           ${returnCategoryWhereClauses(categories)}
@@ -444,8 +455,7 @@ export async function browseUsersWithSharedContent({
           WHERE
             content.isDeletedOn IS NULL
             AND (
-              content.isPublic = TRUE
-              OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+              ${returnExploreVisibilityWhereClause(loggedInUserId)}
             )
             AND (
               MATCH(content.name) AGAINST(${query_as_prefixes} IN BOOLEAN MODE)
@@ -496,8 +506,7 @@ export async function browseUsersWithSharedContent({
           WHERE
             content.isDeletedOn IS NULL
             AND (
-              content.isPublic = TRUE
-              OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+              ${returnExploreVisibilityWhereClause(loggedInUserId)}
             )
             ${returnClassificationFilterWhereClauses({ systemId, categoryId, subCategoryId, classificationId, isUnclassified })}
             ${returnCategoryWhereClauses(categories)}
@@ -591,8 +600,7 @@ export async function searchClassificationsWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND
     (
@@ -689,8 +697,7 @@ export async function searchClassificationSubCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND
     ${returnClassificationMatchClauses({ query_as_prefixes, matchSubCategory: true })}
@@ -774,8 +781,7 @@ export async function searchClassificationCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND
     ${returnClassificationMatchClauses({ query_as_prefixes, matchCategory: true })}
@@ -829,10 +835,7 @@ export async function browseClassificationSharedContent({
   const results = await prisma.content.findMany({
     where: {
       isDeletedOn: null,
-      OR: [
-        { isPublic: true },
-        { sharedWith: { some: { userId: loggedInUserId } } },
-      ],
+      OR: [...returnExploreVisibilityWhere(loggedInUserId).OR],
       AND: categoriesToRequire.map((category) => ({
         categories: { some: { code: category } },
       })),
@@ -893,10 +896,7 @@ export async function browseClassificationSubCategorySharedContent({
                 some: {
                   content: {
                     isDeletedOn: null,
-                    OR: [
-                      { isPublic: true },
-                      { sharedWith: { some: { userId: loggedInUserId } } },
-                    ],
+                    OR: [...returnExploreVisibilityWhere(loggedInUserId).OR],
                     AND: categoriesToRequire.map((category) => ({
                       categories: { some: { code: category } },
                     })),
@@ -918,10 +918,7 @@ export async function browseClassificationSubCategorySharedContent({
                   where: {
                     content: {
                       isDeletedOn: null,
-                      OR: [
-                        { isPublic: true },
-                        { sharedWith: { some: { userId: loggedInUserId } } },
-                      ],
+                      OR: [...returnExploreVisibilityWhere(loggedInUserId).OR],
                       AND: categoriesToRequire.map((category) => ({
                         categories: { some: { code: category } },
                       })),
@@ -993,8 +990,7 @@ export async function browseClassificationCategorySharedContent({
                       content: {
                         isDeletedOn: null,
                         OR: [
-                          { isPublic: true },
-                          { sharedWith: { some: { userId: loggedInUserId } } },
+                          ...returnExploreVisibilityWhere(loggedInUserId).OR,
                         ],
                         AND: categoriesToRequire.map((category) => ({
                           categories: { some: { code: category } },
@@ -1034,8 +1030,7 @@ export async function browseClassificationCategorySharedContent({
                       content: {
                         isDeletedOn: null,
                         OR: [
-                          { isPublic: true },
-                          { sharedWith: { some: { userId: loggedInUserId } } },
+                          ...returnExploreVisibilityWhere(loggedInUserId).OR,
                         ],
                         AND: categoriesToRequire.map((category) => ({
                           categories: { some: { code: category } },
@@ -1058,12 +1053,7 @@ export async function browseClassificationCategorySharedContent({
                       where: {
                         content: {
                           isDeletedOn: null,
-                          OR: [
-                            { isPublic: true },
-                            {
-                              sharedWith: { some: { userId: loggedInUserId } },
-                            },
-                          ],
+                          ...returnExploreVisibilityWhere(loggedInUserId),
                           AND: categoriesToRequire.map((category) => ({
                             categories: { some: { code: category } },
                           })),
@@ -1176,8 +1166,7 @@ export async function browseClassificationsWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND (
       MATCH(content.name) AGAINST(${query_as_prefixes} IN BOOLEAN MODE)
@@ -1241,8 +1230,7 @@ export async function browseClassificationsWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     ${returnClassificationFilterWhereClauses({ subCategoryId })}
     ${returnCategoryWhereClauses(categories)}
@@ -1342,8 +1330,7 @@ export async function browseClassificationSubCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND (
       MATCH(content.name) AGAINST(${query_as_prefixes} IN BOOLEAN MODE)
@@ -1401,8 +1388,7 @@ export async function browseClassificationSubCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     ${returnClassificationFilterWhereClauses({ categoryId })}
     ${returnCategoryWhereClauses(categories)}
@@ -1492,8 +1478,7 @@ export async function browseClassificationCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND (
       MATCH(content.name) AGAINST(${query_as_prefixes} IN BOOLEAN MODE)
@@ -1546,8 +1531,7 @@ export async function browseClassificationCategoriesWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     ${returnClassificationFilterWhereClauses({ systemId })}
     ${returnCategoryWhereClauses(categories)}
@@ -1629,8 +1613,7 @@ export async function browseClassificationSystemsWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     AND (
       MATCH(content.name) AGAINST(${query_as_prefixes} IN BOOLEAN MODE)
@@ -1680,8 +1663,7 @@ export async function browseClassificationSystemsWithSharedContent({
   WHERE
     content.isDeletedOn IS NULL
     AND (
-       content.isPublic = TRUE
-       OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+       ${returnExploreVisibilityWhereClause(loggedInUserId)}
     )
     ${returnCategoryWhereClauses(categories)}
     ${ownerId === undefined ? Prisma.empty : Prisma.sql`AND content.ownerId=${ownerId}`}
@@ -1773,8 +1755,7 @@ export async function getSharedContentMatchCount({
       WHERE
         content.isDeletedOn IS NULL
         AND (
-           content.isPublic = TRUE
-           OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+           ${returnExploreVisibilityWhereClause(loggedInUserId)}
         )
         AND
         (
@@ -1816,8 +1797,7 @@ export async function getSharedContentMatchCount({
       WHERE
         content.isDeletedOn IS NULL
         AND (
-           content.isPublic = TRUE
-           OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+           ${returnExploreVisibilityWhereClause(loggedInUserId)}
         )
         ${returnClassificationFilterWhereClauses({ systemId, categoryId, subCategoryId, classificationId, isUnclassified })}
         ${returnCategoryWhereClauses(categories)}
@@ -1933,8 +1913,7 @@ export async function countMatchingContentByCategory({
       WHERE
         content.isDeletedOn IS NULL
         AND (
-           content.isPublic = TRUE
-           OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+           ${returnExploreVisibilityWhereClause(loggedInUserId)}
         )
         AND
         (
@@ -1992,8 +1971,7 @@ export async function countMatchingContentByCategory({
       WHERE
         content.isDeletedOn IS NULL
         AND (
-           content.isPublic = TRUE
-           OR content.id IN (SELECT contentId FROM contentShares WHERE userId = ${loggedInUserId})
+           ${returnExploreVisibilityWhereClause(loggedInUserId)}
         )
         ${returnClassificationFilterWhereClauses({ systemId, categoryId, subCategoryId, classificationId, isUnclassified })}
         ${returnCategoryWhereClauses(newCategories)}

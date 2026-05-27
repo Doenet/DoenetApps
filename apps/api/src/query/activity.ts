@@ -1,4 +1,4 @@
-import { ContentType, Prisma } from "@prisma/client";
+import { ContentType, Prisma, Visibility } from "@prisma/client";
 import { prisma } from "../model";
 import { getLibraryAccountId } from "./curate";
 import {
@@ -18,6 +18,10 @@ import { compileActivityFromContent } from "../utils/contentStructure";
 import { InvalidRequestError } from "../utils/error";
 import { ContentDescription } from "../types";
 import { isEqualUUID } from "../utils/uuid";
+import {
+  maintainContentAuditFields,
+  resetContentAuditFields,
+} from "../content-audit";
 
 /**
  * Creates a new content of type `contentType` in `parentId` of `ownerId`,
@@ -60,6 +64,7 @@ export async function createContent({
   const { defaultDoenetmlVersion } = await getDefaultDoenetmlVersion();
 
   let isPublic = false;
+  let visibility: Visibility = "private";
   let licenseCode = undefined;
   let sharedWith: Uint8Array[] = [];
   let courseRootId: Uint8Array | null = null;
@@ -76,6 +81,7 @@ export async function createContent({
       },
       select: {
         isPublic: true,
+        visibility: true,
         licenseCode: true,
         sharedWith: { select: { userId: true } },
         isAssignmentRoot: true,
@@ -92,8 +98,9 @@ export async function createContent({
 
     courseRootId = parent.courseRootId;
 
-    if (parent.isPublic) {
-      isPublic = true;
+    if (parent.visibility !== "private") {
+      visibility = parent.visibility;
+      isPublic = parent.visibility === "public";
       if (parent.licenseCode) {
         licenseCode = parent.licenseCode;
       }
@@ -135,7 +142,7 @@ export async function createContent({
       parentId,
       name,
       isPublic,
-      visibility: isPublic ? "public" : "private",
+      visibility,
       licenseCode,
       sortIndex,
       courseRootId,
@@ -534,6 +541,7 @@ export async function updateContent({
       source,
       doenetmlVersionId,
       numVariants,
+      ...maintainContentAuditFields({ source, doenetmlVersionId }),
       shuffle,
       numToSelect,
       selectByVariant,
@@ -1080,6 +1088,7 @@ export async function revertToRevision({
       source: revision.source,
       doenetmlVersionId: revision.doenetmlVersionId,
       numVariants: revision.numVariants,
+      ...resetContentAuditFields,
     },
   });
 

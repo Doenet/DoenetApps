@@ -46,6 +46,12 @@ jobs:
         run: npm run build
 
       # -----------------------------
+      # Shared package tests
+      # -----------------------------
+      - name: Test shared package
+        run: npm test --workspace @doenet-tools/shared
+
+      # -----------------------------
       # Start MySQL + Test server
       # -----------------------------
       - name: Start MySQL

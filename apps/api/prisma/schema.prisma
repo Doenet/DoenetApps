@@ -46,6 +46,8 @@ model content {
   doenetmlVersionId      Int?
   doenetmlVersion        doenetmlVersions?        @relation(fields: [doenetmlVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   numVariants            Int                      @default(1)
+  errorsCheck            AuditState               @default(unchecked)
+  accessibilityCheck     AuditState               @default(unchecked)
   // Specific to documents inside problem sets
   repeatInProblemSet     Int                      @default(1)
   // 
@@ -142,6 +144,12 @@ model recentContent {
 enum RecentMode {
   edit
   view
+}
+
+enum AuditState {
+  unchecked
+  pass
+  fail
 }
 
 model contentRevisions {

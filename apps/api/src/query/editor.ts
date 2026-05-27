@@ -18,12 +18,34 @@ import {
 import { ActivitySource } from "@doenet-tools/shared";
 import { getContent } from "./activity_edit_view";
 import { recordRecentContent } from "./recent";
-import { getAllDoenetmlVersions, getContentSource } from "./activity";
+import {
+  getAllDoenetmlVersions,
+  getContentSource,
+  getDescendantIds,
+} from "./activity";
 import {
   InvalidRequestError,
   PermissionDeniedRedirectError,
 } from "../utils/error";
 import { StatusCodes } from "http-status-codes";
+import { getPublicShareViolations, type PublicShareIssue } from "../access";
+
+// Fixed display priority so `publicShareIssues` ordering is stable regardless
+// of the (unordered) row order returned by the descendant audit query.
+const publicShareIssueOrder: PublicShareIssue[] = [
+  "errorsCheck",
+  "errorsCheckPending",
+  "accessibilityCheck",
+  "accessibilityCheckPending",
+  "missingRequiredCategories",
+];
+
+function sortPublicShareIssues(issues: PublicShareIssue[]): PublicShareIssue[] {
+  return [...issues].sort(
+    (a, b) =>
+      publicShareIssueOrder.indexOf(a) - publicShareIssueOrder.indexOf(b),
+  );
+}
 
 /**
  * Gets the general metadata relevant to editing for an activity.
@@ -353,6 +375,7 @@ export async function getEditorShareStatus({
       ...filterEditableContent(loggedInUserId, false),
     },
     select: {
+      type: true,
       isPublic: true,
       visibility: true,
       sharedWith: {
@@ -394,11 +417,23 @@ export async function getEditorShareStatus({
     parentSharedWith = processSharedWith(results.parent.sharedWith).sharedWith;
   }
 
+  const descendantIds = await getDescendantIds(contentId, {
+    excludeAssignments: true,
+  });
+  const contentIds = [contentId, ...descendantIds];
+  const publicShareViolations = await getPublicShareViolations({ contentIds });
+  const publicShareIssues = sortPublicShareIssues([
+    ...new Set(publicShareViolations.flatMap((violation) => violation.issues)),
+  ]);
+
   return {
     isPublic: results.isPublic,
     visibility: results.visibility,
     parentIsPublic: results.parent?.isPublic ?? false,
     parentVisibility: results.parent?.visibility ?? "private",
+    canSharePublicly:
+      results.type !== "folder" && publicShareViolations.length === 0,
+    publicShareIssues,
     sharedWith,
     parentSharedWith,
   };

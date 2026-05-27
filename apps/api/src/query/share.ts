@@ -1,20 +1,21 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type Visibility } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import { prisma } from "../model";
-import {
-  filterEditableContent,
-  filterExcludeAssignments,
-} from "../utils/permissions";
+import { filterEditableContent } from "../utils/permissions";
 import { isEqualUUID } from "../utils/uuid";
 import { InvalidRequestError } from "../utils/error";
-import { getDescendantIds } from "./activity";
 import { UserInfoWithEmail } from "../types";
+import { getDescendantIds } from "./activity";
+import { isAssignment } from "../assignments";
 
 /**
+ * @deprecated Superseded by {@link updateVisibility}
+ *
  * Set the `isPublic` flag on a content `id` along with all of its children.
  * Recurses to grandchildren/subfolders.
  * Skips assignments since they cannot be made public.
  *
- * If parent is public, however, it does not allow the content to be set to private.
+ * If parent is not private, however, it does not allow the content to be set to private.
  */
 export async function setContentIsPublic({
   contentId,
@@ -25,47 +26,66 @@ export async function setContentIsPublic({
   loggedInUserId: Uint8Array;
   isPublic: boolean;
 }) {
-  const visibility = isPublic ? "public" : "private";
+  const visibility: Visibility = isPublic ? "public" : "private";
 
-  // select content to make sure it is exists and is editable by loggedInUserId
-  const content = await prisma.content.findUniqueOrThrow({
-    where: { id: contentId, ...filterEditableContent(loggedInUserId) },
-    select: { parent: { select: { isPublic: true } } },
+  const content = await prisma.content.findFirst({
+    where: { id: contentId, isDeletedOn: null },
+    select: {
+      ownerId: true,
+      isAssignmentRoot: true,
+      parent: {
+        select: {
+          isAssignmentRoot: true,
+          visibility: true,
+        },
+      },
+    },
   });
 
-  if (!isPublic) {
-    if (content.parent !== null && content.parent.isPublic) {
-      throw new InvalidRequestError(
-        "Content has a public parent -- cannot make it private.",
-      );
-    }
+  if (!content || !isEqualUUID(content.ownerId, loggedInUserId)) {
+    throw new InvalidRequestError("Content not found", StatusCodes.NOT_FOUND);
   }
 
-  const descendantIds = await getDescendantIds(contentId);
+  if (isAssignment(content)) {
+    throw new InvalidRequestError("Assignment visibility cannot be changed");
+  }
 
-  // Update share timestamp for those whose share status is changing
+  if (!isPublic && content.parent && content.parent.visibility !== "private") {
+    throw new InvalidRequestError(
+      "If content has a non-private parent, cannot make it private",
+    );
+  }
+
+  const descendantIds = await getDescendantIds(contentId, {
+    excludeAssignments: true,
+  });
+  const contentIds = [contentId, ...descendantIds];
+  const publiclySharedAt = isPublic ? new Date() : null;
+
   const updateTimestamp = prisma.content.updateMany({
     where: {
-      id: { in: [contentId, ...descendantIds] },
-      isPublic: !isPublic,
-      ...filterExcludeAssignments,
+      id: { in: contentIds },
+      NOT: { visibility },
     },
-    data: { publiclySharedAt: isPublic ? new Date() : null },
+    data: { publiclySharedAt },
   });
 
-  // Make public/private
   const updateContent = prisma.content.updateMany({
     where: {
-      id: { in: [contentId, ...descendantIds] },
-      ...filterExcludeAssignments,
+      id: { in: contentIds },
     },
-    data: { isPublic, visibility },
+    data: {
+      visibility,
+      isPublic,
+    },
   });
 
-  // Note: updateTimestamp first because it checks `isPublic` status
   await prisma.$transaction([updateTimestamp, updateContent]);
 
-  return { isPublic, visibility };
+  return {
+    isPublic,
+    visibility,
+  };
 }
 
 export async function unshareContent({

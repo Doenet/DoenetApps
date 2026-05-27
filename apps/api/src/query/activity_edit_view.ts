@@ -207,6 +207,15 @@ export async function getPublicContent({
 }: {
   contentId: Uint8Array;
 }) {
+  await prisma.content.findUniqueOrThrow({
+    where: {
+      id: contentId,
+      isDeletedOn: null,
+      visibility: "public",
+    },
+    select: { id: true },
+  });
+
   const activity = await getContent({
     contentId,
     loggedInUserId: new Uint8Array(16),
@@ -222,7 +231,11 @@ export async function getPublicContentByCid({ cid }: { cid: string }) {
   const content = await prisma.contentRevisions.findFirstOrThrow({
     where: {
       cid,
-      content: { isDeletedOn: null, isPublic: true, type: { not: "folder" } },
+      content: {
+        isDeletedOn: null,
+        visibility: "public",
+        type: { not: "folder" },
+      },
     },
     select: {
       contentId: true,
