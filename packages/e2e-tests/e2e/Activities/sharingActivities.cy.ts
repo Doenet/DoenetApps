@@ -45,7 +45,10 @@ describe("Share Activities Tests", function () {
     cy.get('[data-test="Share Button"]').click();
     cy.contains("Current access: Private.").should("be.visible");
     cy.get('[data-test="Share Publicly Button"]').click();
-    cy.get('[data-test="Share Submit Button"]').should("contain.text", "Save access");
+    cy.get('[data-test="Share Submit Button"]').should(
+      "contain.text",
+      "Save access",
+    );
     cy.get('[data-test="Share Submit Button"]').click();
     cy.contains("Current access: Public.").should("be.visible");
 

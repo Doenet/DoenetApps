@@ -70,8 +70,11 @@ export function createBaseConfig(dirname) {
             packageDir: [dirname],
             devDependencies: [
               "**/*.test.ts",
+              "**/*.test.tsx",
               "**/*.spec.ts",
+              "**/*.spec.tsx",
               "**/*.cy.ts",
+              "**/*.cy.tsx",
               "**/test/**",
               "**/__tests__/**",
               "**/cypress/**",
