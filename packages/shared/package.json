@@ -19,12 +19,14 @@
     "dev": "tsc --build --watch --preserveWatchOutput --force",
     "lint": "eslint --fix",
     "lint:check": "eslint",
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "test": "vitest run"
   },
   "dependencies": {
     "ipfs-only-hash": "^4.0.0"
   },
   "devDependencies": {
-    "@doenet-tools/eslint-config": "*"
+    "@doenet-tools/eslint-config": "*",
+    "vitest": "^3.2.4"
   }
 }

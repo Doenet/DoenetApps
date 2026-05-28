@@ -7,6 +7,8 @@ import { defineConfig } from "vite";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
+import { apiPort, appPort } from "../../scripts/worktree-env.js";
+
 export default defineConfig({
   // Node.js global to browser globalThis
   define: {
@@ -34,12 +36,12 @@ export default defineConfig({
     NodeModulesPolyfillPlugin(),
   ],
   server: {
-    port: 8000,
+    port: appPort,
     proxy: {
       "/cyapi": "http://apache",
       //"/media": "http://apache",
-      "/api": "http://localhost:3000",
-      "/media": "http://localhost:3000",
+      "/api": `http://localhost:${apiPort}`,
+      "/media": `http://localhost:${apiPort}`,
       //"/api": "http://apache",
     },
   },

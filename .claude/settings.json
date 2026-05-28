@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [ -n \"$f\" ] && npx prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm ci)",
+      "Bash(npm run *)",
+      "Bash(npm test:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git push origin *)",
+      "Bash(gh pr *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin --force*)",
+      "Bash(git push origin -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D *)",
+      "Bash(git checkout -- *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh api:*)",
+      "Bash(npm install -g:*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "mode": "auto-allow",
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": ["docker"],
+    "allowedDomains": [
+      "registry.npmjs.org",
+      "cdn.jsdelivr.net",
+      "api.github.com",
+      "github.com",
+      "api.cypress.io",
+      "localhost"
+    ],
+    "filesystem": {
+      "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
+    }
+  }
+}

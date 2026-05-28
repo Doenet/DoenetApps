@@ -19,7 +19,6 @@ import {
   getIsEditor,
 } from "../utils/permissions";
 import { InvalidRequestError } from "../utils/error";
-import { CategoryGroup } from "@doenet-tools/shared";
 
 export async function getClassificationCategories() {
   const results = await prisma.classificationSystems.findMany({
@@ -428,26 +427,4 @@ export async function getClassificationInfo({
   } else {
     return null;
   }
-}
-
-export async function getAllCategories(): Promise<{
-  allCategories: CategoryGroup[];
-}> {
-  const allCategories: CategoryGroup[] = await prisma.categoryGroups.findMany({
-    select: {
-      name: true,
-      isRequired: true,
-      isExclusive: true,
-      categories: {
-        select: {
-          code: true,
-          term: true,
-          description: true,
-        },
-        orderBy: { sortIndex: "asc" },
-      },
-    },
-    orderBy: { id: "asc" },
-  });
-  return { allCategories };
 }

@@ -18,7 +18,6 @@ import {
 import { DoenetmlVersion } from "../../types";
 import axios from "axios";
 import { optimistic } from "../../utils/optimistic_ui";
-import { updateSyntaxFromV06toV07 } from "@doenet/v06-to-v07";
 
 /**
  * Renders a DoenetML version selector.
@@ -153,6 +152,8 @@ async function performSyntaxUpgrade(
   fetcher: FetcherWithComponents<any>,
   newVersionId: number,
 ) {
+  const { updateSyntaxFromV06toV07 } = await import("@doenet/v06-to-v07");
+
   const { data } = await axios.get(
     `/api/activityEditView/getContentSource/${contentId}`,
   );

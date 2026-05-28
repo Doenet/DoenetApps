@@ -12,6 +12,7 @@ import {
 import { createContentRevision } from "./activity";
 import { getContent } from "./activity_edit_view";
 import { maskLibraryUserInfo } from "./curate";
+import { resetContentAuditFields } from "../content-audit";
 
 /**
  * Get the `source` and, if a Doc, `doenetMLVersion`, from the content with `contentId` viewable by `loggedInUserId`.
@@ -584,7 +585,11 @@ export async function updateRemixedContentToOrigin({
     // update remixed content (already checked permissions)
     await prisma.content.update({
       where: { id: remixContentId },
-      data: { source: newSource, doenetmlVersionId: newDoenetmlVersionId },
+      data: {
+        source: newSource,
+        doenetmlVersionId: newDoenetmlVersionId,
+        ...resetContentAuditFields,
+      },
     });
 
     // The second revision is also manual, as it would be expected in revision list.
@@ -735,7 +740,11 @@ export async function updateOriginContentToRemix({
     // update origin content (already checked permissions)
     await prisma.content.update({
       where: { id: originContentId },
-      data: { source: newSource, doenetmlVersionId: newDoenetmlVersionId },
+      data: {
+        source: newSource,
+        doenetmlVersionId: newDoenetmlVersionId,
+        ...resetContentAuditFields,
+      },
     });
 
     // The second revision is also manual, as it would be expected in revision list.
