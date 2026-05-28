@@ -117,6 +117,40 @@ Resources:
             return request;
         }
 
+  # Temporary SPA fallback for the app distribution while API traffic still shares
+  # this CloudFront distribution. Long term, split frontend and API onto separate
+  # domains/distributions so API status codes cannot be rewritten here:
+  # https://github.com/Doenet/DoenetTools/issues/2894
+  AppSpaRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${EnvironmentName}-app-spa-rewrite"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Rewrite SPA routes to index.html while preserving API and asset paths
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+            var request = event.request;
+            var uri = request.uri;
+
+            if (uri.startsWith('/api/')) {
+                return request;
+            }
+
+            if (uri === '/blog' || uri.startsWith('/blog/')) {
+                return request;
+            }
+
+            var lastSegment = uri.split('/').pop();
+            if (lastSegment && lastSegment.includes('.')) {
+                return request;
+            }
+
+            request.uri = '/index.html';
+            return request;
+        }
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -217,15 +251,11 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt AppSpaRewriteFunction.FunctionARN
         Enabled: true
         DefaultRootObject: index.html
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ResponseCode: 200
-            ResponsePagePath: /index.html
-          - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
         Aliases:
           - !Ref PublicHostedZoneName
         ViewerCertificate:

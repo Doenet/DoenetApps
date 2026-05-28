@@ -134,7 +134,7 @@ const filterActivity = {
  *
  * For content to be viewable, one of these conditions must be true:
  * 1. `loggedInUserId` is the owner
- * 2. The content is public
+ * 2. The content is public or unlisted (link-visible)
  * 3. The content is shared with `loggedInUserId`
  * 4. `loggedInUserId` is an editor and the content is in the library.
  *
@@ -234,7 +234,7 @@ export function filterViewableRootAssignment({
  *
  * For content to be viewable, one of these conditions must be true:
  * 1. `loggedInUserId` is the owner
- * 2. The content is public
+ * 2. The content is public or unlisted (link-visible)
  * 3. The content is shared with `loggedInUserId`
  * 4. `loggedInUserId` is an editor and the content is in the library.
  *
@@ -272,7 +272,7 @@ export function filterViewableContent(
  *
  * For content to be viewable, one of these conditions must be true:
  * 1. `loggedInUserId` is the owner
- * 2. The content is public
+ * 2. The content is public or unlisted (link-visible)
  * 3. The content is shared with `loggedInUserId`
  * 4. `loggedInUserId` is an editor and the content is in the library.
  *

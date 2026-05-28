@@ -418,6 +418,10 @@ function DocumentEditor({
   doenetmlVersion,
   sourceChangedCallback,
 }: DocumentEditorProps) {
+  // See DocEditorEditMode.tsx for why we capture the initial source separately
+  // from the live ref used for saves. Remove once @doenet/doenetml-iframe ships
+  // its srcDoc-stability fix in a release.
+  const initialDoenetMLRef = useRef(source);
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
 
@@ -452,7 +456,7 @@ function DocumentEditor({
     <DoenetEditor
       height="100%"
       width="100%"
-      doenetML={textEditorDoenetML.current}
+      doenetML={initialDoenetMLRef.current}
       doenetmlChangeCallback={() => {
         handleSaveDoc();
       }}

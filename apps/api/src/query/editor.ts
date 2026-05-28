@@ -28,7 +28,24 @@ import {
   PermissionDeniedRedirectError,
 } from "../utils/error";
 import { StatusCodes } from "http-status-codes";
-import { getPublicShareViolations } from "../access";
+import { getPublicShareViolations, type PublicShareIssue } from "../access";
+
+// Fixed display priority so `publicShareIssues` ordering is stable regardless
+// of the (unordered) row order returned by the descendant audit query.
+const publicShareIssueOrder: PublicShareIssue[] = [
+  "errorsCheck",
+  "errorsCheckPending",
+  "accessibilityCheck",
+  "accessibilityCheckPending",
+  "missingRequiredCategories",
+];
+
+function sortPublicShareIssues(issues: PublicShareIssue[]): PublicShareIssue[] {
+  return [...issues].sort(
+    (a, b) =>
+      publicShareIssueOrder.indexOf(a) - publicShareIssueOrder.indexOf(b),
+  );
+}
 
 /**
  * Gets the general metadata relevant to editing for an activity.
@@ -358,6 +375,7 @@ export async function getEditorShareStatus({
       ...filterEditableContent(loggedInUserId, false),
     },
     select: {
+      type: true,
       isPublic: true,
       visibility: true,
       sharedWith: {
@@ -404,16 +422,17 @@ export async function getEditorShareStatus({
   });
   const contentIds = [contentId, ...descendantIds];
   const publicShareViolations = await getPublicShareViolations({ contentIds });
-  const publicShareIssues = [
+  const publicShareIssues = sortPublicShareIssues([
     ...new Set(publicShareViolations.flatMap((violation) => violation.issues)),
-  ];
+  ]);
 
   return {
     isPublic: results.isPublic,
     visibility: results.visibility,
     parentIsPublic: results.parent?.isPublic ?? false,
     parentVisibility: results.parent?.visibility ?? "private",
-    canSharePublicly: publicShareViolations.length === 0,
+    canSharePublicly:
+      results.type !== "folder" && publicShareViolations.length === 0,
     publicShareIssues,
     sharedWith,
     parentSharedWith,

@@ -158,7 +158,13 @@ function DocumentEditor({
   registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
   refreshSharingState?: () => void;
 }) {
-  const initialDoenetML = useRef(source);
+  // Capture initial source for the DoenetEditor prop. In the released
+  // @doenet/doenetml-iframe (<= 0.7.17), changes to the `doenetML` prop change
+  // the iframe's srcDoc and re-mount the iframe, which detaches the editor
+  // document mid-typing and crashes Cypress's key event simulator. The dev
+  // build memoizes srcDoc against the initial doenetML; remove this stable
+  // ref once that fix lands in a release.
+  const initialDoenetMLRef = useRef(source);
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
   const editorRef = useRef<DoenetEditorHandle>(null);
@@ -284,7 +290,7 @@ function DocumentEditor({
       ref={editorRef}
       height="100%"
       width="100%"
-      doenetML={initialDoenetML.current}
+      doenetML={initialDoenetMLRef.current}
       doenetmlChangeCallback={() => {
         // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
         // when doenet ml first renders

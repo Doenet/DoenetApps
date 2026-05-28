@@ -13,6 +13,6 @@
   },
   {
     "ParameterKey": "GitHubRepos",
-    "ParameterValue": "repo:Doenet/DoenetTools:main,repo:cqnykamp/DoenetTools:*"
+    "ParameterValue": "repo:Doenet/DoenetApps:main"
   }
 ]

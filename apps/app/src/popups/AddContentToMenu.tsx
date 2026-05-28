@@ -193,18 +193,17 @@ export function AddContentToMenu({
       setRecentContent(rc);
     }
 
-    const foundTypes: ContentType[] = [];
-
-    for (const ct of ["folder", "sequence", "select"]) {
-      const { data: containsFolderData } = await axios.get(
-        `/api/copyMove/checkIfContentContains`,
-        { params: { contentType: ct } },
-      );
-
-      if (containsFolderData.containsType) {
-        foundTypes.push(ct as ContentType);
-      }
-    }
+    const contentTypes = ["folder", "sequence", "select"] as ContentType[];
+    const results = await Promise.all(
+      contentTypes.map((ct) =>
+        axios.get(`/api/copyMove/checkIfContentContains`, {
+          params: { contentType: ct },
+        }),
+      ),
+    );
+    const foundTypes = contentTypes.filter(
+      (_, i) => results[i].data.containsType,
+    );
 
     setBaseContains(foundTypes);
   }

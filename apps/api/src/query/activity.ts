@@ -541,7 +541,7 @@ export async function updateContent({
       source,
       doenetmlVersionId,
       numVariants,
-      ...maintainContentAuditFields(source),
+      ...maintainContentAuditFields({ source, doenetmlVersionId }),
       shuffle,
       numToSelect,
       selectByVariant,

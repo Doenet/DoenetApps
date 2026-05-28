@@ -9,6 +9,6 @@
     "tsBuildInfoFile": "../../.tsbuildinfo/apps/web.tsbuildinfo",
     "types": ["vite/client"]
   },
-  "include": [".astro/types.d.ts", "**/*"],
+  "include": [".astro/types.d.ts", "**/*", "../../scripts/worktree-env.js"],
   "exclude": ["dist"]
 }
