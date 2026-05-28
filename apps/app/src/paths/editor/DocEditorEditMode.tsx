@@ -304,6 +304,7 @@ function DocumentEditor({
         handleDiagnosticsSummary(
           contentId,
           doenetML,
+          doenetmlVersion.id,
           diagnostics,
           refreshSharingState,
         );
@@ -350,12 +351,14 @@ type Diagnostics = {
 function handleDiagnosticsSummary(
   contentId: string,
   source: string,
+  doenetmlVersionId: number,
   diagnostics: Diagnostics,
   onRenderedContentChanged?: (() => void) | null,
 ) {
   axios
     .put(`/api/content/${contentId}/audit`, {
       source,
+      doenetmlVersionId,
       errorsCheckPasses: diagnostics.errorsCount === 0,
       accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
     })
