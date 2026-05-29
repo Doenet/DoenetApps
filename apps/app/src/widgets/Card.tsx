@@ -450,17 +450,36 @@ export default function Card({
         <Flex height={itemHeight} alignItems="center">
           {/* Left-aligned, not main link */}
           {selectCheckbox}
-          <ChakraLink
-            as={ReactRouterLink}
-            to={cardLink}
-            _hover={{ textDecoration: "none" }}
-            cursor={cardLink ? "pointer" : "default"}
-            flexGrow={1}
-          >
-            <Flex>
+          {cardLink ? (
+            <ChakraLink
+              as={ReactRouterLink}
+              to={cardLink}
+              _hover={{ textDecoration: "none" }}
+              cursor="pointer"
+              flexGrow={1}
+            >
+              <Flex>
+                {contentTypeIcon}
+                <Hide below="md">{categoryIcons}</Hide>
+                {sharedIcon}
+                {titleBox}
+                <Spacer />
+                {libraryEditorInfo}
+                <Spacer />
+                <Hide below="sm">{blurbDisplay}</Hide>
+                <Spacer />
+                {ownerInfo}
+                <Spacer />
+                <Show above="lg">{variantsDisplay}</Show>
+                {licenseBadges}
+                {showAddButton && <Spacer />}
+                {addMenu}
+              </Flex>
+            </ChakraLink>
+          ) : (
+            <Flex flexGrow={1} cursor="default">
               {contentTypeIcon}
               <Hide below="md">{categoryIcons}</Hide>
-              {/* <Hide below="lg">{categoryIcons}</Hide> */}
               {sharedIcon}
               {titleBox}
               <Spacer />
@@ -471,12 +490,11 @@ export default function Card({
               {ownerInfo}
               <Spacer />
               <Show above="lg">{variantsDisplay}</Show>
-              {/* <Hide below="xl">{licenseBadges}</Hide> */}
               {licenseBadges}
               {showAddButton && <Spacer />}
               {addMenu}
             </Flex>
-          </ChakraLink>
+          )}
           {/* Right-aligned, not main link */}
           {repeatInProblemSet}
           {menuDisplay}
