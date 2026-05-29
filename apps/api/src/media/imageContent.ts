@@ -41,8 +41,14 @@ export async function createImageContent({
   imageHeight: number;
 }) {
   const ownerId = loggedInUserId;
-  const { sortIndex, isPublic, licenseCode, sharedWith, courseRootId } =
-    await prepareNewChild({ ownerId, parentId });
+  const {
+    sortIndex,
+    isPublic,
+    visibility,
+    licenseCode,
+    sharedWith,
+    courseRootId,
+  } = await prepareNewChild({ ownerId, parentId });
 
   const content = await prisma.content.create({
     data: {
@@ -51,7 +57,7 @@ export async function createImageContent({
       parentId,
       name,
       isPublic,
-      visibility: isPublic ? "public" : "private",
+      visibility,
       licenseCode,
       sortIndex,
       courseRootId,

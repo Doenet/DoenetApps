@@ -60,8 +60,14 @@ export async function createContent({
     ownerId = await getLibraryAccountId();
   }
 
-  const { sortIndex, isPublic, licenseCode, sharedWith, courseRootId } =
-    await prepareNewChild({ ownerId, parentId });
+  const {
+    sortIndex,
+    isPublic,
+    visibility,
+    licenseCode,
+    sharedWith,
+    courseRootId,
+  } = await prepareNewChild({ ownerId, parentId });
 
   const { defaultDoenetmlVersion } = await getDefaultDoenetmlVersion();
 
@@ -100,6 +106,7 @@ export async function createContent({
       parentId,
       name,
       isPublic,
+      visibility,
       licenseCode,
       sortIndex,
       courseRootId,

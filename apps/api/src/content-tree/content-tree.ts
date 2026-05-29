@@ -1,3 +1,4 @@
+import { Visibility } from "@prisma/client";
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
 import { getNextSortIndexForParent } from "../utils/sort";
@@ -14,8 +15,9 @@ import { getNextSortIndexForParent } from "../utils/sort";
  *
  * Returns:
  *   - `sortIndex`     — next position at the end of the parent's children
- *   - `isPublic`      — inherited from the parent (false at root)
- *   - `licenseCode`   — inherited when the parent is public or shared
+ *   - `visibility`    — inherited from the parent ("private" at root)
+ *   - `isPublic`      — true when inherited visibility is "public"
+ *   - `licenseCode`   — inherited when the parent is non-private or shared
  *   - `sharedWith`    — userIds the parent is shared with
  *   - `courseRootId`  — inherited from the parent
  *
@@ -31,6 +33,7 @@ export async function prepareNewChild({
 }): Promise<{
   sortIndex: Awaited<ReturnType<typeof getNextSortIndexForParent>>;
   isPublic: boolean;
+  visibility: Visibility;
   licenseCode: string | null | undefined;
   sharedWith: Uint8Array[];
   courseRootId: Uint8Array | null;
@@ -38,6 +41,7 @@ export async function prepareNewChild({
   const sortIndex = await getNextSortIndexForParent(ownerId, parentId);
 
   let isPublic = false;
+  let visibility: Visibility = "private";
   let licenseCode: string | null | undefined = undefined;
   let sharedWith: Uint8Array[] = [];
   let courseRootId: Uint8Array | null = null;
@@ -52,6 +56,7 @@ export async function prepareNewChild({
       },
       select: {
         isPublic: true,
+        visibility: true,
         licenseCode: true,
         sharedWith: { select: { userId: true } },
         isAssignmentRoot: true,
@@ -68,8 +73,9 @@ export async function prepareNewChild({
 
     courseRootId = parent.courseRootId;
 
-    if (parent.isPublic) {
-      isPublic = true;
+    if (parent.visibility !== "private") {
+      visibility = parent.visibility;
+      isPublic = parent.visibility === "public";
       if (parent.licenseCode) {
         licenseCode = parent.licenseCode;
       }
@@ -83,5 +89,12 @@ export async function prepareNewChild({
     }
   }
 
-  return { sortIndex, isPublic, licenseCode, sharedWith, courseRootId };
+  return {
+    sortIndex,
+    isPublic,
+    visibility,
+    licenseCode,
+    sharedWith,
+    courseRootId,
+  };
 }
