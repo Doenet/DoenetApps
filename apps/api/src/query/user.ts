@@ -63,7 +63,6 @@ export async function findOrCreateUser({
     isAnonymous: user.isAnonymous,
     isAuthor: user.isAuthor,
     isEditor: user.isEditor,
-    canUploadImages: user.canUploadImages,
   };
 }
 
@@ -175,7 +174,6 @@ export async function updateUser({
     isAnonymous: user.isAnonymous,
     isAuthor: user.isAuthor,
     isEditor: user.isEditor,
-    canUploadImages: user.canUploadImages,
   };
 }
 
