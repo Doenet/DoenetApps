@@ -795,7 +795,7 @@ Resources:
       Conditions:
         - Field: path-pattern
           Values:
-            - "api/health"
+            - !Ref HealthCheckUri
       ListenerArn: !Ref LoadBalancerHttpListener
       Priority: !Ref Priority
 
@@ -1287,6 +1287,7 @@ Resources:
 
   NagEventBridgeStackSet:
     Type: AWS::CloudFormation::StackSet
+    Condition: UseLbForService
     Properties:
       StackSetName: !Sub "${EnvironmentName}-${ServiceName}-nag-eventbridge-us-east-1"
       Description: Forwards nag alarm events from us-east-1 to the us-east-2 default event bus
@@ -1304,10 +1305,15 @@ Resources:
       Parameters:
         - ParameterKey: EnvironmentName
           ParameterValue: !Ref EnvironmentName
+        - ParameterKey: ServiceName
+          ParameterValue: !Ref ServiceName
         - ParameterKey: TargetAccountId
           ParameterValue: !Ref AWS::AccountId
         - ParameterKey: HealthCheckDomain
-          ParameterValue: !Sub "${ServiceName}.${PublicHostedZoneName}"
+          ParameterValue: !If
+            - UseDomainNames
+            - !Select [0, !Ref DomainNames]
+            - !Sub "${ServiceName}.${PublicHostedZoneName}"
         - ParameterKey: HealthCheckUri
           ParameterValue: !Sub "${HealthCheckUri}"
       TemplateURL: !Sub "https://${TemplateS3Bucket}.s3.amazonaws.com/${HealthCheckTemplateS3Key}"

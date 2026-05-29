@@ -5,6 +5,9 @@ Parameters:
   EnvironmentName:
     Type: String
 
+  ServiceName:
+    Type: String
+
   TargetAccountId:
     Type: String
     Description: AWS account ID owning the us-east-2 default event bus
@@ -53,12 +56,12 @@ Resources:
           - us-west-2
       HealthCheckTags:
         - Key: Name
-          Value: !Sub "${EnvironmentName}-health-check"
+          Value: !Sub "${EnvironmentName}-${ServiceName}-health-check"
 
   HealthCheckAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub "${EnvironmentName}-HealthCheck-Extended-Alarm"
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-HealthCheck-Extended-Alarm"
       AlarmDescription: !Sub "Route53 health check failure for ${HealthCheckUri}"
       Namespace: AWS/Route53
       MetricName: HealthCheckStatus
@@ -75,7 +78,7 @@ Resources:
   NagEventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub "${EnvironmentName}-nag-extended-alarms"
+      Name: !Sub "${EnvironmentName}-${ServiceName}-nag-extended-alarms"
       EventPattern:
         source:
           - aws.cloudwatch
@@ -83,7 +86,7 @@ Resources:
           - CloudWatch Alarm State Change
         detail:
           alarmName:
-            - wildcard: !Sub "${EnvironmentName}-*-Extended-*"
+            - wildcard: !Sub "${EnvironmentName}-${ServiceName}-*-Extended-*"
           state:
             value:
               - ALARM
