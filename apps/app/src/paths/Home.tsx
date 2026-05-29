@@ -294,21 +294,23 @@ export function Home() {
         <Card>
           <CardHeader>
             <Heading size="sm">
-              Intro to Doenet Virtual Workshop
-              <br /> May 5, 5–7pm Eastern, 2pm–4pm Pacific
+              June Doenet Virtual Workshop
+              <br /> June 15-18, 1–4pm Eastern, 10am–1pm Pacific
             </Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={"18px"} fontWeight="500">
-              In this workshop, participants will be introduced to the free and
-              open-source platform Doenet. They will learn about the key
-              constructs of Doenet and learn how to create Doenet activities
-              with basic answer validation.
+              In this 4-day virtual workshop held on Zoom, participants will
+              learn how to create accessible, dynamic and interactive activities
+              in Doenet. The workshop will also provide guidance on using the
+              available resources to learn more about Doenet, including how to
+              connect with the supportive Doenet community of developers and
+              experienced instructors.
             </Text>
 
             <Button
               as="a"
-              href="https://scholarlattice.org/collections/b8ec4af3-8f71-4e4a-b86e-838242e47058"
+              href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
               colorScheme="blue"
               target="_blank"
               rel="noopener noreferrer"
@@ -322,6 +324,7 @@ export function Home() {
           <CardHeader>
             <Heading size="sm">
               Virtual office hours, Tuesdays, 2–4pm Eastern, 11am–1pm Pacific
+              (no office hours Tuesday, June 2)
             </Heading>
           </CardHeader>
           <CardBody>
