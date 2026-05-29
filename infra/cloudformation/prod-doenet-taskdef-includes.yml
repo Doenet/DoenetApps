@@ -21,6 +21,12 @@ Environment:
     Value: "false"
   - Name: NODE_OPTIONS
     Value: "--max-old-space-size=1950"
+  - Name: MEDIA_S3_MODE
+    Value: "aws"
+  - Name: MEDIA_S3_REGION
+    Value: "us-east-1"
+  - Name: MEDIA_S3_BUCKET
+    Value: "prod-media-350646758180-us-east-1"
   - Name: DISCOURSE_API_USERNAME
     Value: "system"
   - Name: DISCOURSE_URL
