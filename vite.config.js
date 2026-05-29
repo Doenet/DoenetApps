@@ -9,6 +9,7 @@ export default defineConfig((env) => ({
   appType: 'mpa',
   plugins: [react()],
   server: {
+    host: true,
     port: 8000,
     proxy: {
       '/api': 'http://apache',
