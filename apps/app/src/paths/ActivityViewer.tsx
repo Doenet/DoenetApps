@@ -207,7 +207,7 @@ export function ActivityViewer() {
     if (content.contentId === settingsContentId) {
       return content;
     }
-    if (content.type !== "singleDoc") {
+    if (content.type !== "singleDoc" && content.type !== "image") {
       for (const child of content.children) {
         const res = matchSettingsContentId(child);
         if (res) {

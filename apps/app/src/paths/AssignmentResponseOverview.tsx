@@ -172,7 +172,7 @@ export async function loader({ params, request }: ActionFunctionArgs) {
       doenetML,
       doenetmlVersion,
     };
-  } else if (assignment.type !== "folder") {
+  } else if (assignment.type !== "folder" && assignment.type !== "image") {
     const activityJsonPrelim = assignment.activityJson
       ? JSON.parse(assignment.activityJson)
       : null;
@@ -190,8 +190,8 @@ export async function loader({ params, request }: ActionFunctionArgs) {
       itemNames,
     };
   } else {
-    // Handle folder type
-    throw new Error("Cannot view this page on a folder");
+    // folder / image — neither can be viewed as an assignment
+    throw new Error(`Cannot view this page on a ${assignment.type}`);
   }
 }
 
