@@ -21,6 +21,10 @@ Environment:
     Value: "false"
   - Name: NODE_OPTIONS
     Value: "--max-old-space-size=1950"
+  - Name: MEDIA_S3_MODE
+    Value: "aws"
+  - Name: MEDIA_S3_REGION
+    Value: "us-east-2"
   # - Name: DISCOURSE_API_USERNAME
   #   Value: "system"
   # - Name: DISCOURSE_URL
@@ -50,6 +54,9 @@ Secrets:
   - Name: MAGIC_LINK_SECRET
     ValueFrom:
       Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/MagicLinkSecret"
+  - Name: MEDIA_S3_BUCKET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/media/BucketName"
   # - Name: DISCOURSE_SSO_SECRET
   #   ValueFrom:
   #     Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/DiscourseSsoSecret"
