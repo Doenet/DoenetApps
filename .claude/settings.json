@@ -46,17 +46,19 @@
   },
   "sandbox": {
     "enabled": true,
-    "mode": "auto-allow",
+    "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": false,
     "excludedCommands": ["docker"],
-    "allowedDomains": [
-      "registry.npmjs.org",
-      "cdn.jsdelivr.net",
-      "api.github.com",
-      "github.com",
-      "api.cypress.io",
-      "localhost"
-    ],
+    "network": {
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "cdn.jsdelivr.net",
+        "api.github.com",
+        "github.com",
+        "api.cypress.io",
+        "localhost"
+      ]
+    },
     "filesystem": {
       "allowWrite": ["~/.npm/", "~/.cache/prisma/"]
     }
