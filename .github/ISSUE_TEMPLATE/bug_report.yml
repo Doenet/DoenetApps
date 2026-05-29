@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a defect or unexpected behavior in Doenet.
+name: 🐛 Bug report
+description: Something is broken and you can reproduce it.
 title: "[Bug]: "
 type: Bug
 body:
