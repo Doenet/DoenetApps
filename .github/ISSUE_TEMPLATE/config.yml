@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🆘 Something seems broken (Get Help on the forum)
+    url: https://community.doenet.org/c/support/5
+    about: Usually the right starting place if you're not a developer with a repro. Maintainers monitor this category and promote confirmed bugs into issues here.
+  - name: 💡 Share an idea or pain point (Discussion on the forum)
+    url: https://community.doenet.org/c/discussion/15
+    about: Feature wishes, ideas, or pain points without a concrete proposal.
+  - name: 💬 Ask a question or chat (Discord)
+    url: https://discord.gg/PUduwtKJ5h
+    about: Real-time help and community chat.
+  - name: 🔤 DoenetML language bug
+    url: https://github.com/Doenet/doenetml/issues
+    about: Bugs in the DoenetML markup language itself belong in the doenetml repo.

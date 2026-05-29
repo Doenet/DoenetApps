@@ -182,7 +182,7 @@ export async function getContent({
     }
 
     for (const child of children) {
-      if (child.type !== "singleDoc") {
+      if (child.type !== "singleDoc" && child.type !== "image") {
         child.children = findDescendants(child.contentId);
       }
     }
@@ -190,7 +190,7 @@ export async function getContent({
     return children;
   }
 
-  if (activity.type !== "singleDoc") {
+  if (activity.type !== "singleDoc" && activity.type !== "image") {
     activity.children = findDescendants(activity.contentId);
   }
 

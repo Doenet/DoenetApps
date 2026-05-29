@@ -92,6 +92,15 @@ jobs:
       # Enable test features for CI
       ENABLE_TEST_AUTH_BYPASS: "true"
       ENABLE_TEST_ROUTES: "true"
+      # Media storage — local mode is fine for CI; the existing e2e tests
+      # don't actually upload images, but loadMediaConfig() must succeed at
+      # API boot so the server starts.
+      MEDIA_S3_MODE: "local"
+      MEDIA_S3_REGION: "us-east-1"
+      MEDIA_S3_BUCKET: "doenet-media"
+      MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
+      MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
+      MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
 
     steps:
       # Checkout repo
@@ -183,6 +192,15 @@ jobs:
       MOCK_SIGNIN_EMAIL: "true"
       ENABLE_TEST_AUTH_BYPASS: "true"
       ENABLE_TEST_ROUTES: "true"
+      # Media storage — local mode is fine for CI; the existing brittle tests
+      # don't actually upload images, but loadMediaConfig() must succeed at
+      # API boot so the server starts.
+      MEDIA_S3_MODE: "local"
+      MEDIA_S3_REGION: "us-east-1"
+      MEDIA_S3_BUCKET: "doenet-media"
+      MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
+      MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
+      MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
 
     strategy:
       fail-fast: false
