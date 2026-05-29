@@ -26,6 +26,7 @@ import { Outlet, useLoaderData, useLocation, useNavigate } from "react-router";
 import { NavLink } from "react-router-dom";
 import { checkIfUserClearedOut } from "../../../_utils/applicationUtils";
 import RouterLogo from "../RouterLogo";
+import MigrationBanner from "../../../_reactComponents/PanelHeaderComponents/MigrationBanner";
 import { pageToolViewAtom } from "../NewToolRoot";
 import { useRecoilState } from "recoil";
 import { FaMoon, FaSun } from "react-icons/fa";
@@ -315,6 +316,8 @@ export function SiteHeader(props) {
         </GridItem>
         <GridItem area="main" as="main" margin="0" overflowY="scroll">
           {/* <Box>test</Box> */}
+          {/* Home renders its own wide migration banner, so skip the thin one there */}
+          {location.pathname !== "/" && <MigrationBanner variant="thin" />}
           {childComponent ? childComponent : <Outlet context={{ signedIn }} />}
         </GridItem>
       </Grid>

@@ -5,6 +5,7 @@ import { faChevronRight, faCog } from "@fortawesome/free-solid-svg-icons";
 import { atom, useRecoilCallback, useSetRecoilState } from "recoil";
 import { pageToolViewAtom } from "../NewToolRoot";
 import Banner from "../../../_reactComponents/PanelHeaderComponents/Banner.jsx";
+import MigrationBanner from "../../../_reactComponents/PanelHeaderComponents/MigrationBanner";
 
 export const mainPanelClickAtom = atom({
   key: "mainPanelClickAtom",
@@ -105,9 +106,7 @@ export default function MainPanel({
         data-test="Main Panel"
         id="mainPanel"
       >
-        {/* <Banner></Banner>  */}
-        {/* Uncomment the line above to show banner on the main panel. Change the color of banner
-      using type={'TYPENAME'}. The types can be found in Banner.jsx. */}
+        <MigrationBanner variant="thin" />
         {contents}
       </ContentWrapper>
     </>

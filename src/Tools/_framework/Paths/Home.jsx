@@ -25,6 +25,7 @@ import {
   Show,
   SimpleGrid,
 } from "@chakra-ui/react";
+import MigrationBanner from "../../../_reactComponents/PanelHeaderComponents/MigrationBanner";
 import { HiOutlineMail } from "react-icons/hi";
 import { BsGithub, BsDiscord } from "react-icons/bs";
 import { MdBuild } from "react-icons/md";
@@ -188,6 +189,7 @@ export function Home() {
 
   return (
     <>
+      <MigrationBanner variant="wide" />
       <Flex
         alignItems="center"
         justifyContent="center"
