@@ -36,14 +36,16 @@ export default function MigrationBanner({ variant = "thin" }) {
         style={{
           ...wrapperBase,
           padding: "16px 24px",
-          fontSize: "1.25rem",
+          fontSize: "1.575rem",
           lineHeight: 1.5,
         }}
         role="region"
         aria-label="Site migration notice"
       >
-        <strong>Doenet is migrating to a new website shortly.</strong> See the
-        new site at{" "}
+        <strong>
+          Significant changes are coming to Doenet in the next month.
+        </strong>{" "}
+        We are switching to the system currently at{" "}
         <ExternalLink href="https://beta.doenet.org">
           beta.doenet.org
         </ExternalLink>
@@ -64,18 +66,21 @@ export default function MigrationBanner({ variant = "thin" }) {
     <div
       style={{
         ...wrapperBase,
-        padding: "8px 16px",
-        fontSize: "1rem",
+        padding: "6px 16px",
+        fontSize: "0.85rem",
         lineHeight: 1.3,
       }}
       role="region"
       aria-label="Site migration notice"
     >
-      Doenet is migrating to{" "}
+      <strong>
+        Significant changes are coming to Doenet in the next month.
+      </strong>{" "}
+      We are switching to the system currently at{" "}
       <ExternalLink href="https://beta.doenet.org">
         beta.doenet.org
-      </ExternalLink>{" "}
-      shortly. Questions?{" "}
+      </ExternalLink>
+      . More information coming soon. Questions? Go to{" "}
       <ExternalLink href="https://community.doenet.org">
         community.doenet.org
       </ExternalLink>
