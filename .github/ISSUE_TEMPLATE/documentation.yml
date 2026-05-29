@@ -1,5 +1,5 @@
-name: Documentation issue
-description: Report unclear, missing, or incorrect documentation.
+name: 📝 Documentation
+description: Docs are unclear, missing, or wrong.
 title: "[Docs]: "
 labels: ["layer:docs"]
 body:
