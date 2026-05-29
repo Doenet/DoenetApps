@@ -1,0 +1,102 @@
+name: Bug report
+description: Report a defect or unexpected behavior in Doenet.
+title: "[Bug]: "
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is for bugs with a **concrete reproduction** that should be tracked as developer work.
+
+        Not sure if it's a bug, or hit something unexpected as an instructor or author? Post in [**Get Help** on the Doenet community forum](https://community.doenet.org/c/support/5) — maintainers monitor it and will open an issue here once a bug is confirmed.
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched [existing issues](https://github.com/Doenet/DoenetApps/issues?q=is%3Aissue) and did not find a duplicate.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which user-facing surface is affected? Maps to the repo's `area:*` labels — a maintainer will apply the matching label at triage.
+      options:
+        - Editor
+        - Assignments
+        - Browsing
+        - Folder view
+        - Library
+        - Blog
+        - Discussions
+        - Other / not user-facing
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      description: Which layer of the stack is affected? Maps to the repo's `layer:*` labels. Pick all you know — leave blank if unsure.
+      multiple: true
+      options:
+        - Frontend (apps/app)
+        - API (apps/api)
+        - Database / Prisma
+        - Infrastructure / CI
+        - Docs
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear and concise description of the bug.
+      placeholder: "When I do X, Y happens instead of Z."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal, step-by-step recipe. If reproducing requires specific seed data or DoenetML content, include it here or link to it.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error messages, stack traces, or screenshots if available.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Doenet version or commit
+      description: A release version, branch name, or commit SHA. Run `git rev-parse HEAD` if running locally.
+      placeholder: "e.g. main @ abc1234, or v0.7.2"
+  - type: input
+    id: environment
+    attributes:
+      label: Browser / OS / Node version
+      description: Only fill out what's relevant (e.g. browser+OS for UI bugs, Node version for build/dev-server bugs).
+      placeholder: "Chrome 131 on macOS 15.1, Node 24.15"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste any relevant server logs, browser console output, or terminal output. Will be rendered as a code block.
+      render: shell
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Anything else that might help — workarounds you've tried, related issues, suspected root cause, etc.

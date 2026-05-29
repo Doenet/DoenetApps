@@ -1,0 +1,72 @@
+name: Feature request
+description: Suggest a new feature or improvement.
+title: "[Feature]: "
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when you have a **concrete, developer-actionable proposal** — a known problem and at least a rough idea of the change.
+
+        Still figuring out the idea, or sharing an instructor-facing wish? Please post in the [Doenet community forum](https://community.doenet.org/c/discussion/15) instead. Threads there can be promoted to issues once the shape is clear.
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched [existing issues](https://github.com/Doenet/DoenetApps/issues?q=is%3Aissue) and did not find a duplicate request.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which user-facing surface does this affect? Maps to the repo's `area:*` labels.
+      options:
+        - Editor
+        - Assignments
+        - Browsing
+        - Folder view
+        - Library
+        - Blog
+        - Discussions
+        - Developer experience / tooling
+        - Cross-cutting / not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      description: Which layer of the stack would this touch? Maps to the repo's `layer:*` labels. Pick all that apply — leave blank if unsure.
+      multiple: true
+      options:
+        - Frontend (apps/app)
+        - API (apps/api)
+        - Database / Prisma
+        - Infrastructure / CI
+        - Docs
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need or pain point does this address? Who experiences it, and when?
+      placeholder: "As a [teacher / student / author / developer], I want to ..., because ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should thiswork ? Include UX sketches, API shape, or example DoenetML if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, and why this one is preferred.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, related issues, links to discussions, etc.
