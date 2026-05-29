@@ -23,5 +23,25 @@ services:
       timeout: 5s
       retries: 10
 
+  s3mock:
+    image: adobe/s3mock:latest
+    restart: unless-stopped
+    environment:
+      # Spring Boot properties on com.adobe.testing.s3mock.store.* — env-var
+      # form uses underscores and uppercase per Spring's relaxed binding.
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIALBUCKETS: doenet-media
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAINFILESONEXIT: "true"
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3-data
+    ports:
+      - "${MEDIA_S3_PORT:-9090}:9090"
+    volumes:
+      - s3mock_data:/s3-data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   mysql_data:
+  s3mock_data:

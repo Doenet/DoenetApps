@@ -538,6 +538,12 @@ export function processContent(
         ...baseContent,
       };
     }
+    case "image": {
+      return {
+        type: "image",
+        ...baseContent,
+      };
+    }
   }
 }
 
@@ -649,6 +655,9 @@ export function compileActivityFromContent(
     }
     case "folder": {
       throw Error("No folder here");
+    }
+    case "image": {
+      throw Error("No image here");
     }
   }
 }

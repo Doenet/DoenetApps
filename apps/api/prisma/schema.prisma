@@ -58,7 +58,14 @@ model content {
   // ====== Selects (obsolete) =========
   numToSelect            Int                      @default(1) @db.UnsignedSmallInt
   selectByVariant        Boolean                  @default(false)
-  // 
+  //
+  // ====== Images =========
+  mimeType               String?                  @db.VarChar(64)
+  sizeBytes              BigInt?
+  imageWidth             Int?
+  imageHeight            Int?
+  storageKey             String?                  @db.VarChar(255)
+  //
   // ===== Code ==========
   // Course or assignment code
   // All courses have a code, and all one-off assignments have a code.
@@ -121,6 +128,7 @@ enum ContentType {
   select
   sequence
   folder
+  image
 }
 
 enum Visibility {
@@ -356,6 +364,9 @@ model users {
   isLibrary          Boolean                @default(false)
   isEditor           Boolean                @default(false)
   isAuthor           Boolean                @default(false)
+  // Early-access flag for the experimental image-upload feature. Flip with
+  // `apps/api/scripts/enable-image-upload.ts`.
+  canUploadImages    Boolean                @default(false)
   // For now, premium refers to the instructor accounts
   // A premium account means: any assignment I create can be taken by normal (non-anonymous and non-scoped) users
   isPremium          Boolean                @default(false)
