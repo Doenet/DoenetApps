@@ -11,6 +11,7 @@ export const contentTypeSchema = z.enum([
   "sequence",
   "select",
   "folder",
+  "image",
 ]);
 
 export const createContentSchema = z.object({

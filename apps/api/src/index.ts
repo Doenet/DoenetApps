@@ -49,12 +49,18 @@ import { generateHandle } from "./utils/names";
 import { codeRouter } from "./routes/code";
 import { metricsRouter } from "./routes/metricsRoutes";
 import { contentRouter } from "./routes/content.route";
+import { loadMediaConfig, mediaRouter } from "./media";
+import { getEnvVar } from "./utils/env";
 
 // Type assertion to work around passport type declaration issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const passport = passportLib as any;
 
 dotenv.config();
+
+// Validate media-storage env vars at startup so a misconfigured deployment
+// crashes here rather than on the first upload/serve request.
+loadMediaConfig();
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -74,19 +80,6 @@ app.use(function (req, res, next) {
   }
   next();
 });
-
-function getEnvVar(name: string, required: true): string;
-function getEnvVar(name: string, required?: boolean): string | undefined;
-function getEnvVar(name: string, required = false): string | undefined {
-  const value = process.env[name]?.trim();
-  if (value) {
-    return value;
-  }
-  if (required) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return undefined;
-}
 
 const mockSigninEmail =
   process.env.MOCK_SIGNIN_EMAIL?.trim().toLowerCase() === "true";
@@ -330,6 +323,7 @@ passport.serializeUser(async (req: any, user: any, done: any) => {
     let isAnonymous = true;
     let isEditor = false;
     let isAuthor = false;
+    let canUploadImages = false;
 
     if (
       process.env.ENABLE_TEST_AUTH_BYPASS &&
@@ -346,6 +340,7 @@ passport.serializeUser(async (req: any, user: any, done: any) => {
 
         isEditor = Boolean(req.body.isEditor);
         isAuthor = Boolean(req.body.isAuthor);
+        canUploadImages = Boolean(req.body.canUploadImages);
         isAnonymous = false;
       }
     }
@@ -357,6 +352,7 @@ passport.serializeUser(async (req: any, user: any, done: any) => {
       isAnonymous,
       isEditor,
       isAuthor,
+      canUploadImages,
     });
     return done(undefined, fromUUID(u.userId));
   }
@@ -418,6 +414,7 @@ app.use("/api/editor", editorRouter);
 app.use("/api/code", codeRouter);
 app.use("/api/metrics", metricsRouter);
 app.use("/api/content", contentRouter);
+app.use("/api/media", mediaRouter);
 
 // Discourse uses this endpoint to sign on
 app.use("/api/discourse", discourseRouter);
