@@ -1,5 +1,9 @@
 import { ContentType } from "../types";
 
+export type EditorDiagnosticsTab = "errors" | "accessibility";
+
+export const editorDiagnosticsSearchParam = "diagnostics";
+
 /**
  * The url for this content's editor page
  * Default tab is `edit`, but you can specify a different one.
@@ -19,4 +23,15 @@ export function editorUrl(
   inCurateMode = false,
 ) {
   return `/${contentType === "singleDoc" ? "documentEditor" : "compoundEditor"}/${contentId}/${tabPath}${inCurateMode ? "?curate" : ""}`;
+}
+
+export function editorDiagnosticsUrl(
+  contentId: string,
+  contentType: ContentType,
+  diagnosticsTab: EditorDiagnosticsTab,
+) {
+  const editUrl = editorUrl(contentId, contentType, "edit");
+  return contentType === "singleDoc"
+    ? `${editUrl}?${editorDiagnosticsSearchParam}=${diagnosticsTab}`
+    : editUrl;
 }

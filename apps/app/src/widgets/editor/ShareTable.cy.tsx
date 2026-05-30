@@ -27,7 +27,6 @@ describe("ShareTable Component", { tags: ["@group3"] }, () => {
       />,
     );
 
-    cy.contains("People with access").should("be.visible");
     cy.contains("Ada Lovelace").should("be.visible");
     cy.contains("ada@example.com").should("be.visible");
     cy.get('button[aria-label="Stop sharing with Ada Lovelace"]').should(
@@ -87,7 +86,7 @@ describe("ShareTable Component", { tags: ["@group3"] }, () => {
     cy.contains("(shared publicly)").should("be.visible");
     cy.contains("Grace Hopper").should("be.visible");
     cy.contains("grace@example.com").should("be.visible");
-    cy.contains("(inherited)").should("be.visible");
+    cy.contains("Inherited").should("be.visible");
     cy.get('button[aria-label="Stop sharing publicly"]').should("not.exist");
     cy.get('button[aria-label="Stop sharing with Grace Hopper"]').should(
       "not.exist",

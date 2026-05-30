@@ -83,8 +83,73 @@ describe("EditCategories Component", { tags: ["@group3"] }, () => {
       />,
     );
 
+    cy.contains("Required").should("not.exist");
+    cy.checkAccessibility("body");
+  });
+
+  it("shows required warning only when a required group is missing", () => {
+    const categoriesWithRequired: CategoryGroup[] = [
+      {
+        name: "Required Question Type",
+        isRequired: true,
+        isExclusive: true,
+        categories: [
+          {
+            code: "isQuestion",
+            term: "Question",
+            description: "This is a question",
+          },
+        ],
+      },
+    ];
+
+    cy.mount(
+      <EditCategories
+        contentId={defaultProps.contentId}
+        categories={[]}
+        allCategories={categoriesWithRequired}
+        showRequired={true}
+      />,
+    );
+
     cy.contains("Required").should("be.visible");
     cy.checkAccessibility("body");
+  });
+
+  it("updates the required warning optimistically while the save is pending", () => {
+    const categoriesWithRequired: CategoryGroup[] = [
+      {
+        name: "Required Interactivity",
+        isRequired: true,
+        isExclusive: false,
+        categories: [
+          {
+            code: "isInteractive",
+            term: "Interactive",
+            description: "This content is interactive",
+          },
+        ],
+      },
+    ];
+
+    cy.mount(
+      <EditCategories
+        contentId={defaultProps.contentId}
+        categories={[]}
+        allCategories={categoriesWithRequired}
+        showRequired={true}
+      />,
+    );
+
+    cy.get('[data-test="Required Alert Required Interactivity"]').should(
+      "be.visible",
+    );
+    cy.get('[data-test="isInteractive Checkbox"]').click();
+    cy.get('[data-test="Required Alert Required Interactivity"]').should(
+      "have.attr",
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("is accessible with multiple categories selected", () => {

@@ -44,7 +44,7 @@ import { SiteContext } from "../paths/SiteHeader";
 import { ActivateAuthorMode } from "../popups/ActivateAuthorMode";
 import { formatAssignmentBlurb } from "../utils/assignment";
 import { editorUrl } from "../utils/url";
-import { ShareMyContentModal } from "../popups/ShareMyContentModal";
+import { ShareModal } from "../features/sharing";
 import { NameBar } from "../widgets/NameBar";
 import {
   ActionBar,
@@ -337,11 +337,11 @@ export function Activities() {
   );
 
   const shareFolderModal = parent && (
-    <ShareMyContentModal
+    <ShareModal
       contentId={parent.contentId}
       contentType={parent.type}
-      isOpen={shareFolderIsOpen}
-      onClose={shareFolderOnClose}
+      modalIsOpen={shareFolderIsOpen}
+      closeModal={shareFolderOnClose}
     />
   );
 
