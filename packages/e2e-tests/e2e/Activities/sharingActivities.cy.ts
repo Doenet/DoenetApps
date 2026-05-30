@@ -34,6 +34,18 @@ describe("Share Activities Tests", function () {
       cy.get(".cm-activeLine").type("{ctrl+S}");
     });
 
+    // doenetml-iframe's editor renders the viewer pane via "Update". On <=0.7.6
+    // the {ctrl+S} above already triggers it (the Update button then disables);
+    // on >=0.7.18 it does not, so the viewer stays blank and .doenet-viewer
+    // never appears until Update is clicked. force-click handles both: it
+    // renders the viewer on 0.7.18 and is a harmless no-op on the
+    // already-updated (disabled) 0.7.6 button. See issue #2957.
+    cy.getIframeBody("iframe", '[data-test="Viewer Update Button"]').within(
+      () => {
+        cy.get('[data-test="Viewer Update Button"]').click({ force: true });
+      },
+    );
+
     // Verify viewer shows content
     cy.getIframeBody("iframe", ".doenet-viewer", {
       label: "editor: viewer after save",
