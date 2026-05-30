@@ -1,6 +1,8 @@
 import { prisma } from "../model";
 import { prepareNewChild } from "../content-tree";
 import { filterViewableContent } from "../utils/permissions";
+import { fromUUID } from "../utils/uuid";
+import { deleteImage } from "./s3";
 
 /**
  * Whether a user is in the early-access cohort for image uploads. The image
@@ -98,6 +100,12 @@ export async function setImageStorageKey({
   });
 }
 
+/**
+ * Hard-deletes the image row and best-effort removes the storage object so the
+ * bucket does not accumulate orphaned bytes. A storage failure is logged but
+ * does not block the row delete — better to leave a stray object the sweep job
+ * can catch later than to leave the row pointing at deleted bytes.
+ */
 export async function deleteImageContent({
   contentId,
   ownerId,
@@ -105,6 +113,20 @@ export async function deleteImageContent({
   contentId: Uint8Array;
   ownerId: Uint8Array;
 }) {
+  const row = await prisma.content.findUnique({
+    where: { id: contentId, ownerId, type: "image" },
+    select: { storageKey: true },
+  });
+  if (row?.storageKey) {
+    try {
+      await deleteImage(row.storageKey);
+    } catch (err) {
+      console.error(
+        `Failed to delete storage object for image ${fromUUID(contentId)}`,
+        err,
+      );
+    }
+  }
   await prisma.content.delete({
     where: { id: contentId, ownerId, type: "image" },
   });

@@ -1,4 +1,13 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+// Replace the s3 module so importing imageContent.ts does not trigger
+// loadMediaConfig() at module load time (it would demand real env vars).
+vi.mock("./s3", () => ({
+  deleteImage: vi.fn(),
+  getImageStream: vi.fn(),
+  putImage: vi.fn(),
+}));
+
 import { prisma } from "../model";
 import { createContent } from "../query/activity";
 import { setContentLicense } from "../query/license";
@@ -11,6 +20,7 @@ import {
   findViewableImage,
   setImageStorageKey,
 } from "./imageContent";
+import * as s3 from "./s3";
 
 async function getContent(contentId: Uint8Array) {
   return prisma.content.findUniqueOrThrow({
@@ -300,6 +310,13 @@ describe("setImageStorageKey", () => {
 });
 
 describe("deleteImageContent", () => {
+  beforeEach(() => {
+    vi.mocked(s3.deleteImage).mockReset();
+  });
+  afterEach(() => {
+    vi.mocked(s3.deleteImage).mockReset();
+  });
+
   test("deletes the owner's image row", async () => {
     const owner = await createTestUser();
     const { contentId } = await createImageContent({
@@ -337,6 +354,76 @@ describe("deleteImageContent", () => {
 
     const row = await prisma.content.findUnique({ where: { id: contentId } });
     expect(row).not.toBeNull();
+    expect(vi.mocked(s3.deleteImage)).not.toHaveBeenCalled();
+  });
+
+  test("deletes the storage object before removing the row", async () => {
+    const owner = await createTestUser();
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: null,
+      name: "x.png",
+      mimeType: "image/png",
+      sizeBytes: 1,
+      imageWidth: 1,
+      imageHeight: 1,
+    });
+    await setImageStorageKey({
+      contentId,
+      ownerId: owner.userId,
+      storageKey: "images/x.png",
+    });
+
+    await deleteImageContent({ contentId, ownerId: owner.userId });
+
+    expect(vi.mocked(s3.deleteImage)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(s3.deleteImage)).toHaveBeenCalledWith("images/x.png");
+    const row = await prisma.content.findUnique({ where: { id: contentId } });
+    expect(row).toBeNull();
+  });
+
+  test("skips the storage delete when the row has no storage key", async () => {
+    const owner = await createTestUser();
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: null,
+      name: "x.png",
+      mimeType: "image/png",
+      sizeBytes: 1,
+      imageWidth: 1,
+      imageHeight: 1,
+    });
+
+    await deleteImageContent({ contentId, ownerId: owner.userId });
+
+    expect(vi.mocked(s3.deleteImage)).not.toHaveBeenCalled();
+  });
+
+  test("still deletes the row when the storage delete throws", async () => {
+    const owner = await createTestUser();
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: null,
+      name: "x.png",
+      mimeType: "image/png",
+      sizeBytes: 1,
+      imageWidth: 1,
+      imageHeight: 1,
+    });
+    await setImageStorageKey({
+      contentId,
+      ownerId: owner.userId,
+      storageKey: "images/x.png",
+    });
+    vi.mocked(s3.deleteImage).mockRejectedValueOnce(new Error("S3 down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await deleteImageContent({ contentId, ownerId: owner.userId });
+
+    expect(vi.mocked(s3.deleteImage)).toHaveBeenCalledTimes(1);
+    const row = await prisma.content.findUnique({ where: { id: contentId } });
+    expect(row).toBeNull();
+    errSpy.mockRestore();
   });
 });
 
