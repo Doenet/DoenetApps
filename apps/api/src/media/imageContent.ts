@@ -1,3 +1,4 @@
+import type { Visibility } from "@prisma/client";
 import { prisma } from "../model";
 import { prepareNewChild } from "../content-tree";
 import { filterViewableContent } from "../utils/permissions";
@@ -127,6 +128,7 @@ export async function findViewableImage({
   storageKey: string;
   mimeType: string;
   sizeBytes: bigint | null;
+  visibility: Visibility;
 } | null> {
   const row = await prisma.content.findFirst({
     where: {
@@ -138,6 +140,7 @@ export async function findViewableImage({
       mimeType: true,
       storageKey: true,
       sizeBytes: true,
+      visibility: true,
     },
   });
 
@@ -147,5 +150,6 @@ export async function findViewableImage({
     storageKey: row.storageKey,
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
+    visibility: row.visibility,
   };
 }
