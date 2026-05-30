@@ -390,8 +390,8 @@ export function Activities() {
         <ModalBody>
           <Text>
             Image uploads are an experimental feature and not yet available on
-            every account. If you'd like to try it, ask a Doenet admin to enable
-            image uploads for your account.
+            every account. If you'd like to try it, ask a Doenet admin at info@doenet.org
+             to enable image uploads for your account.
           </Text>
         </ModalBody>
         <ModalFooter>
