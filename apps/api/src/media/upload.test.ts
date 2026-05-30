@@ -38,7 +38,11 @@ async function createUploader() {
   return user;
 }
 import * as s3 from "./s3";
-import { handleUploadImage } from "./upload";
+import {
+  handleUploadError,
+  handleUploadImage,
+  UnsupportedMimeTypeError,
+} from "./upload";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   MAX_IMAGE_BYTES,
@@ -341,6 +345,24 @@ describe("handleUploadImage", () => {
 
     expect(res.statusCode).toBe(StatusCodes.CREATED);
     expect((res.jsonBody as { name: string }).name).toBe("Lemon");
+  });
+
+  test("415 with allowed list when fileFilter rejects the claimed MIME", () => {
+    const res = mockRes();
+    const next = vi.fn();
+    handleUploadError(
+      new UnsupportedMimeTypeError("image/svg+xml"),
+      mockReq({}),
+      res as unknown as Response,
+      next,
+    );
+    expect(res.statusCode).toBe(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+    const body = res.jsonBody as { error: string; details: string };
+    expect(body.error).toBe("Unsupported image type");
+    expect(body.details).toBe(
+      "Allowed: image/jpeg, image/png, image/webp, image/gif",
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 
   test("rolls back the DB row and best-effort deletes S3 when putImage throws", async () => {
