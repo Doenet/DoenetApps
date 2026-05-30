@@ -154,14 +154,14 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: cypress-screenshots
+          name: cypress-screenshots-${{ matrix.test-group }}
           path: packages/e2e-tests/cypress/screenshots
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: cypress-videos
+          name: cypress-videos-${{ matrix.test-group }}
           path: packages/e2e-tests/cypress/videos
           if-no-files-found: ignore
 
@@ -254,15 +254,15 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: brittle-cypress-screenshots
-          path: e2e-tests/cypress/screenshots
+          name: brittle-cypress-screenshots-${{ matrix.test-group }}
+          path: packages/e2e-tests/cypress/screenshots
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: brittle-cypress-videos
-          path: e2e-tests/cypress/videos
+          name: brittle-cypress-videos-${{ matrix.test-group }}
+          path: packages/e2e-tests/cypress/videos
           if-no-files-found: ignore
 
   component-tests:

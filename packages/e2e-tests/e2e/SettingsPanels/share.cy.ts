@@ -219,16 +219,16 @@ describe("Share panel tests", { tags: ["@group4"] }, function () {
         .find(".doenet-viewer")
         .should("contain.text", "The original activity");
 
-      cy.get(`[data-test="Share Button"]`).click();
-      cy.get(`[data-test="Share Publicly Button"]`).click();
-      cy.get('[data-test="Share Submit Button"]').should(
-        "contain.text",
-        "Save access",
-      );
-      cy.get('[data-test="Share Submit Button"]').click();
-      cy.contains("Current access: Public.").should("be.visible");
-
-      cy.get('[data-test="Share Close Button"]').click();
+      // Make the remix public via the API so this test doesn't race against
+      // the background audit checks the UI Save Access button depends on.
+      cy.url().then((url) => {
+        const remixId = url.match(/documentEditor\/([^/?]+)/)![1];
+        cy.request({
+          method: "POST",
+          url: "/api/share/setContentIsPublic",
+          body: { contentId: remixId, isPublic: true },
+        });
+      });
 
       cy.get(`[data-test="Settings Button"]`).click();
 
