@@ -234,31 +234,50 @@ Cypress.Commands.add("getUserInfo", () => {
   });
 });
 
-Cypress.Commands.add("getIframeBody", (iframeSelector, waitSelector = null) => {
-  return (
-    cy
-      .get(iframeSelector, { log: false })
-      // 1. ANCHOR: We keep the subject as the <iframe> element, not the body.
-      // The .should() will retry against the iframe element until the callback passes.
-      .should(($iframe) => {
-        // We use jQuery to look inside the iframe without changing the Cypress subject
-        const $body = $iframe.contents().find("body");
+Cypress.Commands.add(
+  "getIframeBody",
+  (
+    iframeSelector,
+    waitSelector = null,
+    { timeout = 30000, label }: { timeout?: number; label?: string } = {},
+  ) => {
+    // DoenetML viewer iframes (engine bundle + MathJax typesetting) routinely
+    // take well over the 10s default to render on a loaded CI runner, and the
+    // iframe can re-mount when its `doenetML` prop changes. We use a generous
+    // timeout so the .should() keeps re-querying — re-acquiring a fresh <iframe>
+    // element on each retry — until the content is actually present, instead of
+    // timing out on a slow-but-healthy render. `label` names the call site so a
+    // CI failure says *which* getIframeBody timed out. See issue #2957.
+    const where = label ? ` [${label}]` : "";
+    return (
+      cy
+        .get(iframeSelector, { log: false, timeout })
+        // 1. ANCHOR: We keep the subject as the <iframe> element, not the body.
+        // The .should() will retry against the iframe element until the callback passes.
+        .should(($iframe) => {
+          // We use jQuery to look inside the iframe without changing the Cypress subject
+          const $body = $iframe.contents().find("body");
 
-        // Check 1: Body must exist
-        if ($body.length === 0) {
-          throw new Error("Iframe body is empty or not yet loaded");
-        }
+          // Check 1: Body must exist
+          if ($body.length === 0) {
+            throw new Error(
+              `Iframe "${iframeSelector}" body is empty or not yet loaded${where}`,
+            );
+          }
 
-        // Check 2: If we are waiting for a specific element, it must exist
-        if (waitSelector && $body.find(waitSelector).length === 0) {
-          throw new Error(`Element "${waitSelector}" not yet found in iframe`);
-        }
-      })
-      // 2. FETCH: Only once the above passes (stable), do we grab the body
-      .its("0.contentDocument.body", { log: false })
-      .then(cy.wrap) as Cypress.Chainable<HTMLBodyElement>
-  );
-});
+          // Check 2: If we are waiting for a specific element, it must exist
+          if (waitSelector && $body.find(waitSelector).length === 0) {
+            throw new Error(
+              `Element "${waitSelector}" not yet found in iframe "${iframeSelector}"${where}`,
+            );
+          }
+        })
+        // 2. FETCH: Only once the above passes (stable), do we grab the body
+        .its("0.contentDocument.body", { log: false, timeout })
+        .then(cy.wrap) as Cypress.Chainable<HTMLBodyElement>
+    );
+  },
+);
 
 Cypress.Commands.add(
   "dismissMenuByOverlay",

@@ -35,7 +35,9 @@ describe("Share Activities Tests", function () {
     });
 
     // Verify viewer shows content
-    cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
+    cy.getIframeBody("iframe", ".doenet-viewer", {
+      label: "editor: viewer after save",
+    }).within(() => {
       cy.get(".doenet-viewer").should(
         "contain.text",
         `Hello there! ${toMathJaxString("x")}`,
@@ -76,7 +78,9 @@ describe("Share Activities Tests", function () {
       .click();
 
     // Verify viewer shows content (and wait for MathJax to load)
-    cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
+    cy.getIframeBody("iframe", ".doenet-viewer", {
+      label: "community tab: opened public activity",
+    }).within(() => {
       cy.get(".doenet-viewer").should(
         "contain.text",
         `Hello there! ${toMathJaxString("x")}`,
@@ -91,7 +95,9 @@ describe("Share Activities Tests", function () {
     // Click the first content card - use eq() on a fresh query
     cy.get(`[data-test="Content Card"]`).eq(0).click();
 
-    cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
+    cy.getIframeBody("iframe", ".doenet-viewer", {
+      label: "my activities: opened copied activity",
+    }).within(() => {
       cy.get(".doenet-viewer").should(
         "contain.text",
         `Hello there! ${toMathJaxString("x")}`,

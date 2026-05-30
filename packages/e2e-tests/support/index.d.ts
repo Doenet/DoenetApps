@@ -76,11 +76,21 @@ declare global {
       getUserInfo(): Chainable<UserInfo>;
 
       /**
-       * Custom command to get the body of an iframe and wait for it to load
+       * Custom command to get the body of an iframe and wait for it to load.
+       *
+       * @param iframeSelector selector for the <iframe> element
+       * @param waitSelector optional selector that must exist inside the iframe
+       *   before the body is returned (e.g. ".doenet-viewer")
+       * @param options.timeout how long to keep re-querying for the iframe and
+       *   waitSelector (default 30000ms — DoenetML renders can exceed the 10s
+       *   default under CI load)
+       * @param options.label name for this call site, included in the timeout
+       *   error so a CI failure identifies which getIframeBody timed out
        */
       getIframeBody(
         iframeSelector: string,
         waitSelector?: string | null,
+        options?: { timeout?: number; label?: string },
       ): Chainable<HTMLBodyElement>;
 
       /**
