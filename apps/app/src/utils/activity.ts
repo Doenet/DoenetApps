@@ -12,7 +12,7 @@ import {
 } from "../types";
 import { ActivitySource } from "@doenet-tools/shared";
 import { IconType } from "react-icons/lib";
-import { FaFolder } from "react-icons/fa";
+import { FaFolder, FaImage } from "react-icons/fa";
 import { FaListOl } from "react-icons/fa6";
 import { RiArchive2Fill } from "react-icons/ri";
 import { ReactElement, createElement } from "react";
@@ -151,6 +151,9 @@ export function compileActivityFromContent(activity: Content): ActivitySource {
     case "folder": {
       throw Error("No folder here");
     }
+    case "image": {
+      throw Error("No image here");
+    }
   }
 }
 
@@ -159,6 +162,7 @@ export const contentTypeToName = {
   select: "Question Bank",
   sequence: "Problem Set",
   folder: "Folder",
+  image: "Image",
 };
 
 export function getAllowedParentTypes(childTypes: ContentType[]) {
@@ -187,6 +191,9 @@ export function getIconInfo(contentType: ContentType, isAssignment: boolean) {
   } else if (contentType === "sequence") {
     iconImage = FaListOl;
     iconColor = "#cc3399";
+  } else if (contentType === "image") {
+    iconImage = FaImage;
+    iconColor = "#0099cc";
   } else {
     // select
     iconImage = RiArchive2Fill;
@@ -198,7 +205,7 @@ export function getIconInfo(contentType: ContentType, isAssignment: boolean) {
 
 export const menuIcons: Record<string, ReactElement<any>> = {};
 
-for (const t of ["folder", "sequence", "select", "singleDoc"]) {
+for (const t of ["folder", "sequence", "select", "singleDoc", "image"]) {
   const ct = t as ContentType;
   const { iconImage, iconColor } = getIconInfo(ct, false);
   const icon = createElement(Icon, {

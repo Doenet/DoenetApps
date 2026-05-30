@@ -54,6 +54,7 @@ export default defineConfig({
     },
     supportFile: "support/e2e.ts",
     specPattern: "e2e/**/*.cy.ts",
+    fixturesFolder: "fixtures",
 
     baseUrl: `http://localhost:${appPort}`,
   },

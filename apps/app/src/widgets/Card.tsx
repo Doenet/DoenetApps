@@ -45,6 +45,8 @@ export type CardContent = {
   // This will replace `ownerName` in the avatar
   ownerAvatarName?: string;
   menuItems?: ReactElement<any>;
+  // If provided, rendered on the right of the card in place of the menu
+  inlineActions?: ReactElement<any>;
   blurb?: string;
   indentLevel?: number;
   libraryEditorName?: string;
@@ -417,22 +419,26 @@ export default function Card({
     );
 
   const menuMarginLeft = ["0em", "3em"];
-  const menuDisplay = menuItems && (
-    <Flex ml={menuMarginLeft}>
-      <Menu>
-        <MenuButton
-          data-test="Card Menu Button"
-          _focus={{ boxShadow: "outline" }}
-          ref={cardContent.menuRef}
-          aria-label={`Options menu for item ${idx + 1}: ${title}`}
-        >
-          <Flex alignItems="center">
-            <Icon color="#949494" as={FaEllipsisVertical} />
-          </Flex>
-        </MenuButton>
-        <MenuList zIndex="1000">{menuItems}</MenuList>
-      </Menu>
-    </Flex>
+  const menuDisplay = cardContent.inlineActions ? (
+    <Flex ml={menuMarginLeft}>{cardContent.inlineActions}</Flex>
+  ) : (
+    menuItems && (
+      <Flex ml={menuMarginLeft}>
+        <Menu>
+          <MenuButton
+            data-test="Card Menu Button"
+            _focus={{ boxShadow: "outline" }}
+            ref={cardContent.menuRef}
+            aria-label={`Options menu for item ${idx + 1}: ${title}`}
+          >
+            <Flex alignItems="center">
+              <Icon color="#949494" as={FaEllipsisVertical} />
+            </Flex>
+          </MenuButton>
+          <MenuList zIndex="1000">{menuItems}</MenuList>
+        </Menu>
+      </Flex>
+    )
   );
 
   return (
@@ -450,17 +456,36 @@ export default function Card({
         <Flex height={itemHeight} alignItems="center">
           {/* Left-aligned, not main link */}
           {selectCheckbox}
-          <ChakraLink
-            as={ReactRouterLink}
-            to={cardLink}
-            _hover={{ textDecoration: "none" }}
-            cursor={cardLink ? "pointer" : "default"}
-            flexGrow={1}
-          >
-            <Flex>
+          {cardLink ? (
+            <ChakraLink
+              as={ReactRouterLink}
+              to={cardLink}
+              _hover={{ textDecoration: "none" }}
+              cursor="pointer"
+              flexGrow={1}
+            >
+              <Flex>
+                {contentTypeIcon}
+                <Hide below="md">{categoryIcons}</Hide>
+                {sharedIcon}
+                {titleBox}
+                <Spacer />
+                {libraryEditorInfo}
+                <Spacer />
+                <Hide below="sm">{blurbDisplay}</Hide>
+                <Spacer />
+                {ownerInfo}
+                <Spacer />
+                <Show above="lg">{variantsDisplay}</Show>
+                {licenseBadges}
+                {showAddButton && <Spacer />}
+                {addMenu}
+              </Flex>
+            </ChakraLink>
+          ) : (
+            <Flex flexGrow={1} cursor="default">
               {contentTypeIcon}
               <Hide below="md">{categoryIcons}</Hide>
-              {/* <Hide below="lg">{categoryIcons}</Hide> */}
               {sharedIcon}
               {titleBox}
               <Spacer />
@@ -471,12 +496,11 @@ export default function Card({
               {ownerInfo}
               <Spacer />
               <Show above="lg">{variantsDisplay}</Show>
-              {/* <Hide below="xl">{licenseBadges}</Hide> */}
               {licenseBadges}
               {showAddButton && <Spacer />}
               {addMenu}
             </Flex>
-          </ChakraLink>
+          )}
           {/* Right-aligned, not main link */}
           {repeatInProblemSet}
           {menuDisplay}
