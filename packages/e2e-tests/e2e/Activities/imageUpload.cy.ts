@@ -34,7 +34,6 @@ describe("Image upload", { tags: ["@group3"] }, function () {
         .resolves();
     });
 
-    cy.get('[data-test="Card Menu Button"]').click();
     cy.get('[data-test="Copy Image Tag"]').click();
 
     cy.get("@clipboardWrite").should((stub) => {

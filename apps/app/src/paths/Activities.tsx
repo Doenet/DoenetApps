@@ -36,7 +36,7 @@ import {
   useRevalidator,
 } from "react-router";
 import axios from "axios";
-import { MdClose, MdOutlineSearch } from "react-icons/md";
+import { MdClose, MdContentCopy, MdOutlineSearch } from "react-icons/md";
 import { FaPlus } from "react-icons/fa";
 import { LuDessert } from "react-icons/lu";
 
@@ -738,9 +738,14 @@ export function Activities() {
       cardLink = editorUrl(activity.contentId, activity.type);
     }
 
-    const menuItems =
+    const inlineActions =
       activity.type === "image" ? (
-        <MenuItem
+        <Button
+          ref={getCardMenuRef}
+          size="xs"
+          variant="outline"
+          colorScheme="blue"
+          leftIcon={<MdContentCopy />}
           data-test="Copy Image Tag"
           onClick={async () => {
             const tag = `<image source="${window.location.origin}/api/media/${activity.contentId}" />`;
@@ -763,8 +768,8 @@ export function Activities() {
             }
           }}
         >
-          Copy image tag
-        </MenuItem>
+          Copy tag
+        </Button>
       ) : undefined;
 
     return {
@@ -772,7 +777,7 @@ export function Activities() {
       content: activity,
       blurb: formatAssignmentBlurb(activity),
       cardLink,
-      menuItems,
+      inlineActions,
     };
   });
 

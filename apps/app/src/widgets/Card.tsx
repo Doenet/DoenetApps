@@ -45,6 +45,8 @@ export type CardContent = {
   // This will replace `ownerName` in the avatar
   ownerAvatarName?: string;
   menuItems?: ReactElement<any>;
+  // If provided, rendered on the right of the card in place of the menu
+  inlineActions?: ReactElement<any>;
   blurb?: string;
   indentLevel?: number;
   libraryEditorName?: string;
@@ -417,22 +419,26 @@ export default function Card({
     );
 
   const menuMarginLeft = ["0em", "3em"];
-  const menuDisplay = menuItems && (
-    <Flex ml={menuMarginLeft}>
-      <Menu>
-        <MenuButton
-          data-test="Card Menu Button"
-          _focus={{ boxShadow: "outline" }}
-          ref={cardContent.menuRef}
-          aria-label={`Options menu for item ${idx + 1}: ${title}`}
-        >
-          <Flex alignItems="center">
-            <Icon color="#949494" as={FaEllipsisVertical} />
-          </Flex>
-        </MenuButton>
-        <MenuList zIndex="1000">{menuItems}</MenuList>
-      </Menu>
-    </Flex>
+  const menuDisplay = cardContent.inlineActions ? (
+    <Flex ml={menuMarginLeft}>{cardContent.inlineActions}</Flex>
+  ) : (
+    menuItems && (
+      <Flex ml={menuMarginLeft}>
+        <Menu>
+          <MenuButton
+            data-test="Card Menu Button"
+            _focus={{ boxShadow: "outline" }}
+            ref={cardContent.menuRef}
+            aria-label={`Options menu for item ${idx + 1}: ${title}`}
+          >
+            <Flex alignItems="center">
+              <Icon color="#949494" as={FaEllipsisVertical} />
+            </Flex>
+          </MenuButton>
+          <MenuList zIndex="1000">{menuItems}</MenuList>
+        </Menu>
+      </Flex>
+    )
   );
 
   return (
