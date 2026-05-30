@@ -52,6 +52,11 @@ jobs:
           role-session-name: site
           aws-region: ${{ inputs.aws_region }}
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
       - name: Build the site
         run: |
           npm ci
