@@ -30,25 +30,24 @@ describe("Share Activities Tests", function () {
       cy.get(".cm-editor").click(); // Click to ensure focus
       cy.wait(300);
       cy.get(".cm-activeLine").type("{enter}");
-      cy.wait(300);
-      cy.get(".cm-activeLine").type("{ctrl+S}");
     });
 
-    // doenetml-iframe's editor renders the viewer pane via "Update". On <=0.7.6
-    // the {ctrl+S} above already triggers it (the Update button then disables);
-    // on >=0.7.18 it does not, so the viewer stays blank and .doenet-viewer
-    // never appears until Update is clicked. force-click handles both: it
-    // renders the viewer on 0.7.18 and is a harmless no-op on the
-    // already-updated (disabled) 0.7.6 button. See issue #2957.
+    // Render the viewer. The {ctrl+S} "Update Viewer" keystroke that used to do
+    // this is not delivered reliably to the in-iframe CodeMirror under CI (the
+    // viewer stays blank and .doenet-viewer never appears), so click the Update
+    // button explicitly — the same mechanism assignmentWorkflow.cy.ts uses and
+    // which passes in CI. The button is enabled once there are unrendered edits;
+    // the doenetML auto-saves, so the later share/copy steps still see the
+    // content. See issue #2957.
     cy.getIframeBody("iframe", '[data-test="Viewer Update Button"]').within(
       () => {
-        cy.get('[data-test="Viewer Update Button"]').click({ force: true });
+        cy.get('[data-test="Viewer Update Button"]').click();
       },
     );
 
     // Verify viewer shows content
     cy.getIframeBody("iframe", ".doenet-viewer", {
-      label: "editor: viewer after save",
+      label: "editor: viewer after update",
     }).within(() => {
       cy.get(".doenet-viewer").should(
         "contain.text",
