@@ -18,7 +18,9 @@ describe("Create Content Tests", { tags: ["@group3"] }, function () {
     );
     cy.get('[data-test="Editable Title"]').type("Document 1{enter}");
 
-    cy.iframe().find(".doenet-viewer").should("exist");
+    // Wait well past DoenetML #1244's core-boot watchdog/retry window (3 × 15s)
+    // so a stalled-but-recovering handshake has time to render. See #2957.
+    cy.iframe().find(".doenet-viewer", { timeout: 60000 }).should("exist");
 
     cy.go("back");
     cy.get(`[data-test="Content Card"]`).should("have.length", 1);

@@ -283,8 +283,8 @@ Cypress.Commands.add(
   "renderDoenetEditorViewer",
   ({
     iframeSelector = "iframe",
-    maxClicks = 10,
-    interval = 2000,
+    maxClicks = 30, // ~60s total — must exceed DoenetML #1244's core-boot
+    interval = 2000, // watchdog/retry window (3 × 15s) so we see its recovery
   }: {
     iframeSelector?: string;
     maxClicks?: number;
@@ -343,6 +343,7 @@ Cypress.Commands.add(
               .prop("disabled"),
             nestedIframes: $body.find("iframe").length,
             errorEls: $body.find('[class*="error"]').length,
+            reloadError: /reload the page/i.test($body.text()), // #1244 boot give-up?
             renderEditorFn: typeof win.renderDoenetEditorToContainer, // bundle ran?
             renderViewerFn: typeof win.renderDoenetViewerToContainer,
             returnDiagnostics: typeof win.returnDiagnostics1, // core inited?
