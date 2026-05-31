@@ -395,7 +395,8 @@ Cypress.Commands.add(
     iframeSelector = "iframe",
     checksPerAttempt = 24, // ~48s/attempt — covers DoenetML #1244's core-boot
     interval = 2000, //       watchdog/retry window (3 × 15s) before we reload
-    maxReloads = 2,
+    maxReloads = 4, //        up to 5 boot attempts; CI usually recovers in 1-2
+    //                        reloads, so 4 is generous headroom, not the norm
   }: {
     iframeSelector?: string;
     checksPerAttempt?: number;
