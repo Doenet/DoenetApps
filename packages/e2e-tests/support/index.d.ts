@@ -94,6 +94,20 @@ declare global {
       ): Chainable<HTMLBodyElement>;
 
       /**
+       * Render the DoenetEditor's viewer pane by clicking its "Update" button,
+       * retrying the click until the viewer actually shows content. The editor
+       * loads from the CDN and can be slow to become interactive under CI load,
+       * so a single Update click is sometimes a no-op that leaves the viewer
+       * blank (issue #2957). Use this before asserting on `.doenet-viewer` after
+       * editing in the document editor.
+       */
+      renderDoenetEditorViewer(options?: {
+        iframeSelector?: string;
+        maxClicks?: number;
+        interval?: number;
+      }): Chainable<void>;
+
+      /**
        * Assert dismiss overlay appears for an open menu, click it,
        * then assert the menu (and optionally tooltip) is closed.
        */

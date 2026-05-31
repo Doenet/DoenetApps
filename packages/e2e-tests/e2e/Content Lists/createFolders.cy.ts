@@ -71,10 +71,10 @@ describe("Create Folders Tests", { tags: ["@group3"] }, function () {
     cy.wait(200);
 
     cy.iframe().find(".cm-activeLine").type(`Hello${code}!{enter}`);
-    cy.wait(200);
 
-    cy.iframe().find('[data-test="Viewer Update Button"]').click();
-    cy.wait(200);
+    // Retry the editor's Update click until the viewer renders — a single click
+    // can be a no-op under CI load and leave the viewer blank. See issue #2957.
+    cy.renderDoenetEditorViewer();
     cy.iframe().find(".doenet-viewer").should("contain.text", `Hello${code}!`);
 
     cy.loginAsTestUser({

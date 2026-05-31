@@ -32,18 +32,12 @@ describe("Share Activities Tests", function () {
       cy.get(".cm-activeLine").type("{enter}");
     });
 
-    // Render the viewer. The {ctrl+S} "Update Viewer" keystroke that used to do
-    // this is not delivered reliably to the in-iframe CodeMirror under CI (the
-    // viewer stays blank and .doenet-viewer never appears), so click the Update
-    // button explicitly — the same mechanism assignmentWorkflow.cy.ts uses and
-    // which passes in CI. The button is enabled once there are unrendered edits;
-    // the doenetML auto-saves, so the later share/copy steps still see the
-    // content. See issue #2957.
-    cy.getIframeBody("iframe", '[data-test="Viewer Update Button"]').within(
-      () => {
-        cy.get('[data-test="Viewer Update Button"]').click();
-      },
-    );
+    // Render the editor's viewer pane. The {ctrl+S} "Update Viewer" keystroke
+    // isn't delivered reliably to the in-iframe CodeMirror under CI, and even a
+    // single Update click can be a no-op while the CDN editor is still becoming
+    // interactive — so retry Update until the viewer renders. The doenetML
+    // auto-saves, so the later share/copy steps still see the content. #2957.
+    cy.renderDoenetEditorViewer();
 
     // Verify viewer shows content
     cy.getIframeBody("iframe", ".doenet-viewer", {

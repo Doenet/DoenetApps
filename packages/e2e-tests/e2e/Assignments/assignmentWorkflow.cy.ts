@@ -38,7 +38,9 @@ describe("Assignment workflow Tests", function () {
         .find(".cm-activeLine")
         .type('<m>x+x =</m> <answer name="ans">2x</answer>{enter}');
 
-      cy.iframe().find('[data-test="Viewer Update Button"]').click();
+      // Retry Update until the viewer renders (single click can no-op under CI
+      // load). See issue #2957.
+      cy.renderDoenetEditorViewer();
 
       cy.iframe()
         .find(".doenet-viewer")

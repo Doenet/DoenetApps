@@ -280,6 +280,50 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add(
+  "renderDoenetEditorViewer",
+  ({
+    iframeSelector = "iframe",
+    maxClicks = 10,
+    interval = 2000,
+  }: {
+    iframeSelector?: string;
+    maxClicks?: number;
+    interval?: number;
+  } = {}) => {
+    // Render the DoenetEditor's viewer pane. The viewer only refreshes when the
+    // "Update" button is clicked, and under CI load the editor/viewer (loaded
+    // from the CDN) may not be interactive when we click, so a single click can
+    // be a no-op that leaves the viewer blank — the load-dependent flake behind
+    // issue #2957 (it bit sharingActivities @brittle1 and the gating
+    // createFolders @group3 spec). Re-click Update until the viewer pane
+    // actually renders non-empty content.
+    const clickUpdateUntilRendered = (clicksLeft: number) => {
+      cy.getIframeBody(iframeSelector).then((bodyEl) => {
+        const $body = Cypress.$(bodyEl);
+        const $viewer = $body.find(".doenet-viewer");
+        if ($viewer.length > 0 && $viewer.text().trim().length > 0) {
+          return; // viewer has rendered content — done
+        }
+        if (clicksLeft <= 0) {
+          throw new Error(
+            `DoenetEditor viewer never rendered content after ${maxClicks} Update clicks`,
+          );
+        }
+        const $btn = $body.find('[data-test="Viewer Update Button"]');
+        if ($btn.length > 0) {
+          // force:true so a transiently-disabled button doesn't stall us; if
+          // it's a no-op we simply try again on the next pass.
+          cy.wrap($btn, { log: false }).click({ force: true });
+        }
+        cy.wait(interval);
+        clickUpdateUntilRendered(clicksLeft - 1);
+      });
+    };
+    clickUpdateUntilRendered(maxClicks);
+  },
+);
+
+Cypress.Commands.add(
   "dismissMenuByOverlay",
   /**
    * Shared assertion + action for iframe-dismiss flows:
