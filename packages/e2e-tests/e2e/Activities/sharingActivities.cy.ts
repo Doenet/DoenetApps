@@ -23,6 +23,10 @@ describe("Share Activities Tests", function () {
       `My new activity${code}{enter}`,
     );
 
+    // Wait for the editor to be ready (core worker booted) before typing, so a
+    // reload-on-stall can't discard typed text. Handles the #2957 boot stall.
+    cy.ensureDoenetEditorReady();
+
     // Edit content via cy.iframe() (same access path as the passing
     // createFolders/assignmentWorkflow specs — typing through
     // getIframeBody().within() did not reliably commit to the editor model

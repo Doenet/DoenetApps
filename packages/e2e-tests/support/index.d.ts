@@ -108,6 +108,19 @@ declare global {
       }): Chainable<void>;
 
       /**
+       * Editor-ready gate: wait for the DoenetEditor's viewer pane to render
+       * (the core worker has booted); if it stalls or shows the "reload the
+       * page" give-up, reload the page and retry. Call AFTER opening the editor
+       * and BEFORE typing. See issue #2957.
+       */
+      ensureDoenetEditorReady(options?: {
+        iframeSelector?: string;
+        checksPerAttempt?: number;
+        interval?: number;
+        maxReloads?: number;
+      }): Chainable<void>;
+
+      /**
        * Assert dismiss overlay appears for an open menu, click it,
        * then assert the menu (and optionally tooltip) is closed.
        */

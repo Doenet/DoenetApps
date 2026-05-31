@@ -68,7 +68,9 @@ describe("Create Folders Tests", { tags: ["@group3"] }, function () {
       "Shared activity{enter}",
     );
 
-    cy.wait(200);
+    // Wait for the editor to be ready (core worker booted) before typing, so a
+    // reload-on-stall can't discard typed text. Handles the #2957 boot stall.
+    cy.ensureDoenetEditorReady();
 
     cy.iframe().find(".cm-activeLine").type(`Hello${code}!{enter}`);
 

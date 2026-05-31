@@ -390,6 +390,56 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add(
+  "ensureDoenetEditorReady",
+  ({
+    iframeSelector = "iframe",
+    checksPerAttempt = 24, // ~48s/attempt — covers DoenetML #1244's core-boot
+    interval = 2000, //       watchdog/retry window (3 × 15s) before we reload
+    maxReloads = 2,
+  }: {
+    iframeSelector?: string;
+    checksPerAttempt?: number;
+    interval?: number;
+    maxReloads?: number;
+  } = {}) => {
+    // Editor-ready gate. The editor's viewer pane only renders once the core
+    // worker boots; under CI load that boot can stall. DoenetML #1244 watchdogs
+    // + retries the boot (~15-45s) and, if it still can't come up, surfaces a
+    // "reload the page" error. A fresh page load almost always boots cleanly, so
+    // on a stall (or that error) we reload and wait again. Call this AFTER
+    // opening the editor and BEFORE typing, so the editor is reactive and a
+    // reload never discards typed-but-unsaved content. See issue #2957.
+    const attempt = (checksLeft: number, reloadsLeft: number) => {
+      cy.getIframeBody(iframeSelector).then((bodyEl) => {
+        const $b = Cypress.$(bodyEl);
+        if ($b.find(".doenet-viewer").length > 0) {
+          return; // viewer rendered — editor (and its core worker) is up
+        }
+        const gaveUp = /reload the page/i.test($b.text()); // #1244 boot give-up
+        if (!gaveUp && checksLeft > 0) {
+          cy.wait(interval);
+          attempt(checksLeft - 1, reloadsLeft);
+          return;
+        }
+        if (reloadsLeft > 0) {
+          cy.task(
+            "log",
+            `DOENET_EDITOR_RELOAD gaveUp=${gaveUp} reloadsLeft=${reloadsLeft - 1}`,
+          );
+          cy.reload();
+          attempt(checksPerAttempt, reloadsLeft - 1);
+          return;
+        }
+        throw new Error(
+          "DoenetEditor viewer never rendered, even after reloads — core worker could not boot",
+        );
+      });
+    };
+    attempt(checksPerAttempt, maxReloads);
+  },
+);
+
+Cypress.Commands.add(
   "dismissMenuByOverlay",
   /**
    * Shared assertion + action for iframe-dismiss flows:

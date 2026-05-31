@@ -18,9 +18,9 @@ describe("Create Content Tests", { tags: ["@group3"] }, function () {
     );
     cy.get('[data-test="Editable Title"]').type("Document 1{enter}");
 
-    // Wait well past DoenetML #1244's core-boot watchdog/retry window (3 × 15s)
-    // so a stalled-but-recovering handshake has time to render. See #2957.
-    cy.iframe().find(".doenet-viewer", { timeout: 60000 }).should("exist");
+    // The editor's viewer renders only once the core worker boots, which can
+    // stall under CI load; reload-and-retry until it's up. See issue #2957.
+    cy.ensureDoenetEditorReady();
 
     cy.go("back");
     cy.get(`[data-test="Content Card"]`).should("have.length", 1);
