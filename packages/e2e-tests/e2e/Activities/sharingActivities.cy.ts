@@ -23,13 +23,13 @@ describe("Share Activities Tests", function () {
       `My new activity${code}{enter}`,
     );
 
-    // Edit content - wait for editor to be ready before typing
+    // Edit content. Type the math but let CodeMirror auto-close the <m> tag —
+    // typing a literal </m> on top of the auto-closed one races under CI load
+    // and yields malformed `<m>x</m></m>`, which the viewer silently fails to
+    // render (blank pane, no .doenet-viewer). {end} moves past the auto-closed
+    // tag before the newline. See issue #2957.
     cy.getIframeBody("iframe", ".cm-activeLine").within(() => {
-      cy.get(".cm-activeLine").type("Hello there! <m>x</m>");
-      cy.wait(500); // Wait for text to be set
-      cy.get(".cm-editor").click(); // Click to ensure focus
-      cy.wait(300);
-      cy.get(".cm-activeLine").type("{enter}");
+      cy.get(".cm-activeLine").type("Hello there! <m>x{end}{enter}");
     });
 
     // Render the editor's viewer pane. The {ctrl+S} "Update Viewer" keystroke
