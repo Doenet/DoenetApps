@@ -6,6 +6,12 @@ require_once "db_connection.php";
 require_once "permissionsAndSettingsFunction.php";
 error_reporting(E_ERROR | E_PARSE);
 
+//Initialize $settings before assigning properties below.
+//Required on PHP 8+, where writing a property on an undefined variable
+//is a fatal Error ("Attempt to assign property on null"); on PHP 7.4 it
+//was only a warning. doenet.org runs PHP 8, so without this the
+//getCoursePermissionsAndSettings endpoint 500s and /courses breaks.
+$settings = new stdClass();
 
 $settings->key = $ini_array['key'];
 use \Firebase\JWT\JWT;
