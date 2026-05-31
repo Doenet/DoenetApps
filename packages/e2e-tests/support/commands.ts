@@ -234,31 +234,146 @@ Cypress.Commands.add("getUserInfo", () => {
   });
 });
 
-Cypress.Commands.add("getIframeBody", (iframeSelector, waitSelector = null) => {
-  return (
-    cy
-      .get(iframeSelector, { log: false })
-      // 1. ANCHOR: We keep the subject as the <iframe> element, not the body.
-      // The .should() will retry against the iframe element until the callback passes.
-      .should(($iframe) => {
-        // We use jQuery to look inside the iframe without changing the Cypress subject
-        const $body = $iframe.contents().find("body");
+Cypress.Commands.add(
+  "getIframeBody",
+  (
+    iframeSelector,
+    waitSelector = null,
+    { timeout = 30000, label }: { timeout?: number; label?: string } = {},
+  ) => {
+    // DoenetML viewer iframes (engine bundle + MathJax typesetting) routinely
+    // take well over the 10s default to render on a loaded CI runner, and the
+    // iframe can re-mount when its `doenetML` prop changes. We use a generous
+    // timeout so the .should() keeps re-querying — re-acquiring a fresh <iframe>
+    // element on each retry — until the content is actually present, instead of
+    // timing out on a slow-but-healthy render. `label` names the call site so a
+    // CI failure says *which* getIframeBody timed out. See issue #2957.
+    const where = label ? ` [${label}]` : "";
+    return (
+      cy
+        .get(iframeSelector, { log: false, timeout })
+        // 1. ANCHOR: We keep the subject as the <iframe> element, not the body.
+        // The .should() will retry against the iframe element until the callback passes.
+        .should(($iframe) => {
+          // We use jQuery to look inside the iframe without changing the Cypress subject
+          const $body = $iframe.contents().find("body");
 
-        // Check 1: Body must exist
-        if ($body.length === 0) {
-          throw new Error("Iframe body is empty or not yet loaded");
-        }
+          // Check 1: Body must exist
+          if ($body.length === 0) {
+            throw new Error(
+              `Iframe "${iframeSelector}" body is empty or not yet loaded${where}`,
+            );
+          }
 
-        // Check 2: If we are waiting for a specific element, it must exist
-        if (waitSelector && $body.find(waitSelector).length === 0) {
-          throw new Error(`Element "${waitSelector}" not yet found in iframe`);
+          // Check 2: If we are waiting for a specific element, it must exist
+          if (waitSelector && $body.find(waitSelector).length === 0) {
+            throw new Error(
+              `Element "${waitSelector}" not yet found in iframe "${iframeSelector}"${where}`,
+            );
+          }
+        })
+        // 2. FETCH: Only once the above passes (stable), do we grab the body
+        .its("0.contentDocument.body", { log: false, timeout })
+        .then(cy.wrap) as Cypress.Chainable<HTMLBodyElement>
+    );
+  },
+);
+
+Cypress.Commands.add(
+  "renderDoenetEditorViewer",
+  ({
+    iframeSelector = "iframe",
+    maxClicks = 10,
+    interval = 2000,
+  }: {
+    iframeSelector?: string;
+    maxClicks?: number;
+    interval?: number;
+  } = {}) => {
+    // Render the DoenetEditor's viewer pane. The viewer only refreshes when the
+    // "Update" button is clicked, and under CI load the editor/viewer (loaded
+    // from the CDN) may not be interactive when we click, so a single click can
+    // be a no-op that leaves the viewer blank — the load-dependent flake behind
+    // issue #2957 (it bit sharingActivities @brittle1 and the gating
+    // createFolders @group3 spec). Re-click Update until the viewer pane
+    // actually renders non-empty content.
+    const clickUpdateUntilRendered = (clicksLeft: number) => {
+      cy.getIframeBody(iframeSelector).then((bodyEl) => {
+        const $body = Cypress.$(bodyEl);
+        const $viewer = $body.find(".doenet-viewer");
+        if ($viewer.length > 0 && $viewer.text().trim().length > 0) {
+          return; // viewer has rendered content — done
         }
-      })
-      // 2. FETCH: Only once the above passes (stable), do we grab the body
-      .its("0.contentDocument.body", { log: false })
-      .then(cy.wrap) as Cypress.Chainable<HTMLBodyElement>
-  );
-});
+        if (clicksLeft <= 0) {
+          // Capture a rich diagnostic of the stalled editor before failing, to
+          // distinguish a slow/incomplete CDN fetch — INCLUDING the dynamically
+          // imported renderer chunks, which load after the main bundle — from an
+          // engine render race (bundle loaded + fetches done, but the viewer
+          // never renders, leaving .doenet-loading and no .doenet-viewer). #2957
+          const el = $body.get(0) as HTMLElement;
+          const win = el.ownerDocument.defaultView as unknown as Window &
+            Record<string, unknown>;
+          const res = (win.performance.getEntriesByType("resource") ||
+            []) as PerformanceResourceTiming[];
+          const short = (n: string) =>
+            n.replace("https://cdn.jsdelivr.net", "").split("?")[0];
+          const cdn = res.filter((e) =>
+            /jsdelivr|mathjax|standalone|doenet/i.test(e.name),
+          );
+          const diag = {
+            doenetViewer: $viewer.length,
+            doenetViewerText: $viewer.text().trim().slice(0, 60),
+            doenetLoading: $body.find(".doenet-loading").length, // init stalled?
+            cmEditor: $body.find(".cm-editor").length, // editor mounted?
+            updateBtnDisabled: $body
+              .find('[data-test="Viewer Update Button"]')
+              .prop("disabled"),
+            nestedIframes: $body.find("iframe").length,
+            errorEls: $body.find('[class*="error"]').length,
+            renderEditorFn: typeof win.renderDoenetEditorToContainer, // bundle ran?
+            renderViewerFn: typeof win.renderDoenetViewerToContainer,
+            returnDiagnostics: typeof win.returnDiagnostics1, // core inited?
+            totalResources: res.length,
+            cdnCount: cdn.length,
+            cdnIncomplete: cdn
+              .filter((e) => e.responseEnd === 0)
+              .map((e) => short(e.name)),
+            slowResources: res
+              .filter((e) => e.duration > 2000)
+              .map((e) => `${Math.round(e.duration)}ms ${short(e.name)}`),
+            cdnTimings: cdn.map(
+              (e) =>
+                `${Math.round(e.duration)}ms end=${Math.round(e.responseEnd)} ${short(e.name)}`,
+            ),
+            bodyHtml: ($body.html() || "").replace(/\s+/g, " ").slice(0, 500),
+          };
+          cy.task(
+            "log",
+            `##### DOENET_RENDER_STALL\n${JSON.stringify(diag, null, 1)}\n##### END DOENET_RENDER_STALL`,
+          );
+          cy.then(() => {
+            throw new Error(
+              `DoenetEditor viewer never rendered after ${maxClicks} Update clicks — see DOENET_RENDER_STALL diagnostic`,
+            );
+          });
+          return;
+        }
+        const $btn = $body.find('[data-test="Viewer Update Button"]');
+        if ($btn.length > 0) {
+          // Click via cypress-iframe so Cypress runs its full event simulation
+          // (which reliably triggers the React onClick). force-clicking a
+          // cy.wrap()-ed jQuery handle did NOT trigger the update under CI load.
+          cy.iframe(iframeSelector)
+            .find('[data-test="Viewer Update Button"]')
+            .click({ force: true });
+        }
+        cy.wait(interval);
+        clickUpdateUntilRendered(clicksLeft - 1);
+      });
+    };
+    clickUpdateUntilRendered(maxClicks);
+  },
+);
 
 Cypress.Commands.add(
   "dismissMenuByOverlay",
