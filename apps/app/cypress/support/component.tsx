@@ -8,6 +8,17 @@ Cypress.on("uncaught:exception", (err) => {
   if (err.message?.includes("Typesetting failed")) {
     return false; // Suppress the error
   }
+  // Suppress the Vite dev-server dependency-reoptimization artifact. When a spec
+  // first imports a heavy dep (e.g. math-expressions via AnswerResponseDrawer),
+  // Vite can re-optimize and full-reload the page, which aborts the in-flight
+  // dynamic import of the Cypress support file and surfaces as "Failed to fetch
+  // dynamically imported module: .../support/component.tsx" reported "outside of
+  // a test". optimizeDeps.include (cypress.config.ts) makes this rare, but it can
+  // still race under CI load. It is purely a dev-server artifact — never a
+  // product bug — so suppress it here as a safety net. See issue #2957.
+  if (/Failed to fetch dynamically imported module/i.test(err.message ?? "")) {
+    return false; // Suppress the error
+  }
   // Let other errors fail the test
   return true;
 });
