@@ -305,9 +305,58 @@ Cypress.Commands.add(
           return; // viewer has rendered content — done
         }
         if (clicksLeft <= 0) {
-          throw new Error(
-            `DoenetEditor viewer never rendered content after ${maxClicks} Update clicks`,
+          // Capture a rich diagnostic of the stalled editor before failing, to
+          // distinguish a slow/incomplete CDN fetch — INCLUDING the dynamically
+          // imported renderer chunks, which load after the main bundle — from an
+          // engine render race (bundle loaded + fetches done, but the viewer
+          // never renders, leaving .doenet-loading and no .doenet-viewer). #2957
+          const el = $body.get(0) as HTMLElement;
+          const win = el.ownerDocument.defaultView as unknown as Window &
+            Record<string, unknown>;
+          const res = (win.performance.getEntriesByType("resource") ||
+            []) as PerformanceResourceTiming[];
+          const short = (n: string) =>
+            n.replace("https://cdn.jsdelivr.net", "").split("?")[0];
+          const cdn = res.filter((e) =>
+            /jsdelivr|mathjax|standalone|doenet/i.test(e.name),
           );
+          const diag = {
+            doenetViewer: $viewer.length,
+            doenetViewerText: $viewer.text().trim().slice(0, 60),
+            doenetLoading: $body.find(".doenet-loading").length, // init stalled?
+            cmEditor: $body.find(".cm-editor").length, // editor mounted?
+            updateBtnDisabled: $body
+              .find('[data-test="Viewer Update Button"]')
+              .prop("disabled"),
+            nestedIframes: $body.find("iframe").length,
+            errorEls: $body.find('[class*="error"]').length,
+            renderEditorFn: typeof win.renderDoenetEditorToContainer, // bundle ran?
+            renderViewerFn: typeof win.renderDoenetViewerToContainer,
+            returnDiagnostics: typeof win.returnDiagnostics1, // core inited?
+            totalResources: res.length,
+            cdnCount: cdn.length,
+            cdnIncomplete: cdn
+              .filter((e) => e.responseEnd === 0)
+              .map((e) => short(e.name)),
+            slowResources: res
+              .filter((e) => e.duration > 2000)
+              .map((e) => `${Math.round(e.duration)}ms ${short(e.name)}`),
+            cdnTimings: cdn.map(
+              (e) =>
+                `${Math.round(e.duration)}ms end=${Math.round(e.responseEnd)} ${short(e.name)}`,
+            ),
+            bodyHtml: ($body.html() || "").replace(/\s+/g, " ").slice(0, 500),
+          };
+          cy.task(
+            "log",
+            `##### DOENET_RENDER_STALL\n${JSON.stringify(diag, null, 1)}\n##### END DOENET_RENDER_STALL`,
+          );
+          cy.then(() => {
+            throw new Error(
+              `DoenetEditor viewer never rendered after ${maxClicks} Update clicks — see DOENET_RENDER_STALL diagnostic`,
+            );
+          });
+          return;
         }
         const $btn = $body.find('[data-test="Viewer Update Button"]');
         if ($btn.length > 0) {

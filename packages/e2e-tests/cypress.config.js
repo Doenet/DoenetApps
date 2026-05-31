@@ -43,10 +43,10 @@ export default defineConfig({
 
       addAccessibilityTasks(on);
 
-      // TEMP (issue #2957 CDN diagnostic): prints to the CI job stdout.
+      // Diagnostic helper (issue #2957): prints a message to the CI job stdout.
       on("task", {
         log(message) {
-          // eslint-disable-next-line no-console
+          // eslint-disable-next-line no-undef
           console.log(message);
           return null;
         },
