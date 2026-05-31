@@ -1,11 +1,18 @@
 /// <reference path="./component.d.ts" />
 
 // Handle MathJax async typesetting errors that aren't critical for tests.
-// MathJax appears to crash if you navigate away while it is typesetting,
-// so we suppress those errors here rather than adding waits in each test.
+// MathJax appears to crash if a component unmounts / the spec ends while it is
+// still typesetting, so we suppress those errors here rather than adding waits
+// in each test. The crash surfaces with several messages, e.g. "Typesetting
+// failed" or "undefined is not an object (evaluating 'a.shift')", and often
+// "outside of a test" (during teardown) — so match on the MathJax CDN bundle in
+// the stack as well as the known messages. See issue #2957.
 Cypress.on("uncaught:exception", (err) => {
-  // Suppress MathJax typesetting errors
-  if (err.message?.includes("Typesetting failed")) {
+  const fromMathJax =
+    err.message?.includes("Typesetting failed") ||
+    /mathjax|tex-svg/i.test(err.stack ?? "") ||
+    /mathjax|tex-svg/i.test(err.message ?? "");
+  if (fromMathJax) {
     return false; // Suppress the error
   }
   // Let other errors fail the test
