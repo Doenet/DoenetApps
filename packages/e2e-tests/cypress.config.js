@@ -43,6 +43,15 @@ export default defineConfig({
 
       addAccessibilityTasks(on);
 
+      // TEMP (issue #2957 CDN diagnostic): prints to the CI job stdout.
+      on("task", {
+        log(message) {
+          // eslint-disable-next-line no-console
+          console.log(message);
+          return null;
+        },
+      });
+
       // on("task", {
       //   queryDb: (query) => {
       //     return queryTestDb(query, config);
