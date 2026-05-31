@@ -311,9 +311,12 @@ Cypress.Commands.add(
         }
         const $btn = $body.find('[data-test="Viewer Update Button"]');
         if ($btn.length > 0) {
-          // force:true so a transiently-disabled button doesn't stall us; if
-          // it's a no-op we simply try again on the next pass.
-          cy.wrap($btn, { log: false }).click({ force: true });
+          // Click via cypress-iframe so Cypress runs its full event simulation
+          // (which reliably triggers the React onClick). force-clicking a
+          // cy.wrap()-ed jQuery handle did NOT trigger the update under CI load.
+          cy.iframe(iframeSelector)
+            .find('[data-test="Viewer Update Button"]')
+            .click({ force: true });
         }
         cy.wait(interval);
         clickUpdateUntilRendered(clicksLeft - 1);
