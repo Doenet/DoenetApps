@@ -154,6 +154,11 @@ function DocumentEditor({
 
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
+  // CI can pin the DoenetML engine version (e.g. to a dev release under test for
+  // the render-stall fix) via VITE_DOENETML_VERSION; defaults to the content's
+  // version everywhere else, so dev/prod are unchanged. See issue #2957.
+  const editorDoenetmlVersion =
+    import.meta.env.VITE_DOENETML_VERSION || doenetmlVersion.fullVersion;
 
   return (
     <DoenetEditor
@@ -175,7 +180,7 @@ function DocumentEditor({
         }
         documentStructureChanged.current = true;
       }}
-      doenetmlVersion={doenetmlVersion.fullVersion}
+      doenetmlVersion={editorDoenetmlVersion}
       initialWarnings={initialWarnings}
       border="none"
       readOnly={readOnly}

@@ -302,6 +302,19 @@ Cypress.Commands.add(
         const $body = Cypress.$(bodyEl);
         const $viewer = $body.find(".doenet-viewer");
         if ($viewer.length > 0 && $viewer.text().trim().length > 0) {
+          // (verification #2957) confirm which @doenet/standalone version loaded
+          const okEl = $body.get(0) as HTMLElement;
+          const okWin = okEl.ownerDocument.defaultView as unknown as Window &
+            Record<string, unknown>;
+          const sa = (
+            okWin.performance.getEntriesByType(
+              "resource",
+            ) as PerformanceResourceTiming[]
+          ).find((e) => /doenet-standalone\.js/.test(e.name));
+          cy.task(
+            "log",
+            `DOENET_STANDALONE_OK ${sa ? sa.name : "(url not found)"}`,
+          );
           return; // viewer has rendered content — done
         }
         if (clicksLeft <= 0) {
