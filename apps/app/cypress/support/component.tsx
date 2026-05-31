@@ -1,49 +1,11 @@
 /// <reference path="./component.d.ts" />
 
-// MathJax (v4, loaded from the CDN) crashes if a component unmounts — between
-// tests or at spec end — while it is still typesetting. It throws asynchronously
-// with no usable stack and a minified message like "undefined is not an object
-// (evaluating 'a.shift')", reported by Cypress "outside of a test". Such errors
-// CANNOT be reliably caught by `uncaught:exception`: the message carries no
-// MathJax marker, so the only matcher that would catch it is one broad enough to
-// swallow real bugs too. (We learned this the hard way in the DoenetML repo —
-// every catch we tried still let these slip through.) So instead of suppressing,
-// we PREVENT them: drain MathJax's typeset queue before each teardown so it is
-// never mid-typeset when the DOM is torn down. See issue #2957.
-//
-// better-react-mathjax chains every typeset onto window.MathJax.startup.promise,
-// so awaiting that promise waits for all queued typesetting to finish.
-afterEach(() => {
-  cy.window({ log: false }).then((win) => {
-    const mj = (
-      win as unknown as {
-        MathJax?: { startup?: { promise?: Promise<unknown> } };
-      }
-    ).MathJax;
-    const pending = mj?.startup?.promise;
-    if (pending) {
-      // Resolve our own promise off it so a rejected typeset can't fail the
-      // test; we only need to wait for the queue to settle before teardown.
-      return new Cypress.Promise<void>((resolve) => {
-        Promise.resolve(pending).then(
-          () => resolve(),
-          () => resolve(),
-        );
-      });
-    }
-    return undefined;
-  });
-});
-
-// Narrow fallback: only the MathJax error variants that DO carry an identifying
-// message (kept from the original per-test handlers). The "a.shift" variant has
-// no marker and is handled by the drain above, not here — we deliberately do NOT
-// broaden this matcher, to avoid masking genuine failures.
+// Handle MathJax async typesetting errors that aren't critical for tests.
+// MathJax appears to crash if you navigate away while it is typesetting,
+// so we suppress those errors here rather than adding waits in each test.
 Cypress.on("uncaught:exception", (err) => {
-  if (
-    err.message?.includes("Typesetting failed") ||
-    err.message?.includes("Cannot read properties of null")
-  ) {
+  // Suppress MathJax typesetting errors
+  if (err.message?.includes("Typesetting failed")) {
     return false; // Suppress the error
   }
   // Let other errors fail the test
