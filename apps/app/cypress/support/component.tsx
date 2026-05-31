@@ -32,8 +32,20 @@ import { ChakraProvider } from "@chakra-ui/react";
 import "./commands";
 import "cypress-axe";
 import "wick-a11y";
+import { MotionGlobalConfig } from "framer-motion";
 import { register as registerCypressGrep } from "@cypress/grep";
 registerCypressGrep();
+
+// Make all animations instant in component tests. Chakra menus/modals/tooltips
+// fade in via framer-motion; when `cy.checkAccessibility` runs during the
+// open-transition, the foreground text and its background both blend toward the
+// page color, so axe's color-contrast check can momentarily measure a sub-AA
+// ratio and report an intermittent, false violation (e.g. ContributorsMenu
+// "displays author menu item with activity name and owner" — issue #2957).
+// Jumping framer-motion animations straight to their final keyframe removes that
+// race for every a11y assertion. The CSS override injected in `mount` does the
+// same for plain CSS transitions/animations.
+MotionGlobalConfig.skipAnimations = true;
 
 // Configure cypress-axe to use the correct path for axe-core in monorepo
 // axe-core is installed in the root node_modules, not in client/node_modules
@@ -132,7 +144,16 @@ Cypress.Commands.add("mount", (component, options = {}) => {
 
   const router = createMemoryRouter(routesArray, routerProps as any);
 
-  const wrapped = <RouterProvider router={router} />;
+  const wrapped = (
+    <>
+      {/* Belt-and-suspenders for plain CSS transitions/animations (framer-motion
+          is handled by MotionGlobalConfig.skipAnimations): keep their end state
+          but make them instant, so axe never samples a transitional frame and
+          color-contrast checks don't flake. See issue #2957. */}
+      <style>{`*, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }`}</style>
+      <RouterProvider router={router} />
+    </>
+  );
 
   return mount(wrapped, mountOptions);
 });
