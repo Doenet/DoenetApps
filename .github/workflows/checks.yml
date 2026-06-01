@@ -179,13 +179,6 @@ jobs:
   e2e-brittle-tests:
     runs-on: ubuntu-latest
 
-    # Brittle tests are blocking again (#2957). The two flakes that made them
-    # unreliable are fixed: the DoenetML editor core-worker boot stall is handled
-    # by the ensureDoenetEditorReady reload-retry gate, and the component-test
-    # Vite chunk-load flake by optimizeDeps pre-bundling + a narrow suppression.
-    # A failure here should block the workflow_run-gated prod deploy
-    # (see prod-deploy.yml).
-
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/db
       GOOGLE_CLIENT_ID: ci-test-client-id
