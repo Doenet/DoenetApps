@@ -85,6 +85,7 @@ export type UserInfoWithEmail = UserInfo & {
   email: string | null;
   isAuthor?: boolean;
   isEditor?: boolean;
+  canUploadImages?: boolean;
 };
 
 export type ContentClassification = {
@@ -213,9 +214,17 @@ export type Folder = ContentBase & {
   children: Content[];
 };
 
+export type ImageItem = ContentBase & {
+  type: "image";
+  mimeType?: string;
+  sizeBytes?: number;
+  imageWidth?: number;
+  imageHeight?: number;
+};
+
 export type Activity = Doc | QuestionBank | ProblemSet;
 
-export type Content = Doc | QuestionBank | ProblemSet | Folder;
+export type Content = Doc | QuestionBank | ProblemSet | Folder | ImageItem;
 
 export type AssignmentInfo = {
   assignmentStatus: AssignmentStatus;

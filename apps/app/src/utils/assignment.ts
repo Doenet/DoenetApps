@@ -4,6 +4,7 @@ import { Content } from "../types";
 export function formatAssignmentBlurb(content: Content) {
   if (
     content.type === "folder" ||
+    content.type === "image" ||
     !content.assignmentInfo?.assignmentStatus ||
     content.assignmentInfo?.assignmentStatus === "Unassigned"
   ) {

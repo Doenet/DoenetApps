@@ -209,9 +209,12 @@ export function CompoundActivityEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   function countCards(content: Content, init = true): number {
     const childCounts =
-      content.type === "singleDoc"
+      content.type === "singleDoc" || content.type === "image"
         ? 1
-        : content.children.reduce((a, c) => a + countCards(c, false), 0);
+        : content.children.reduce(
+            (a: number, c: Content) => a + countCards(c, false),
+            0,
+          );
 
     if (init) {
       // don't count the initial activity
@@ -268,9 +271,9 @@ export function CompoundActivityEditor({
       });
     }
 
-    if (content.type !== "singleDoc") {
+    if (content.type !== "singleDoc" && content.type !== "image") {
       cards.push(
-        ...content.children.flatMap((c, i) =>
+        ...content.children.flatMap((c: Content, i: number) =>
           createCardContent(c, indentLevel + 1, i, {
             contentId: content.contentId,
             parent: content.parent?.contentId,
