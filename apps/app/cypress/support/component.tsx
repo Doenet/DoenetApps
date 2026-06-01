@@ -8,6 +8,23 @@ Cypress.on("uncaught:exception", (err) => {
   if (err.message?.includes("Typesetting failed")) {
     return false; // Suppress the error
   }
+  // Suppress the Vite dev-server dependency-reoptimization artifact. When a spec
+  // first imports a heavy dep (e.g. math-expressions via AnswerResponseDrawer),
+  // Vite can re-optimize and full-reload the page, which aborts the in-flight
+  // dynamic import of the Cypress support file and surfaces as "Failed to fetch
+  // dynamically imported module: .../support/component.tsx" reported "outside of
+  // a test". optimizeDeps.include (cypress.config.ts) makes this rare, but it can
+  // still race under CI load. It is purely a dev-server artifact — never a
+  // product bug — so suppress it here as a safety net. Scope the match to the
+  // Cypress support module specifically, so a genuine failed dynamic import in
+  // product code still fails the test. See issue #2957.
+  if (
+    /Failed to fetch dynamically imported module[\s\S]*support\/component/i.test(
+      err.message ?? "",
+    )
+  ) {
+    return false; // Suppress the error
+  }
   // Let other errors fail the test
   return true;
 });
@@ -32,8 +49,20 @@ import { ChakraProvider } from "@chakra-ui/react";
 import "./commands";
 import "cypress-axe";
 import "wick-a11y";
+import { MotionGlobalConfig } from "framer-motion";
 import { register as registerCypressGrep } from "@cypress/grep";
 registerCypressGrep();
+
+// Make all animations instant in component tests. Chakra menus/modals/tooltips
+// fade in via framer-motion; when `cy.checkAccessibility` runs during the
+// open-transition, the foreground text and its background both blend toward the
+// page color, so axe's color-contrast check can momentarily measure a sub-AA
+// ratio and report an intermittent, false violation (e.g. ContributorsMenu
+// "displays author menu item with activity name and owner" — issue #2957).
+// Jumping framer-motion animations straight to their final keyframe removes that
+// race for every a11y assertion. The CSS override injected in `mount` does the
+// same for plain CSS transitions/animations.
+MotionGlobalConfig.skipAnimations = true;
 
 // Configure cypress-axe to use the correct path for axe-core in monorepo
 // axe-core is installed in the root node_modules, not in client/node_modules
@@ -132,7 +161,16 @@ Cypress.Commands.add("mount", (component, options = {}) => {
 
   const router = createMemoryRouter(routesArray, routerProps as any);
 
-  const wrapped = <RouterProvider router={router} />;
+  const wrapped = (
+    <>
+      {/* Belt-and-suspenders for plain CSS transitions/animations (framer-motion
+          is handled by MotionGlobalConfig.skipAnimations): keep their end state
+          but make them instant, so axe never samples a transitional frame and
+          color-contrast checks don't flake. See issue #2957. */}
+      <style>{`*, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }`}</style>
+      <RouterProvider router={router} />
+    </>
+  );
 
   return mount(wrapped, mountOptions);
 });

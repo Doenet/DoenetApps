@@ -33,12 +33,20 @@ describe("Assignment workflow Tests", function () {
       );
       cy.get('[data-test="Editable Title"]').type("Assignment{enter}");
 
+      // Wait for the editor to be ready (core worker booted) before typing, so a
+      // reload-on-stall can't discard typed text. Without this, a stalled boot
+      // leaves the viewer blank and clicking Update is a no-op — the failure mode
+      // that exhausted all retries in CI (see issue #2957).
+      cy.ensureDoenetEditorReady();
+
       // add answer blank
       cy.iframe()
         .find(".cm-activeLine")
         .type('<m>x+x =</m> <answer name="ans">2x</answer>{enter}');
 
-      cy.iframe().find('[data-test="Viewer Update Button"]').click();
+      // Retry Update until the viewer renders (single click can no-op under CI
+      // load). See issue #2957.
+      cy.renderDoenetEditorViewer();
 
       cy.iframe()
         .find(".doenet-viewer")

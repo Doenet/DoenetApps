@@ -43,6 +43,14 @@ export default defineConfig({
 
       addAccessibilityTasks(on);
 
+      // Diagnostic helper (issue #2957): prints a message to the CI job stdout.
+      on("task", {
+        log(message) {
+          console.log(message);
+          return null;
+        },
+      });
+
       // on("task", {
       //   queryDb: (query) => {
       //     return queryTestDb(query, config);
