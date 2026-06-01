@@ -1,4 +1,4 @@
-import { ContentType, Prisma, Visibility } from "@prisma/client";
+import { ContentType, Prisma } from "@prisma/client";
 import { prisma } from "../model";
 import { getLibraryAccountId } from "./curate";
 import {
@@ -14,6 +14,7 @@ import { getNextSortIndexForParent } from "../utils/sort";
 import { DateTime } from "luxon";
 import { getCidV1FromString } from "@doenet-tools/shared";
 import { getContent } from "./activity_edit_view";
+import { prepareNewChild } from "../content-tree";
 import { compileActivityFromContent } from "../utils/contentStructure";
 import { InvalidRequestError } from "../utils/error";
 import { ContentDescription } from "../types";
@@ -59,60 +60,16 @@ export async function createContent({
     ownerId = await getLibraryAccountId();
   }
 
-  const sortIndex = await getNextSortIndexForParent(ownerId, parentId);
+  const {
+    sortIndex,
+    isPublic,
+    visibility,
+    licenseCode,
+    sharedWith,
+    courseRootId,
+  } = await prepareNewChild({ ownerId, parentId });
 
   const { defaultDoenetmlVersion } = await getDefaultDoenetmlVersion();
-
-  let isPublic = false;
-  let visibility: Visibility = "private";
-  let licenseCode = undefined;
-  let sharedWith: Uint8Array[] = [];
-  let courseRootId: Uint8Array | null = null;
-
-  // If parent isn't `null`, check if it is shared and get its license,
-  // and make sure it isn't assigned
-  if (parentId !== null) {
-    const parent = await prisma.content.findUniqueOrThrow({
-      where: {
-        id: parentId,
-        type: { not: "singleDoc" },
-        isDeletedOn: null,
-        ownerId,
-      },
-      select: {
-        isPublic: true,
-        visibility: true,
-        licenseCode: true,
-        sharedWith: { select: { userId: true } },
-        isAssignmentRoot: true,
-        courseRootId: true,
-        parent: { select: { isAssignmentRoot: true } },
-      },
-    });
-
-    if (parent.isAssignmentRoot || parent.parent?.isAssignmentRoot) {
-      throw new InvalidRequestError(
-        "Cannot add content to an assigned activity",
-      );
-    }
-
-    courseRootId = parent.courseRootId;
-
-    if (parent.visibility !== "private") {
-      visibility = parent.visibility;
-      isPublic = parent.visibility === "public";
-      if (parent.licenseCode) {
-        licenseCode = parent.licenseCode;
-      }
-    }
-
-    if (parent.sharedWith.length > 0) {
-      sharedWith = parent.sharedWith.map((cs) => cs.userId);
-      if (parent.licenseCode) {
-        licenseCode = parent.licenseCode;
-      }
-    }
-  }
 
   if (!name) {
     switch (contentType) {
@@ -131,6 +88,13 @@ export async function createContent({
       case "folder": {
         name = "Untitled Folder";
         break;
+      }
+      case "image": {
+        // Images are created via the media module's POST /api/media/image
+        // endpoint (see src/media/imageContent.ts), not this path.
+        throw new InvalidRequestError(
+          "Use the image upload endpoint to create images",
+        );
       }
     }
   }

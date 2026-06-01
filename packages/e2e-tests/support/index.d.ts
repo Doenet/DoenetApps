@@ -13,6 +13,7 @@ declare global {
         isEditor,
         isAuthor,
         isAnonymous,
+        canUploadImages,
       }?: {
         email?: string;
         firstNames?: string;
@@ -20,6 +21,7 @@ declare global {
         isEditor?: boolean;
         isAuthor?: boolean;
         isAnonymous?: boolean;
+        canUploadImages?: boolean;
       }): Chainable<null>;
 
       /**

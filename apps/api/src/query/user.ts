@@ -14,6 +14,7 @@ export async function findOrCreateUser({
   isAuthor = false,
   isAnonymous = false,
   isPremium,
+  canUploadImages = false,
 }: {
   email: string;
   firstNames: string | null;
@@ -22,6 +23,7 @@ export async function findOrCreateUser({
   isAuthor?: boolean;
   isAnonymous?: boolean;
   isPremium?: boolean;
+  canUploadImages?: boolean;
 }): Promise<UserInfoWithEmail> {
   // For now, make any non-anonymous user a premium user
   // We'll change this once we have the UI for non-premium users working
@@ -42,6 +44,7 @@ export async function findOrCreateUser({
       isAnonymous,
       isPremium,
       isAuthor,
+      canUploadImages,
     },
   });
 
@@ -89,6 +92,7 @@ export async function getMyUserInfo({
       isAnonymous: true,
       isEditor: true,
       isAuthor: true,
+      canUploadImages: true,
     },
   });
   return { user };

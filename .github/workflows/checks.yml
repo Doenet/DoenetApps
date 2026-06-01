@@ -76,6 +76,16 @@ jobs:
       matrix:
         test-group: [group1, group2, group3, group4]
 
+    services:
+      # S3-compatible mock so the image upload e2e test can put bytes
+      # somewhere. Mirrors the adobe/s3mock service in docker-compose.yml.
+      s3mock:
+        image: adobe/s3mock:latest
+        ports:
+          - 9090:9090
+        env:
+          COM_ADOBE_TESTING_S3MOCK_STORE_INITIALBUCKETS: doenet-media
+
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/db
       # OAuth environment variables for CI (dummy values for testing)
@@ -92,6 +102,13 @@ jobs:
       # Enable test features for CI
       ENABLE_TEST_AUTH_BYPASS: "true"
       ENABLE_TEST_ROUTES: "true"
+      # Media storage — points at the s3mock service above.
+      MEDIA_S3_MODE: "local"
+      MEDIA_S3_REGION: "us-east-1"
+      MEDIA_S3_BUCKET: "doenet-media"
+      MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
+      MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
+      MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
 
     steps:
       # Checkout repo
@@ -183,6 +200,15 @@ jobs:
       MOCK_SIGNIN_EMAIL: "true"
       ENABLE_TEST_AUTH_BYPASS: "true"
       ENABLE_TEST_ROUTES: "true"
+      # Media storage — local mode is fine for CI; the existing brittle tests
+      # don't actually upload images, but loadMediaConfig() must succeed at
+      # API boot so the server starts.
+      MEDIA_S3_MODE: "local"
+      MEDIA_S3_REGION: "us-east-1"
+      MEDIA_S3_BUCKET: "doenet-media"
+      MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
+      MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
+      MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
 
     strategy:
       fail-fast: false

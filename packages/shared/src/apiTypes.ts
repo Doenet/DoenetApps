@@ -41,11 +41,16 @@ export function isUserInfo(obj: unknown): obj is UserInfo {
   );
 }
 
-export type ContentType = "singleDoc" | "select" | "sequence" | "folder";
+export type ContentType =
+  | "singleDoc"
+  | "select"
+  | "sequence"
+  | "folder"
+  | "image";
 
 export function isContentType(type: unknown): type is ContentType {
   return (
     typeof type === "string" &&
-    ["singleDoc", "select", "sequence", "folder"].includes(type)
+    ["singleDoc", "select", "sequence", "folder", "image"].includes(type)
   );
 }
