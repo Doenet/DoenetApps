@@ -143,10 +143,6 @@ jobs:
           echo $! > /tmp/client.pid
         env:
           NODE_ENV: production
-          # Pin the DoenetML engine to the dev release containing the
-          # editor render-stall fix (#2957). Remove once it ships in a
-          # stable @doenet/standalone release.
-          VITE_DOENETML_VERSION: 0.7.18-dev.20260531173001.ac1f679
 
       # Wait for servers to be ready
       - name: Wait for servers
@@ -259,10 +255,6 @@ jobs:
           echo $! > /tmp/client.pid
         env:
           NODE_ENV: production
-          # Pin the DoenetML engine to the dev release containing the
-          # editor render-stall fix (#2957). Remove once it ships in a
-          # stable @doenet/standalone release.
-          VITE_DOENETML_VERSION: 0.7.18-dev.20260531173001.ac1f679
 
       # Wait for servers to be ready
       - name: Wait for servers
