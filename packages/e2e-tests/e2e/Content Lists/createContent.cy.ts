@@ -18,7 +18,9 @@ describe("Create Content Tests", { tags: ["@group3"] }, function () {
     );
     cy.get('[data-test="Editable Title"]').type("Document 1{enter}");
 
-    cy.iframe().find(".doenet-viewer").should("exist");
+    // The editor's viewer renders only once the core worker boots, which can
+    // stall under CI load; reload-and-retry until it's up. See issue #2957.
+    cy.ensureDoenetEditorReady();
 
     cy.go("back");
     cy.get(`[data-test="Content Card"]`).should("have.length", 1);
