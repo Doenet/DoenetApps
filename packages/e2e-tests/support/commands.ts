@@ -285,10 +285,12 @@ Cypress.Commands.add(
     iframeSelector = "iframe",
     maxClicks = 30, // ~60s total — must exceed DoenetML #1244's core-boot
     interval = 2000, // watchdog/retry window (3 × 15s) so we see its recovery
+    label,
   }: {
     iframeSelector?: string;
     maxClicks?: number;
     interval?: number;
+    label?: string;
   } = {}) => {
     // Render the DoenetEditor's viewer pane. The viewer only refreshes when the
     // "Update" button is clicked, and under CI load the editor/viewer (loaded
@@ -296,12 +298,25 @@ Cypress.Commands.add(
     // be a no-op that leaves the viewer blank — the load-dependent flake behind
     // issue #2957 (it bit sharingActivities @brittle1 and the gating
     // createFolders @group3 spec). Re-click Update until the viewer pane
-    // actually renders non-empty content.
-    const clickUpdateUntilRendered = (clicksLeft: number) => {
+    // actually renders non-empty content. `label` names the call site so a CI
+    // failure says *which* render timed out.
+    const where = label ? ` [${label}]` : "";
+    const clickUpdateUntilRendered = (
+      clicksLeft: number,
+      hasClicked: boolean,
+    ) => {
       cy.getIframeBody(iframeSelector).then((bodyEl) => {
         const $body = Cypress.$(bodyEl);
         const $viewer = $body.find(".doenet-viewer");
-        if ($viewer.length > 0 && $viewer.text().trim().length > 0) {
+        // Only treat a populated viewer as "done" once we've actually clicked
+        // Update at least once. Otherwise, if the viewer already shows content
+        // (editing existing rather than blank content), we'd return on the very
+        // first check without ever rendering the just-typed edit. (#2957 review)
+        if (
+          hasClicked &&
+          $viewer.length > 0 &&
+          $viewer.text().trim().length > 0
+        ) {
           // (verification #2957) confirm which @doenet/standalone version loaded
           const okEl = $body.get(0) as HTMLElement;
           const okWin = okEl.ownerDocument.defaultView as unknown as Window &
@@ -367,13 +382,14 @@ Cypress.Commands.add(
           );
           cy.then(() => {
             throw new Error(
-              `DoenetEditor viewer never rendered after ${maxClicks} Update clicks — see DOENET_RENDER_STALL diagnostic`,
+              `DoenetEditor viewer never rendered after ${maxClicks} Update clicks${where} — see DOENET_RENDER_STALL diagnostic`,
             );
           });
           return;
         }
         const $btn = $body.find('[data-test="Viewer Update Button"]');
-        if ($btn.length > 0) {
+        const clickedNow = $btn.length > 0;
+        if (clickedNow) {
           // Click via cypress-iframe so Cypress runs its full event simulation
           // (which reliably triggers the React onClick). force-clicking a
           // cy.wrap()-ed jQuery handle did NOT trigger the update under CI load.
@@ -382,10 +398,10 @@ Cypress.Commands.add(
             .click({ force: true });
         }
         cy.wait(interval);
-        clickUpdateUntilRendered(clicksLeft - 1);
+        clickUpdateUntilRendered(clicksLeft - 1, hasClicked || clickedNow);
       });
     };
-    clickUpdateUntilRendered(maxClicks);
+    clickUpdateUntilRendered(maxClicks, false);
   },
 );
 
@@ -408,8 +424,10 @@ Cypress.Commands.add(
     // + retries the boot (~15-45s) and, if it still can't come up, surfaces a
     // "reload the page" error. A fresh page load almost always boots cleanly, so
     // on a stall (or that error) we reload and wait again. Call this AFTER
-    // opening the editor and BEFORE typing, so the editor is reactive and a
-    // reload never discards typed-but-unsaved content. See issue #2957.
+    // opening the editor and BEFORE typing into it, so the editor is reactive and
+    // a reload never discards typed-but-unsaved content. Any preceding title/
+    // field edits must already be committed (e.g. typed with `{enter}`), because
+    // a reload-on-stall would otherwise drop that uncommitted input. See #2957.
     const attempt = (checksLeft: number, reloadsLeft: number) => {
       cy.getIframeBody(iframeSelector).then((bodyEl) => {
         const $b = Cypress.$(bodyEl);

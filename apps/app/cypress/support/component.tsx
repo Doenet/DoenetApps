@@ -15,8 +15,14 @@ Cypress.on("uncaught:exception", (err) => {
   // dynamically imported module: .../support/component.tsx" reported "outside of
   // a test". optimizeDeps.include (cypress.config.ts) makes this rare, but it can
   // still race under CI load. It is purely a dev-server artifact — never a
-  // product bug — so suppress it here as a safety net. See issue #2957.
-  if (/Failed to fetch dynamically imported module/i.test(err.message ?? "")) {
+  // product bug — so suppress it here as a safety net. Scope the match to the
+  // Cypress support module specifically, so a genuine failed dynamic import in
+  // product code still fails the test. See issue #2957.
+  if (
+    /Failed to fetch dynamically imported module[\s\S]*support\/component/i.test(
+      err.message ?? "",
+    )
+  ) {
     return false; // Suppress the error
   }
   // Let other errors fail the test

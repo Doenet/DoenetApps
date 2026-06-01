@@ -98,20 +98,28 @@ declare global {
        * retrying the click until the viewer actually shows content. The editor
        * loads from the CDN and can be slow to become interactive under CI load,
        * so a single Update click is sometimes a no-op that leaves the viewer
-       * blank (issue #2957). Use this before asserting on `.doenet-viewer` after
-       * editing in the document editor.
+       * blank (issue #2957). Always clicks Update at least once before treating a
+       * populated viewer as rendered, so a pre-existing (pre-edit) viewer doesn't
+       * short-circuit the render of the just-typed content. Use this before
+       * asserting on `.doenet-viewer` after editing in the document editor.
+       *
+       * @param options.label name for this call site, included in the timeout
+       *   error so a CI failure identifies which render stalled
        */
       renderDoenetEditorViewer(options?: {
         iframeSelector?: string;
         maxClicks?: number;
         interval?: number;
+        label?: string;
       }): Chainable<void>;
 
       /**
        * Editor-ready gate: wait for the DoenetEditor's viewer pane to render
        * (the core worker has booted); if it stalls or shows the "reload the
        * page" give-up, reload the page and retry. Call AFTER opening the editor
-       * and BEFORE typing. See issue #2957.
+       * and BEFORE typing — and after committing any title/field edits (e.g. with
+       * `{enter}`), since a reload-on-stall discards uncommitted input. See issue
+       * #2957.
        */
       ensureDoenetEditorReady(options?: {
         iframeSelector?: string;
