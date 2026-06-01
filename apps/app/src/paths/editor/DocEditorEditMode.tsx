@@ -278,39 +278,70 @@ function DocumentEditor({
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
+  // Stable callback identities (defense in depth). @doenet/doenetml-iframe
+  // re-points its in-iframe editor whenever a function-prop identity changes;
+  // 0.7.18/0.7.19 re-initialized the editor on every such change, so passing
+  // fresh inline closures each render wedged the core worker's boot (#1244 "the
+  // document viewer could not be started"). That wrapper bug is fixed in 0.7.20,
+  // but we still hand the editor stable callbacks — it's good practice, avoids
+  // needless per-render Comlink proxy churn, and keeps us resilient to wrapper
+  // regressions. They read current values via a ref instead of taking deps
+  // (refreshSharingState in particular is recreated each render by EditorHeader).
+  const callbackEnvRef = useRef({
+    handleSaveDoc,
+    contentId,
+    doenetmlVersionId: doenetmlVersion.id,
+    refreshSharingState,
+  });
+  callbackEnvRef.current = {
+    handleSaveDoc,
+    contentId,
+    doenetmlVersionId: doenetmlVersion.id,
+    refreshSharingState,
+  };
+
+  const doenetmlChangeHandler = useCallback(() => {
+    // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
+    // when doenet ml first renders
+    // See https://github.com/Doenet/DoenetML/issues/525
+    callbackEnvRef.current.handleSaveDoc();
+  }, []);
+
+  const diagnosticsSummaryHandler = useCallback(
+    (diagnostics: Diagnostics, doenetML: string) => {
+      const env = callbackEnvRef.current;
+      handleDiagnosticsSummary(
+        env.contentId,
+        doenetML,
+        env.doenetmlVersionId,
+        diagnostics,
+        env.refreshSharingState,
+      );
+    },
+    [],
+  );
+
+  const immediateDoenetmlChangeHandler = useCallback((newDoenetML: string) => {
+    textEditorDoenetML.current = newDoenetML;
+  }, []);
+
+  const documentStructureHandler = useCallback((x: any) => {
+    if (Array.isArray(x.args?.allPossibleVariants)) {
+      numVariants.current = x.args.allPossibleVariants.length;
+    }
+    documentStructureChanged.current = true;
+  }, []);
+
   return (
     <EditorComponent
       ref={editorRef}
       height="100%"
       width="100%"
       doenetML={source}
-      doenetmlChangeCallback={() => {
-        // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
-        // when doenet ml first renders
-        // See https://github.com/Doenet/DoenetML/issues/525
-        handleSaveDoc();
-      }}
-      diagnosticsSummaryCallback={(
-        diagnostics: Diagnostics,
-        doenetML: string,
-      ) => {
-        handleDiagnosticsSummary(
-          contentId,
-          doenetML,
-          doenetmlVersion.id,
-          diagnostics,
-          refreshSharingState,
-        );
-      }}
-      immediateDoenetmlChangeCallback={(newDoenetML: string) => {
-        textEditorDoenetML.current = newDoenetML;
-      }}
-      documentStructureCallback={(x: any) => {
-        if (Array.isArray(x.args?.allPossibleVariants)) {
-          numVariants.current = x.args.allPossibleVariants.length;
-        }
-        documentStructureChanged.current = true;
-      }}
+      doenetmlChangeCallback={doenetmlChangeHandler}
+      diagnosticsSummaryCallback={diagnosticsSummaryHandler}
+      immediateDoenetmlChangeCallback={immediateDoenetmlChangeHandler}
+      documentStructureCallback={documentStructureHandler}
       initialOpenTab={initialDiagnosticsTab}
       doenetmlVersion={doenetmlVersion.fullVersion}
       initialWarnings={initialWarnings}
