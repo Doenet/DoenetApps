@@ -16,7 +16,7 @@
     "@astrojs/mdx": "^4.3.13",
     "@astrojs/react": "^4.4.2",
     "@astrojs/sitemap": "^3.7.0",
-    "@doenet/doenetml-iframe": "^0.7.6",
+    "@doenet/doenetml-iframe": "^0.7.20",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.17.1",

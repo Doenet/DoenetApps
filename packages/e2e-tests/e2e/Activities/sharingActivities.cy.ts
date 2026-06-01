@@ -53,16 +53,37 @@ describe("Share Activities Tests", function () {
       );
     });
 
+    // Public listing now requires every required category group (Scope, Mode,
+    // Setting, Duration) to be filled in; until they are, the share modal's
+    // "Save access" button stays disabled. Fill one category per required group
+    // via the API — the same precondition pattern share.cy.ts uses — so this
+    // spec stays focused on the share/copy UI rather than the category editor.
+    cy.url().then((url) => {
+      const activityId = url.match(/documentEditor\/([^/?]+)/)![1];
+      cy.request({
+        method: "POST",
+        url: "/api/updateContent/updateCategories",
+        body: {
+          contentId: activityId,
+          categories: {
+            isQuestion: true, // Scope
+            isPractice: true, // Mode
+            isIndependent: true, // Setting
+            takesLessThanFiveMinutes: true, // Duration
+          },
+        },
+      });
+    });
+
     cy.get('[data-test="Share Button"]').click();
-    cy.get('[data-test="Public Status"]').should(
-      "contain.text",
-      "Content is not public",
-    );
+    cy.contains("Current access: Private.").should("be.visible");
     cy.get('[data-test="Share Publicly Button"]').click();
-    cy.get('[data-test="Public Status"]').should(
+    cy.get('[data-test="Share Submit Button"]').should(
       "contain.text",
-      "Content is public",
+      "Save access",
     );
+    cy.get('[data-test="Share Submit Button"]').click();
+    cy.contains("Current access: Public.").should("be.visible");
 
     cy.get('[data-test="Share Close Button"]').click();
 

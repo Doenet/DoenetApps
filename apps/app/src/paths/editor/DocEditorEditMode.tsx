@@ -1,9 +1,26 @@
-import { useCallback, useEffect, useRef } from "react";
-import { useBlocker, useLoaderData, useOutletContext } from "react-router";
+import {
+  type ComponentProps,
+  type ComponentType,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  useBlocker,
+  useLoaderData,
+  useOutletContext,
+  useSearchParams,
+} from "react-router";
 import { DoenetmlVersion } from "../../types";
-import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { DoenetEditor, type DoenetEditorHandle } from "@doenet/doenetml-iframe";
 import axios, { AxiosError } from "axios";
 import { EditorContext } from "./EditorHeader";
+import {
+  editorDiagnosticsSearchParam,
+  type EditorDiagnosticsTab,
+} from "../../utils/url";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -20,8 +37,30 @@ export async function loader({ params }: { params: any }) {
  * This page allows you to edit your doenetml and save it to the server.
  * Context: `documentEditor`
  */
+type EditorComponent = ComponentType<ComponentProps<typeof DoenetEditor>>;
+
+type DiagnosticsPanelRequest = {
+  diagnosticsTab: EditorDiagnosticsTab;
+  requestId: number;
+};
+
+export interface DocEditorEditModeComponentProps {
+  contentId: string;
+  source: string;
+  readOnly: boolean;
+  doenetmlVersion: DoenetmlVersion;
+  editorComponent?: EditorComponent;
+  registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
+  refreshSharingState?: () => void;
+}
+
 export function DocEditorEditMode() {
-  const { contentId, assignmentStatus } = useOutletContext<EditorContext>();
+  const {
+    contentId,
+    assignmentStatus,
+    beforeShareModalOpens: registerBeforeShareModalOpens,
+    refreshSharingState,
+  } = useOutletContext<EditorContext>();
   const readOnly = assignmentStatus !== "Unassigned";
 
   const { source, doenetmlVersion } = useLoaderData() as {
@@ -30,11 +69,70 @@ export function DocEditorEditMode() {
   };
 
   return (
+    <DocEditorEditModeComponent
+      contentId={contentId}
+      source={source}
+      readOnly={readOnly}
+      doenetmlVersion={doenetmlVersion}
+      registerBeforeShareModalOpens={registerBeforeShareModalOpens}
+      refreshSharingState={refreshSharingState}
+    />
+  );
+}
+
+export function DocEditorEditModeComponent({
+  contentId,
+  source,
+  readOnly,
+  doenetmlVersion,
+  editorComponent,
+  registerBeforeShareModalOpens,
+  refreshSharingState,
+}: DocEditorEditModeComponentProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initialDiagnosticsTab] = useState<EditorDiagnosticsTab | undefined>(
+    () => getRequestedDiagnosticsTab(searchParams) ?? undefined,
+  );
+  const [diagnosticsPanelRequest, setDiagnosticsPanelRequest] =
+    useState<DiagnosticsPanelRequest>(() => ({
+      diagnosticsTab: "errors",
+      requestId: 0,
+    }));
+  const hasConsumedInitialDiagnosticsLink = useRef(
+    initialDiagnosticsTab === undefined,
+  );
+
+  useEffect(() => {
+    const requestedTab = getRequestedDiagnosticsTab(searchParams);
+    if (!requestedTab) {
+      return;
+    }
+
+    if (hasConsumedInitialDiagnosticsLink.current) {
+      setDiagnosticsPanelRequest((prev) => ({
+        diagnosticsTab: requestedTab,
+        requestId: prev.requestId + 1,
+      }));
+    } else {
+      hasConsumedInitialDiagnosticsLink.current = true;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete(editorDiagnosticsSearchParam);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  return (
     <DocumentEditor
       contentId={contentId}
       source={source}
       readOnly={readOnly}
       doenetmlVersion={doenetmlVersion}
+      diagnosticsPanelRequest={diagnosticsPanelRequest}
+      initialDiagnosticsTab={initialDiagnosticsTab}
+      editorComponent={editorComponent}
+      registerBeforeShareModalOpens={registerBeforeShareModalOpens}
+      refreshSharingState={refreshSharingState}
     />
   );
 }
@@ -44,27 +142,29 @@ function DocumentEditor({
   source,
   readOnly,
   doenetmlVersion,
+  diagnosticsPanelRequest,
+  initialDiagnosticsTab,
+  editorComponent: EditorComponent = DoenetEditor,
+  registerBeforeShareModalOpens,
+  refreshSharingState,
 }: {
   contentId: string;
   source: string;
   readOnly: boolean;
   doenetmlVersion: DoenetmlVersion;
+  diagnosticsPanelRequest: DiagnosticsPanelRequest;
+  initialDiagnosticsTab?: EditorDiagnosticsTab;
+  editorComponent?: EditorComponent;
+  registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
+  refreshSharingState?: () => void;
 }) {
-  // Capture initial source for the DoenetEditor prop. In the released
-  // @doenet/doenetml-iframe (<= 0.7.17), changes to the `doenetML` prop change
-  // the iframe's srcDoc and re-mount the iframe, which detaches the editor
-  // document mid-typing and crashes Cypress's key event simulator. The dev
-  // build memoizes srcDoc against the initial doenetML; remove this stable
-  // ref once that fix lands in a release.
-  const initialDoenetMLRef = useRef(source);
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
+  const editorRef = useRef<DoenetEditorHandle>(null);
 
   const numVariants = useRef(1);
   const documentStructureChanged = useRef(false);
 
-  // const readOnly =
-  //   doc.assignmentInfo?.assignmentStatus ?? "Unassigned" !== "Unassigned";
   const readOnlyRef = useRef(readOnly);
 
   const initialWarnings = doenetmlVersion.deprecated
@@ -88,7 +188,6 @@ function DocumentEditor({
       (savedDoenetML.current === textEditorDoenetML.current &&
         !documentStructureChanged.current)
     ) {
-      // do not attempt to save doenetml if assigned
       return;
     }
 
@@ -152,29 +251,98 @@ function DocumentEditor({
     };
   }, [handleSaveDoc]);
 
+  useLayoutEffect(() => {
+    if (diagnosticsPanelRequest.requestId === 0) {
+      return;
+    }
+    editorRef.current?.openDiagnosticsTab(
+      diagnosticsPanelRequest.diagnosticsTab,
+    );
+  }, [diagnosticsPanelRequest]);
+
+  useEffect(() => {
+    if (!registerBeforeShareModalOpens) {
+      return;
+    }
+
+    registerBeforeShareModalOpens(async () => {
+      await handleSaveDoc();
+      editorRef.current?.updateRenderedView?.();
+    });
+
+    return () => {
+      registerBeforeShareModalOpens(null);
+    };
+  }, [handleSaveDoc, registerBeforeShareModalOpens]);
+
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
+  // Stable callback identities (defense in depth). @doenet/doenetml-iframe
+  // re-points its in-iframe editor whenever a function-prop identity changes;
+  // 0.7.18/0.7.19 re-initialized the editor on every such change, so passing
+  // fresh inline closures each render wedged the core worker's boot (#1244 "the
+  // document viewer could not be started"). That wrapper bug is fixed in 0.7.20,
+  // but we still hand the editor stable callbacks — it's good practice, avoids
+  // needless per-render Comlink proxy churn, and keeps us resilient to wrapper
+  // regressions. They read current values via a ref instead of taking deps
+  // (refreshSharingState in particular is recreated each render by EditorHeader).
+  const callbackEnvRef = useRef({
+    handleSaveDoc,
+    contentId,
+    doenetmlVersionId: doenetmlVersion.id,
+    refreshSharingState,
+  });
+  callbackEnvRef.current = {
+    handleSaveDoc,
+    contentId,
+    doenetmlVersionId: doenetmlVersion.id,
+    refreshSharingState,
+  };
+
+  const doenetmlChangeHandler = useCallback(() => {
+    // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
+    // when doenet ml first renders
+    // See https://github.com/Doenet/DoenetML/issues/525
+    callbackEnvRef.current.handleSaveDoc();
+  }, []);
+
+  const diagnosticsSummaryHandler = useCallback(
+    (diagnostics: Diagnostics, doenetML: string) => {
+      const env = callbackEnvRef.current;
+      handleDiagnosticsSummary(
+        env.contentId,
+        doenetML,
+        env.doenetmlVersionId,
+        diagnostics,
+        env.refreshSharingState,
+      );
+    },
+    [],
+  );
+
+  const immediateDoenetmlChangeHandler = useCallback((newDoenetML: string) => {
+    textEditorDoenetML.current = newDoenetML;
+  }, []);
+
+  const documentStructureHandler = useCallback((x: any) => {
+    if (Array.isArray(x.args?.allPossibleVariants)) {
+      numVariants.current = x.args.allPossibleVariants.length;
+    }
+    documentStructureChanged.current = true;
+  }, []);
+
   return (
-    <DoenetEditor
+    <EditorComponent
+      ref={editorRef}
       height="100%"
       width="100%"
-      doenetML={initialDoenetMLRef.current}
-      doenetmlChangeCallback={() => {
-        // BUG on DoenetML: This callback is supposed to be called when doenetml saves, but it is also called
-        // when doenet ml first renders
-        // See https://github.com/Doenet/DoenetML/issues/525
-        handleSaveDoc();
-      }}
-      immediateDoenetmlChangeCallback={(newDoenetML: string) => {
-        textEditorDoenetML.current = newDoenetML;
-      }}
-      documentStructureCallback={(x: any) => {
-        if (Array.isArray(x.args?.allPossibleVariants)) {
-          numVariants.current = x.args.allPossibleVariants.length;
-        }
-        documentStructureChanged.current = true;
-      }}
+      doenetML={source}
+      doenetmlChangeCallback={doenetmlChangeHandler}
+      diagnosticsSummaryCallback={diagnosticsSummaryHandler}
+      immediateDoenetmlChangeCallback={immediateDoenetmlChangeHandler}
+      documentStructureCallback={documentStructureHandler}
+      initialOpenTab={initialDiagnosticsTab}
       doenetmlVersion={doenetmlVersion.fullVersion}
       initialWarnings={initialWarnings}
       border="none"
@@ -182,4 +350,50 @@ function DocumentEditor({
       doenetViewerUrl={doenetViewerUrl}
     />
   );
+}
+
+function getRequestedDiagnosticsTab(searchParams: URLSearchParams) {
+  const requestedTab = searchParams.get(editorDiagnosticsSearchParam);
+  if (requestedTab === "errors" || requestedTab === "accessibility") {
+    return requestedTab;
+  }
+  return null;
+}
+
+/**
+ * Reimplementation of a `DoenetEditor` type since the package doesn't export types correctly
+ * The argument of `diagnosticsSummaryCallback`.
+ */
+type Diagnostics = {
+  accessibilityLevel1Count: number;
+  accessibilityLevel2Count: number;
+  errorsCount: number;
+  infosCount: number;
+  warningsCount: number;
+};
+
+function handleDiagnosticsSummary(
+  contentId: string,
+  source: string,
+  doenetmlVersionId: number,
+  diagnostics: Diagnostics,
+  onRenderedContentChanged?: (() => void) | null,
+) {
+  axios
+    .put(`/api/content/${contentId}/audit`, {
+      source,
+      doenetmlVersionId,
+      errorsCheckPasses: diagnostics.errorsCount === 0,
+      accessibilityCheckPasses: diagnostics.accessibilityLevel1Count === 0,
+    })
+    .then(() => {
+      onRenderedContentChanged?.();
+    })
+    .catch((e) => {
+      // 409 means the source moved on before this audit landed; a fresher
+      // audit will follow. Anything else is non-critical here.
+      if (!(e instanceof AxiosError) || e.response?.status !== 409) {
+        console.error("Failed to update content audit:", e);
+      }
+    });
 }

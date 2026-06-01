@@ -1,4 +1,4 @@
-import { ReactElement, useEffect } from "react";
+import { ReactElement, useCallback, useEffect, useState } from "react";
 import {
   useFetcher,
   Link as ReactRouterLink,
@@ -11,10 +11,6 @@ import {
   useSearchParams,
 } from "react-router";
 import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
   Box,
   Button,
   ButtonGroup,
@@ -44,13 +40,17 @@ import { IoGitBranch } from "react-icons/io5";
 import { LuCircleHelp, LuLibraryBig } from "react-icons/lu";
 
 import axios from "axios";
-import { AssignmentStatus, ContentType, ContentDescription } from "../../types";
+import {
+  AssignmentStatus,
+  ContentType,
+  ContentDescription,
+  Visibility,
+} from "../../types";
 import { contentTypeToName, getIconInfo } from "../../utils/activity";
 import { SiteContext } from "../SiteHeader";
 import { getDiscourseUrl } from "../../utils/discourse";
 import { ActivateAuthorMode } from "../../popups/ActivateAuthorMode";
 import { ConfirmAssignModal } from "../../popups/ConfirmAssignModal";
-import { ShareMyContentModal } from "../../popups/ShareMyContentModal";
 import { NotificationDot } from "../../widgets/NotificationDot";
 import type { LibraryEditorData } from "../../widgets/editor/LibraryEditorControls";
 import { LibraryEditorControls } from "../../widgets/editor/LibraryEditorControls";
@@ -63,10 +63,10 @@ import { IFRAME_MENU_IDS } from "../../utils/iframeMenuIds";
 import { useControlledMenu } from "../../utils/useControlledMenu";
 import { useMenuTooltipSuppression } from "../../utils/useMenuTooltipSuppression";
 import {
-  isBrowsable,
-  type Category,
-  type CategoryGroup,
-} from "@doenet-tools/shared";
+  ShareButton,
+  ShareModal,
+  useShareController,
+} from "../../features/sharing";
 
 export async function loader({
   params,
@@ -111,6 +111,8 @@ export type EditorContext = SiteContext & {
   assignmentStatus: AssignmentStatus;
   inLibrary: boolean;
   headerHeight: string;
+  refreshSharingState?: () => void;
+  beforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
 };
 
 /**
@@ -122,6 +124,7 @@ export function EditorHeader() {
     contentName,
     contentType,
     isPublic,
+    visibility,
     assignmentStatus,
     remixSourceHasChanged,
     inLibrary,
@@ -131,42 +134,79 @@ export function EditorHeader() {
     contentName: string;
     contentType: ContentType;
     isPublic: boolean;
+    visibility: Visibility;
     assignmentStatus: AssignmentStatus;
     remixSourceHasChanged: boolean;
     inLibrary: boolean;
     contentDescription: ContentDescription;
   };
 
-  const nameBarFetcher = useFetcher();
-
-  const location = useLocation();
-  const tab = location.pathname.split("/").pop()?.toLowerCase();
+  useEffect(() => {
+    document.title = `${contentName} - Doenet`;
+  }, [contentName]);
 
   const [searchParams, _] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tab = location.pathname.split("/").pop()?.toLowerCase();
   const inCurateMode = searchParams.get("curate") === null ? false : true;
 
-  // Loads settings on mount to check if required categories are filled (for "Not browsable" warning)
-  const categoryCheckFetcher = useFetcher<typeof settingsLoader>();
+  const parent = contentDescription.parent;
+  const contentTypeName = contentTypeToName[contentType];
+  const isSubActivity = (parent?.type ?? "folder") !== "folder";
 
-  useEffect(() => {
-    if (
-      isPublic &&
-      contentType !== "folder" &&
-      categoryCheckFetcher.state === "idle" &&
-      !categoryCheckFetcher.data
-    ) {
-      categoryCheckFetcher.load(editorUrl(contentId, contentType, "settings"));
-    }
-  }, [isPublic, contentType, contentId, categoryCheckFetcher]);
+  // __________________________________________________________________________
+  //
+  //
+  //                     Share button and modal
+  //
+  // __________________________________________________________________________
+  //
 
-  // Check if required categories are filled out (similar to ShareMyContentModal)
-  const notBrowsable =
-    isPublic &&
-    categoryCheckFetcher.data &&
-    !isBrowsable({
-      allCategories: categoryCheckFetcher.data.allCategories as CategoryGroup[],
-      categories: categoryCheckFetcher.data.categories as Category[],
-    });
+  const [beforeShareModalOpens, setBeforeShareModalOpens] = useState<
+    (() => Promise<void>) | null
+  >(null);
+
+  const shareController = useShareController({
+    contentId,
+    contentType,
+    visibility,
+    inLibrary,
+    isSubActivity,
+    beforeShareModalOpens,
+  });
+
+  const setupBeforeShareModalOpens: EditorContext["beforeShareModalOpens"] =
+    useCallback<NonNullable<EditorContext["beforeShareModalOpens"]>>((fn) => {
+      setBeforeShareModalOpens(() => fn);
+    }, []);
+
+  const editorHeaderHeight = "40px";
+  const totalHeaderHeight = `${40 + 40}px`;
+
+  const context = useOutletContext<SiteContext>();
+  const editorContext: EditorContext = {
+    ...context,
+    contentId,
+    contentType,
+    isPublic,
+    contentName,
+    assignmentStatus,
+    inLibrary,
+    headerHeight: totalHeaderHeight,
+    refreshSharingState: shareController.refetchGroundTruth,
+    beforeShareModalOpens: setupBeforeShareModalOpens,
+  };
+
+  const discussHref = getDiscourseUrl(context.user);
+
+  // __________________________________________________________________________
+  //
+  //
+  //                     IFrame and menu click interaction
+  //
+  // __________________________________________________________________________
+  //
 
   const { anyMenuOpen, getMenuControl } = useIframeMenuDismissOverlay();
   const helpMenuControl = useControlledMenu(
@@ -186,40 +226,17 @@ export function EditorHeader() {
     onClose: helpMenuControl.menuProps.onClose,
   });
 
-  const notBrowsableMessage = notBrowsable && (
-    <Alert status="warning" height="40px">
-      <AlertIcon />
-      <AlertTitle>Not browsable</AlertTitle>
-      <AlertDescription>
-        This activity is public but will not be discoverable unless{" "}
-        <ChakraLink
-          as={ReactRouterLink}
-          to={`${editorUrl(contentId, contentType, "settings")}?showRequired`}
-          textDecoration="underline"
-        >
-          required activity categories
-        </ChakraLink>{" "}
-        are filled out.
-      </AlertDescription>
-    </Alert>
-  );
+  // __________________________________________________________________________
+  //
+  //
+  //                     Author mode modal
+  //
+  // __________________________________________________________________________
+  //
 
-  // Calculate dynamic header height: site header (40px) + editor header (40px) + optional warning banner (40px)
-
-  const editorHeaderHeight = notBrowsable ? `${40 + 40}px` : "40px";
-  const totalHeaderHeight = notBrowsable ? `${40 + 40 + 40}px` : `${40 + 40}px`;
-
-  const context = useOutletContext<SiteContext>();
-  const editorContext: EditorContext = {
-    ...context,
-    contentId,
-    contentType,
-    isPublic,
-    contentName,
-    assignmentStatus,
-    inLibrary,
-    headerHeight: totalHeaderHeight,
-  };
+  // Used by ActivateAuthorMode popup to submit author mode activation
+  const authorModeFetcher = useFetcher();
+  const authorMode = context.user?.isAuthor || contentType !== "singleDoc";
 
   const {
     isOpen: authorModePromptIsOpen,
@@ -227,27 +244,43 @@ export function EditorHeader() {
     onClose: authorModePromptOnClose,
   } = useDisclosure();
 
+  const authorModeModal = (
+    <ActivateAuthorMode
+      isOpen={authorModePromptIsOpen}
+      onClose={authorModePromptOnClose}
+      desiredAction="edit"
+      assignmentStatus={assignmentStatus}
+      user={context.user!}
+      proceedCallback={() => {
+        navigate(editorUrl(contentId, contentType, "edit", inCurateMode));
+      }}
+      allowNo={true}
+      fetcher={authorModeFetcher}
+    />
+  );
+
+  // __________________________________________________________________________
+  //
+  //
+  //                     Assignment setup
+  //
+  // __________________________________________________________________________
+  //
+
   const {
     isOpen: confirmAssignIsOpen,
     onOpen: confirmAssignOnOpen,
     onClose: confirmAssignOnClose,
   } = useDisclosure();
 
-  // Used by ActivateAuthorMode popup to submit author mode activation
-  const authorModeFetcher = useFetcher();
-
   // Used by ConfirmAssignModal MoveCopyContent to copy/move content
   const assignmentMoveCopyFetcher = useFetcher();
-
   // Used by ConfirmAssignModal to submit assignment creation
   const assignmentSubmitFetcher = useFetcher();
-
   // Used by EditAssignmentSettings sub-components within ConfirmAssignModal
   const assignmentMaxAttemptsFetcher = useFetcher();
   const assignmentVariantFetcher = useFetcher();
   const assignmentModeFetcher = useFetcher();
-
-  const navigate = useNavigate();
 
   // Loads assignment settings when ConfirmAssignModal opens to populate the form
   const assignmentSettingsFetcher = useFetcher<typeof settingsLoader>();
@@ -263,11 +296,13 @@ export function EditorHeader() {
     }
   }, [confirmAssignIsOpen, assignmentSettingsFetcher, contentId, contentType]);
 
-  const {
-    isOpen: shareContentIsOpen,
-    onOpen: shareContentOnOpen,
-    onClose: shareContentOnClose,
-  } = useDisclosure();
+  // __________________________________________________________________________
+  //
+  //
+  //                     Library editor setup
+  //
+  // __________________________________________________________________________
+  //
 
   // Fetchers for library editor controls
   const libraryEditorLoadFetcher = useFetcher<LibraryEditorData>({
@@ -276,15 +311,6 @@ export function EditorHeader() {
   const libraryEditorSubmitFetcher = useFetcher({
     key: `${contentId}-library-submit`,
   });
-
-  const parent = contentDescription.parent;
-  const isSubActivity = (parent?.type ?? "folder") !== "folder";
-  const authorMode = context.user?.isAuthor || contentType !== "singleDoc";
-  const discussHref = getDiscourseUrl(context.user);
-
-  useEffect(() => {
-    document.title = `${contentName} - Doenet`;
-  }, [contentName]);
 
   let editLabel: string;
   let editTooltip: string;
@@ -313,23 +339,6 @@ export function EditorHeader() {
       editTooltip = "Turn on author mode to see read-only view of source code";
     }
   }
-
-  const authorModeModal = (
-    <ActivateAuthorMode
-      isOpen={authorModePromptIsOpen}
-      onClose={authorModePromptOnClose}
-      desiredAction="edit"
-      assignmentStatus={assignmentStatus}
-      user={context.user!}
-      proceedCallback={() => {
-        navigate(editorUrl(contentId, contentType, "edit", inCurateMode));
-      }}
-      allowNo={true}
-      fetcher={authorModeFetcher}
-    />
-  );
-
-  const contentTypeName = contentTypeToName[contentType];
 
   const { iconImage, iconColor } = getIconInfo(contentType, false);
 
@@ -452,6 +461,14 @@ export function EditorHeader() {
     </Hide>
   );
 
+  // __________________________________________________________________________
+  //
+  //
+  //                     Name Bar
+  //
+  // __________________________________________________________________________
+  //
+  const nameBarFetcher = useFetcher();
   const editableName = (
     <NameBar
       contentId={contentId}
@@ -615,6 +632,16 @@ export function EditorHeader() {
 
   const actionButtons = !isSubActivity && (
     <ButtonGroup size="sm" mt="4px" mr={{ base: "5px", sm: "10px" }}>
+      <NotificationDot show={shareController.shouldShowPublicComplianceWarning}>
+        <ShareButton
+          optimisticVisibility={shareController.optimisticVisibility}
+          shouldShowPublicComplianceWarning={
+            shareController.shouldShowPublicComplianceWarning
+          }
+          isDisabled={inLibrary}
+          openModal={shareController.openModal}
+        />
+      </NotificationDot>
       <Tooltip
         label={
           contentDescription.hasBadVersion &&
@@ -631,14 +658,6 @@ export function EditorHeader() {
           Create assignment
         </Button>
       </Tooltip>
-      <Button
-        colorScheme="blue"
-        isDisabled={inLibrary}
-        onClick={() => shareContentOnOpen()}
-        data-test="Share Button"
-      >
-        Share
-      </Button>
     </ButtonGroup>
   );
 
@@ -662,11 +681,14 @@ export function EditorHeader() {
         modeFetcher={assignmentModeFetcher}
         assignmentFetcher={assignmentSubmitFetcher}
       />
-      <ShareMyContentModal
+      <ShareModal
         contentId={contentId}
         contentType={contentType}
-        isOpen={shareContentIsOpen}
-        onClose={shareContentOnClose}
+        modalIsOpen={shareController.modalIsOpen}
+        closeModal={shareController.closeModal}
+        onVisibilityChange={shareController.setOptimisticVisibility}
+        groundTruth={shareController.groundTruth}
+        refetchGroundTruth={shareController.refetchGroundTruth}
       />
 
       <Box
@@ -690,7 +712,6 @@ export function EditorHeader() {
               not a sub-part of a problem set */}
           {!isSubActivity && actionButtons}
         </HStack>
-        {notBrowsableMessage}
       </Box>
 
       <Box

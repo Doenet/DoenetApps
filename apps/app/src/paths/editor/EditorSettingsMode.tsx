@@ -97,6 +97,7 @@ export function EditorSettingsModeComponent({
   modeFetcher,
   deleteClassificationFetcher,
   addClassificationFetcher,
+  reloadShareStatus,
 }: {
   isPublic: boolean;
   isShared: boolean;
@@ -122,6 +123,7 @@ export function EditorSettingsModeComponent({
   modeFetcher: any;
   deleteClassificationFetcher: any;
   addClassificationFetcher: any;
+  reloadShareStatus?: () => void;
 }) {
   const showUpgradeSyntax = Boolean(
     doenetmlVersionId &&
@@ -170,6 +172,7 @@ export function EditorSettingsModeComponent({
             categories={categories}
             allCategories={allCategories}
             showRequired={showRequired}
+            onCategoriesSaved={reloadShareStatus}
           />
         </Box>
 
@@ -313,6 +316,7 @@ export function EditorSettingsMode() {
     inLibrary,
     contentType,
     headerHeight,
+    refreshSharingState,
   } = useOutletContext<EditorContext>();
 
   const [searchParams, _] = useSearchParams();
@@ -353,6 +357,7 @@ export function EditorSettingsMode() {
       modeFetcher={modeFetcher}
       deleteClassificationFetcher={deleteClassificationFetcher}
       addClassificationFetcher={addClassificationFetcher}
+      reloadShareStatus={refreshSharingState}
     />
   );
 }

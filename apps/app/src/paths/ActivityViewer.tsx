@@ -85,6 +85,7 @@ import { useIframeMenuDismissOverlay } from "../utils/useIframeMenuDismissOverla
 import { IFRAME_MENU_IDS } from "../utils/iframeMenuIds";
 import { useControlledMenu } from "../utils/useControlledMenu";
 import { MenuDismissOverlay } from "../components/MenuDismissOverlay";
+import { editorUrl } from "../utils/url";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -153,6 +154,7 @@ export function ActivityViewer() {
 
   const { user, addTo, setAddTo, allLicenses } =
     useOutletContext<SiteContext>();
+  const canManageVisibility = user?.userId === activityData.ownerId;
 
   const license =
     allLicenses.find((l) => l.code === activityData.licenseCode) ?? null;
@@ -291,6 +293,43 @@ export function ActivityViewer() {
 
   let mainContent: ReactElement<any> = <></>;
 
+  const unlistedBanner =
+    activityData.visibility === "unlisted" ? (
+      <Flex
+        width="100%"
+        backgroundColor="orange.100"
+        borderTop="1px solid"
+        borderBottom="1px solid"
+        borderColor="orange.300"
+        justifyContent="center"
+      >
+        <HStack
+          width="100%"
+          maxWidth="850px"
+          justifyContent="space-between"
+          px="1rem"
+          py="0.75rem"
+          spacing="1rem"
+        >
+          <Text fontWeight="semibold">
+            Content is unlisted. Anyone with the link can view it, but it will
+            not appear in search.
+          </Text>
+          {canManageVisibility ? (
+            <Button
+              as={ReactRouterLink}
+              to={editorUrl(activityData.contentId, activityData.type, "edit")}
+              size="sm"
+              colorScheme="orange"
+              flexShrink={0}
+            >
+              Open share settings
+            </Button>
+          ) : null}
+        </HStack>
+      </Flex>
+    ) : null;
+
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
@@ -316,77 +355,89 @@ export function ActivityViewer() {
         data.doenetmlVersion,
       );
       mainContent = (
-        <DoenetEditor
-          height={`calc(100vh - ${headerHeight})`}
-          width="100%"
-          doenetML={data.doenetML}
-          doenetmlVersion={data.doenetmlVersion.fullVersion}
-          initialWarnings={initialWarnings}
-          border="none"
-          readOnly={true}
-          doenetViewerUrl={doenetViewerUrl}
-        />
+        <>
+          {unlistedBanner}
+          <DoenetEditor
+            height={`calc(100vh - ${headerHeight})`}
+            width="100%"
+            doenetML={data.doenetML}
+            doenetmlVersion={data.doenetmlVersion.fullVersion}
+            initialWarnings={initialWarnings}
+            border="none"
+            readOnly={true}
+            doenetViewerUrl={doenetViewerUrl}
+          />
+        </>
       );
     } else {
       mainContent = (
-        <Box ref={doenetViewerContainer}>
-          <BlueBanner headerHeight={headerHeight}>
-            <DoenetViewer
-              doenetML={data.doenetML}
-              doenetmlVersion={data.doenetmlVersion.fullVersion}
-              flags={{
-                showCorrectness: true,
-                solutionDisplayMode: "button",
-                showFeedback: true,
-                showHints: true,
-                autoSubmit: false,
-                allowLoadState: false,
-                allowSaveState: false,
-                allowLocalState: false,
-                allowSaveEvents: false,
-              }}
-              attemptNumber={1}
-              doenetViewerUrl={doenetViewerUrl}
-              includeVariantSelector={true}
-              requestScrollTo={requestScrollTo}
-            />
-          </BlueBanner>
-        </Box>
+        <>
+          {unlistedBanner}
+          <Box ref={doenetViewerContainer}>
+            <BlueBanner headerHeight={headerHeight}>
+              <DoenetViewer
+                doenetML={data.doenetML}
+                doenetmlVersion={data.doenetmlVersion.fullVersion}
+                flags={{
+                  showCorrectness: true,
+                  solutionDisplayMode: "button",
+                  showFeedback: true,
+                  showHints: true,
+                  autoSubmit: false,
+                  allowLoadState: false,
+                  allowSaveState: false,
+                  allowLocalState: false,
+                  allowSaveEvents: false,
+                }}
+                attemptNumber={1}
+                doenetViewerUrl={doenetViewerUrl}
+                includeVariantSelector={true}
+                requestScrollTo={requestScrollTo}
+              />
+            </BlueBanner>
+          </Box>
+        </>
       );
     }
   } else {
     if (mode === "Edit") {
       mainContent = (
-        <CompoundActivityEditor
-          activity={activityData}
-          asViewer={true}
-          fetcher={fetcher}
-          createContentMenuCreateFetcher={createContentMenuCreateFetcher}
-          createContentMenuSaveNameFetcher={createContentMenuSaveNameFetcher}
-          deleteContentFetcher={deleteContentFetcher}
-        />
+        <>
+          {unlistedBanner}
+          <CompoundActivityEditor
+            activity={activityData}
+            asViewer={true}
+            fetcher={fetcher}
+            createContentMenuCreateFetcher={createContentMenuCreateFetcher}
+            createContentMenuSaveNameFetcher={createContentMenuSaveNameFetcher}
+            deleteContentFetcher={deleteContentFetcher}
+          />
+        </>
       );
     } else {
       mainContent = (
-        <BlueBanner headerHeight={headerHeight}>
-          <DoenetActivityViewer
-            source={data.activityJson}
-            requestedVariantIndex={1}
-            userId={"hi"}
-            paginate={
-              activityData.type === "sequence" ? activityData.paginate : false
-            }
-            activityLevelAttempts={
-              activityData.assignmentInfo?.mode === "summative"
-            }
-            itemLevelAttempts={
-              activityData.assignmentInfo?.mode === "formative"
-            }
-            maxAttemptsAllowed={activityData.assignmentInfo?.maxAttempts}
-            showTitle={false}
-            doenetViewerUrl={doenetViewerUrl}
-          />
-        </BlueBanner>
+        <>
+          {unlistedBanner}
+          <BlueBanner headerHeight={headerHeight}>
+            <DoenetActivityViewer
+              source={data.activityJson}
+              requestedVariantIndex={1}
+              userId={"hi"}
+              paginate={
+                activityData.type === "sequence" ? activityData.paginate : false
+              }
+              activityLevelAttempts={
+                activityData.assignmentInfo?.mode === "summative"
+              }
+              itemLevelAttempts={
+                activityData.assignmentInfo?.mode === "formative"
+              }
+              maxAttemptsAllowed={activityData.assignmentInfo?.maxAttempts}
+              showTitle={false}
+              doenetViewerUrl={doenetViewerUrl}
+            />
+          </BlueBanner>
+        </>
       );
     }
   }

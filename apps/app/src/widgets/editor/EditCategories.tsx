@@ -14,8 +14,8 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { optimistic } from "../../utils/optimistic_ui";
 import { activityCategoryIcons } from "../../utils/activity";
 import { Category, CategoryGroup } from "@doenet-tools/shared";
 
@@ -24,21 +24,77 @@ export function EditCategories({
   categories,
   allCategories,
   showRequired = false,
+  onCategoriesSaved,
 }: {
   contentId: string;
   categories: Category[];
   allCategories: CategoryGroup[];
   showRequired?: boolean;
+  onCategoriesSaved?: () => void;
 }) {
   const output = [];
+  const fetcher = useFetcher();
+  const [optimisticCategoryOverrides, setOptimisticCategoryOverrides] =
+    useState<Record<string, boolean>>({});
+  const [hasPendingSubmission, setHasPendingSubmission] = useState(false);
+
+  useEffect(() => {
+    setOptimisticCategoryOverrides({});
+  }, [categories]);
+
+  useEffect(() => {
+    if (hasPendingSubmission && fetcher.state === "idle") {
+      onCategoriesSaved?.();
+      setHasPendingSubmission(false);
+    }
+  }, [fetcher.state, hasPendingSubmission, onCategoriesSaved]);
+
+  const optimisticCategories = getOptimisticCategories({
+    categories,
+    allCategories,
+    optimisticCategoryOverrides,
+  });
+
+  function submitCategories(categoriesUpdate: Record<string, boolean>) {
+    setHasPendingSubmission(true);
+    setOptimisticCategoryOverrides((prev) => ({
+      ...prev,
+      ...categoriesUpdate,
+    }));
+
+    fetcher.submit(
+      {
+        path: "updateContent/updateCategories",
+        contentId,
+        categories: categoriesUpdate,
+      },
+      { method: "post", encType: "application/json" },
+    );
+  }
 
   for (const group of allCategories) {
     const groupBox = [];
+    const groupIsMissing = !group.categories.some(
+      (groupCategory) => optimisticCategories[groupCategory.code],
+    );
+
     if (showRequired && group.isRequired) {
       groupBox.push(
-        <Alert status="warning" key={`Required Alert ${group.name}`}>
-          <AlertIcon />
-          <AlertTitle>Required</AlertTitle>
+        <Alert
+          status="warning"
+          key={`Required Alert ${group.name}`}
+          data-test={`Required Alert ${group.name}`}
+          visibility={groupIsMissing ? "visible" : "hidden"}
+          aria-hidden={!groupIsMissing}
+          py="0.35rem"
+          px="0.6rem"
+          mb="0.35rem"
+          borderRadius="md"
+        >
+          <AlertIcon boxSize="0.9rem" mr="0.4rem" />
+          <AlertTitle fontSize="sm" lineHeight="1.2">
+            Required
+          </AlertTitle>
         </Alert>,
       );
     }
@@ -50,29 +106,26 @@ export function EditCategories({
     );
 
     if (group.isExclusive) {
-      const groupCodes = group.categories.map((g) => g.code);
-      const selected =
-        categories.find((c) => groupCodes.includes(c.code)) ?? null;
       groupBox.push(
         <CategoryRadios
-          contentId={contentId}
           key={`Radio ${group.name}`}
-          selected={selected}
+          submitCategories={submitCategories}
+          selectedCode={
+            group.categories.find(
+              (groupCategory) => optimisticCategories[groupCategory.code],
+            )?.code ?? null
+          }
           categoryGroup={group}
         />,
       );
     } else {
       for (const category of group.categories) {
-        const isChecked = categories.find((v) => v.code === category.code)
-          ? true
-          : false;
-
         groupBox.push(
           <CategoryCheckbox
-            contentId={contentId}
             key={category.code}
+            submitCategories={submitCategories}
             category={category}
-            isChecked={isChecked}
+            isChecked={Boolean(optimisticCategories[category.code])}
           />,
         );
       }
@@ -101,23 +154,14 @@ export function EditCategories({
  * This widget allows owners to view and edit the content categories of their activity - 1 checkbox for each category.
  */
 function CategoryCheckbox({
-  contentId,
+  submitCategories,
   category,
   isChecked,
 }: {
-  contentId: string;
+  submitCategories: (categoriesUpdate: Record<string, boolean>) => void;
   category: Category;
   isChecked: boolean;
 }) {
-  const fetcher = useFetcher();
-  const fallback: Record<string, boolean> = {};
-  fallback[category.code] = isChecked;
-  const optimisticCheckedRecord = optimistic<Record<string, boolean>>(
-    fetcher,
-    "categories",
-    fallback,
-  );
-  const optimisticChecked = optimisticCheckedRecord[category.code];
   const categoryCode = category.code as
     | "isQuestion"
     | "isInteractive"
@@ -129,26 +173,16 @@ function CategoryCheckbox({
         ml="1rem"
         key={category.code}
         data-test={`${category.code} Checkbox`}
-        isChecked={optimisticChecked}
+        isChecked={isChecked}
         onChange={(event) => {
           const categories: Record<string, boolean> = {};
           categories[category.code] = event.target.checked;
-
-          fetcher.submit(
-            {
-              path: "updateContent/updateCategories",
-              contentId,
-              categories,
-            },
-            { method: "post", encType: "application/json" },
-          );
+          submitCategories(categories);
         }}
       >
         <Tooltip label={category.description} openDelay={100}>
           <HStack>
-            <Text color={fetcher.state === "idle" ? "black" : "gray"}>
-              {category.term}
-            </Text>
+            <Text>{category.term}</Text>
             {activityCategoryIcons[categoryCode] && (
               <Icon
                 paddingLeft="5px"
@@ -166,30 +200,14 @@ function CategoryCheckbox({
 }
 
 function CategoryRadios({
-  contentId,
-  selected,
+  submitCategories,
+  selectedCode,
   categoryGroup,
 }: {
-  contentId: string;
-  selected: Category | null;
+  submitCategories: (categoriesUpdate: Record<string, boolean>) => void;
+  selectedCode: string | null;
   categoryGroup: CategoryGroup;
 }) {
-  const fetcher = useFetcher();
-  const fallback: Record<string, boolean> = {};
-  if (selected) {
-    fallback[selected.code] = true;
-  }
-  const optimisticCheckedRecord = optimistic<Record<string, boolean>>(
-    fetcher,
-    "categories",
-    fallback,
-  );
-  const optimisticCode = Array.from(
-    Object.entries(optimisticCheckedRecord)
-      .filter(([_, val]) => val)
-      .map(([key, _]) => key),
-  )[0];
-
   const radios = [];
   for (const category of categoryGroup.categories) {
     const categoryCode = category.code as
@@ -225,19 +243,35 @@ function CategoryRadios({
           categories[cat.code] = false;
         }
         categories[newCode] = true;
-
-        fetcher.submit(
-          {
-            path: "updateContent/updateCategories",
-            contentId,
-            categories,
-          },
-          { method: "post", encType: "application/json" },
-        );
+        submitCategories(categories);
       }}
-      value={optimisticCode}
+      value={selectedCode ?? undefined}
     >
       <VStack align="flex-start">{radios}</VStack>
     </RadioGroup>
   );
+}
+
+function getOptimisticCategories({
+  categories,
+  allCategories,
+  optimisticCategoryOverrides,
+}: {
+  categories: Category[];
+  allCategories: CategoryGroup[];
+  optimisticCategoryOverrides: Record<string, boolean>;
+}) {
+  const optimisticCategories = Object.fromEntries(
+    allCategories.flatMap((group) =>
+      group.categories.map((category) => [category.code, false] as const),
+    ),
+  ) as Record<string, boolean>;
+
+  for (const category of categories) {
+    optimisticCategories[category.code] = true;
+  }
+
+  Object.assign(optimisticCategories, optimisticCategoryOverrides);
+
+  return optimisticCategories;
 }
