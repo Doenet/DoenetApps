@@ -7,6 +7,7 @@ import importPlugin from "eslint-plugin-import";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import mocha from "eslint-plugin-mocha";
+import globals from "globals";
 
 /**
  * Creates the base ESLint config for a workspace.
@@ -30,6 +31,17 @@ export function createBaseConfig(dirname) {
 
     // Base ESLint rules for all files
     eslint.configs.recommended,
+
+    // Plain-JS config/tooling files (e.g. cypress.config.js) run in Node. The TS
+    // block below lets typescript-eslint handle undefined names for .ts/.tsx, but
+    // .js/.cjs/.mjs files still hit core `no-undef`, so declare Node globals here
+    // — otherwise `console`, `process`, etc. would each need an inline disable.
+    {
+      files: ["**/*.{js,cjs,mjs}"],
+      languageOptions: {
+        globals: globals.node,
+      },
+    },
 
     // TypeScript configuration for source files
     // Note: we use `recommended` (not `recommendedTypeChecked`), so no `project` is needed.

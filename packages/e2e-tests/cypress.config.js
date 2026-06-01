@@ -46,7 +46,6 @@ export default defineConfig({
       // Diagnostic helper (issue #2957): prints a message to the CI job stdout.
       on("task", {
         log(message) {
-          // eslint-disable-next-line no-undef
           console.log(message);
           return null;
         },

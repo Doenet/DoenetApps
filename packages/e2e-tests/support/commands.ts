@@ -283,8 +283,10 @@ Cypress.Commands.add(
   "renderDoenetEditorViewer",
   ({
     iframeSelector = "iframe",
-    maxClicks = 30, // ~60s total — must exceed DoenetML #1244's core-boot
-    interval = 2000, // watchdog/retry window (3 × 15s) so we see its recovery
+    // maxClicks × interval (~60s total) must exceed DoenetML #1244's ~45s
+    // core-boot watchdog/retry window so we still re-click while it recovers.
+    maxClicks = 30,
+    interval = 2000, // ms between re-click attempts
     label,
   }: {
     iframeSelector?: string;
@@ -303,7 +305,7 @@ Cypress.Commands.add(
     const where = label ? ` [${label}]` : "";
     const clickUpdateUntilRendered = (
       clicksLeft: number,
-      hasClicked: boolean,
+      clicksDone: number,
     ) => {
       cy.getIframeBody(iframeSelector).then((bodyEl) => {
         const $body = Cypress.$(bodyEl);
@@ -313,7 +315,7 @@ Cypress.Commands.add(
         // (editing existing rather than blank content), we'd return on the very
         // first check without ever rendering the just-typed edit. (#2957 review)
         if (
-          hasClicked &&
+          clicksDone > 0 &&
           $viewer.length > 0 &&
           $viewer.text().trim().length > 0
         ) {
@@ -349,6 +351,7 @@ Cypress.Commands.add(
             /jsdelivr|mathjax|standalone|doenet/i.test(e.name),
           );
           const diag = {
+            updateClicksPerformed: clicksDone, // 0 ⇒ button never appeared
             doenetViewer: $viewer.length,
             doenetViewerText: $viewer.text().trim().slice(0, 60),
             doenetLoading: $body.find(".doenet-loading").length, // init stalled?
@@ -381,8 +384,15 @@ Cypress.Commands.add(
             `##### DOENET_RENDER_STALL\n${JSON.stringify(diag, null, 1)}\n##### END DOENET_RENDER_STALL`,
           );
           cy.then(() => {
+            // Report the actual click count, and distinguish "the Update button
+            // never appeared" (editor never became interactive) from "clicked N
+            // times, viewer still blank" — they point at different root causes.
+            const why =
+              clicksDone === 0
+                ? `the Update button never appeared after ${maxClicks} checks`
+                : `viewer never rendered after ${clicksDone} Update click(s)`;
             throw new Error(
-              `DoenetEditor viewer never rendered after ${maxClicks} Update clicks${where} — see DOENET_RENDER_STALL diagnostic`,
+              `DoenetEditor ${why}${where} — see DOENET_RENDER_STALL diagnostic`,
             );
           });
           return;
@@ -398,10 +408,13 @@ Cypress.Commands.add(
             .click({ force: true });
         }
         cy.wait(interval);
-        clickUpdateUntilRendered(clicksLeft - 1, hasClicked || clickedNow);
+        clickUpdateUntilRendered(
+          clicksLeft - 1,
+          clickedNow ? clicksDone + 1 : clicksDone,
+        );
       });
     };
-    clickUpdateUntilRendered(maxClicks, false);
+    clickUpdateUntilRendered(maxClicks, 0);
   },
 );
 
