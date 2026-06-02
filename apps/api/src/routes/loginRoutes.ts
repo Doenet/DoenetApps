@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import passportLib from "passport";
+import jwt from "jsonwebtoken";
 import { getUser, getUserInfoFromEmail } from "../query/user";
 import axios from "axios";
 import { convertUUID } from "../utils/uuid";
@@ -36,51 +37,62 @@ loginRouter.get(
   "/magiclink",
 
   (req: Request, res: Response, next: NextFunction) => {
-    // 1. Wrap the passport authentication call
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const tokenPrefix = token ? `${token.slice(0, 12)}…` : "<missing>";
+    const decoded = token
+      ? (jwt.decode(token) as {
+          user?: { email?: string };
+          iat?: number;
+          exp?: number;
+        } | null)
+      : null;
+    const tokenCtx = {
+      tokenPrefix,
+      claimedEmail: decoded?.user?.email ?? "<unparseable>",
+      issuedAt: decoded?.iat
+        ? new Date(decoded.iat * 1000).toISOString()
+        : undefined,
+      expiresAt: decoded?.exp
+        ? new Date(decoded.exp * 1000).toISOString()
+        : undefined,
+    };
+
     passport.authenticate(
       "magiclink",
       {
         action: "acceptToken",
         userPrimaryKey: "email",
       },
-      // 2. Add the custom callback
-      // @skip
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (err: any, user: Express.User | false | null, info: any) => {
-        // Handle server/database errors
         if (err) {
-          console.error(
-            `[Auth Error] Server error during magic link login:`,
+          console.error(`[Auth Error] Server error during magic link login:`, {
+            ...tokenCtx,
             err,
-          );
+          });
           return next(err);
         }
 
-        // Handle authentication failures (e.g., expired/invalid token)
         if (!user) {
-          const failureReason = info?.message || "Unknown reason";
-
-          // --> Create your log entry here <--
-          console.warn(
-            `[Auth Failed] Magic link login failed. Reason: ${failureReason}`,
-          );
-
-          // Return a 401 to the client
+          console.warn(`[Auth Failed] Magic link login failed.`, {
+            ...tokenCtx,
+            reason: info?.message ?? "Unknown reason",
+          });
           return res
             .status(401)
             .send({ error: "Invalid or expired magic link." });
         }
 
-        // 3. Manually establish the session
-        // (Required when using a custom callback if you are using stateful sessions)
         req.logIn(user, async (loginErr) => {
           if (loginErr) {
-            console.error(`[Auth Error] Session creation failed:`, loginErr);
+            console.error(`[Auth Error] Session creation failed:`, {
+              ...tokenCtx,
+              err: loginErr,
+            });
             return next(loginErr);
           }
 
           try {
-            // 4. Proceed with your original success logic
             const userInfo = await getUserInfoFromEmail(
               (user as { email: string }).email,
             );
@@ -88,7 +100,7 @@ loginRouter.get(
           } catch (fetchErr) {
             console.error(
               `[Auth Error] Authentication succeeded but DB failed to fetch user info:`,
-              fetchErr,
+              { ...tokenCtx, err: fetchErr },
             );
             return next(fetchErr);
           }
