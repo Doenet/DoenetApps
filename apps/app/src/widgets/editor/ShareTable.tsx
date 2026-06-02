@@ -1,24 +1,15 @@
 import { ReactNode } from "react";
 import { UserInfoWithEmail } from "../../types";
 import {
-  Hide,
-  Show,
   Text,
-  Td,
-  Tr,
-  VStack,
+  Box,
+  Flex,
   Tooltip,
   CloseButton,
-  TableContainer,
-  Table,
-  Thead,
-  Th,
-  Tbody,
-  HStack,
+  VStack,
 } from "@chakra-ui/react";
 import { useFetcher } from "react-router";
 import { createNameNoTag } from "../../utils/names";
-import { SpinnerWhileFetching } from "../../utils/optimistic_ui";
 
 /**
  * This widget renders a table listing all the people this activity is shared with.
@@ -32,12 +23,14 @@ export function ShareTable({
   parentIsPublic,
   sharedWith,
   parentSharedWith,
+  footerRow,
 }: {
   contentId: string;
   isPublic: boolean;
   parentIsPublic: boolean;
   sharedWith: UserInfoWithEmail[];
   parentSharedWith: UserInfoWithEmail[];
+  footerRow?: ReactNode;
 }) {
   const fetcher = useFetcher();
   const rows: ReactNode[] = [];
@@ -91,36 +84,12 @@ export function ShareTable({
   }
 
   return (
-    <TableContainer
-      maxHeight="200px"
-      overflowY="auto"
-      marginBottom="20px"
-      marginTop="20px"
-      position="relative"
-    >
-      <Table size="sm" data-test="Share Table">
-        <Thead position="sticky" top={0} backgroundColor="var(--canvas)">
-          <Tr>
-            <Th
-              colSpan={3}
-              textTransform="none"
-              color="inherit"
-              fontSize="inherit"
-              fontWeight="inherit"
-              fontFamily="inherit"
-              paddingLeft="0px"
-              fontStyle="inherit"
-            >
-              <HStack>
-                <Text>People with access</Text>
-                <SpinnerWhileFetching state={fetcher.state} />
-              </HStack>
-            </Th>
-          </Tr>
-        </Thead>
-        <Tbody>{rows}</Tbody>
-      </Table>
-    </TableContainer>
+    <Box maxHeight="200px" overflowY="auto" data-test="Share Table">
+      <VStack as="ul" align="stretch" spacing={0} listStyleType="none" m={0}>
+        {rows}
+        {footerRow}
+      </VStack>
+    </Box>
   );
 }
 
@@ -137,32 +106,42 @@ function ShareTableRow({
 }) {
   const closeLabel = `Stop sharing ${publicRow ? "publicly" : `with ${name}`}`;
   return (
-    <Tr>
-      <Show above="sm">
-        <Td>{name}</Td>
-        <Td>{email}</Td>
-      </Show>
-      <Hide above="sm">
-        <Td>
-          <VStack alignItems="left">
-            <Text>{name}</Text>
-            <Text>{email}</Text>
-          </VStack>
-        </Td>
-      </Hide>
-      <Td>
-        {onClose ? (
-          <Tooltip label={closeLabel}>
-            <CloseButton
-              type="submit"
-              aria-label={closeLabel}
-              onClick={onClose}
-            />
-          </Tooltip>
-        ) : (
-          "(inherited)"
-        )}
-      </Td>
-    </Tr>
+    <Box as="li" px={0} py={0} listStyleType="none">
+      <Box borderBottomWidth="1px" borderColor="gray.100">
+        <Flex
+          align="center"
+          justify="space-between"
+          gap="0.75rem"
+          px="0.75rem"
+          py="0.6rem"
+        >
+          <Box flex="1" minWidth={0}>
+            <Text noOfLines={1}>
+              <Text as="span" fontWeight="medium">
+                {name}
+              </Text>
+              <Text as="span" color="gray.600" fontSize="sm">
+                {` (${email})`}
+              </Text>
+            </Text>
+          </Box>
+          {onClose ? (
+            <Tooltip label={closeLabel}>
+              <CloseButton
+                type="submit"
+                size="sm"
+                aria-label={closeLabel}
+                onClick={onClose}
+                flexShrink={0}
+              />
+            </Tooltip>
+          ) : (
+            <Text color="gray.700" fontSize="sm" flexShrink={0}>
+              Inherited
+            </Text>
+          )}
+        </Flex>
+      </Box>
+    </Box>
   );
 }

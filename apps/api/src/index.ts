@@ -131,6 +131,7 @@ passport.use(
       allowReuse: true,
       userFields: ["email", "fromAnonymous"],
       tokenField: "token",
+      ttl: 60 * 60,
     },
     async (user, token) => {
       const confirmURL = `${appUrl}/confirmSignIn?token=${token}`;

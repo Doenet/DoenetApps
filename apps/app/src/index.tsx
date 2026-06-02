@@ -104,7 +104,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
-import { loadShareStatus } from "./popups/ShareMyContentModal";
+import { loadShareStatus } from "./features/sharing";
 import {
   DocEditorHistoryMode,
   loader as docEditorHistoryModeLoader,
@@ -442,7 +442,8 @@ root.render(<RouterProvider router={router} />);
 /**
  * A generic action handler for React Router pages
  * 1. Takes in an action of type `application/json` (not the default `multipart/form-data`)
- * 2. Calls the endpoint specified by `path` field, passing the others field as the POST body
+ * 2. Calls the endpoint specified by `path` field, using the incoming request method and
+ *    passing the other fields as the request body
  * 3. Returns the results
  *
  * Special case: redirect to new page. Triggered if `redirectOnSuccess`, `replaceOnSuccess`, or `redirectNewContentId` is included.
@@ -454,6 +455,7 @@ async function genericAction({ request }: ActionFunctionArgs) {
   // TODO: DESIGN: Should this function only return the data portion of the response?
   // Currently this function returns entire http response. It comes down to a question
   // of whether pages/fetchers should have access to status information.
+  const method = request.method.toLowerCase();
   const {
     path,
     redirectOnSuccess,
@@ -463,7 +465,11 @@ async function genericAction({ request }: ActionFunctionArgs) {
   } = await request.json();
 
   try {
-    const results = await axios.post(`/api/${path}`, body);
+    const results = await axios({
+      method,
+      url: `/api/${path}`,
+      data: body,
+    });
 
     if (redirectNewContentId) {
       const newContentId: string = results.data.contentId;

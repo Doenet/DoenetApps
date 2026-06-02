@@ -52,10 +52,7 @@ describe("Create Folders Tests", { tags: ["@group3"] }, function () {
 
     cy.get('[data-test="Share Folder Button"]').click();
     cy.get('[data-test="Email address"]').type(`${scrappyEmail}{enter}`);
-    cy.get('[data-test="Share Table"] tbody tr').should(
-      "contain.text",
-      scrappyEmail,
-    );
+    cy.get('[data-test="Share Table"]').should("contain.text", scrappyEmail);
 
     cy.get('[data-test="Email address"]').should("have.value", "");
 
