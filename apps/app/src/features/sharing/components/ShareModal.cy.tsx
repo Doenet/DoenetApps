@@ -535,6 +535,132 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       .and("equal", `/documentEditor/${contentId}/settings?showRequired`);
   });
 
+  const nonDocCases = [
+    { type: "folder", linkHeading: "Folder link", helperNoun: "folder" },
+    {
+      type: "sequence",
+      linkHeading: "Problem Set link",
+      helperNoun: "problem set",
+    },
+    {
+      type: "select",
+      linkHeading: "Question Bank link",
+      helperNoun: "question bank",
+    },
+  ] as const;
+
+  nonDocCases.forEach(({ type, linkHeading, helperNoun }) => {
+    it(`shows a typed link but hides embed code for public ${type}`, () => {
+      const mountOptions = setupMocks({
+        shareStatus: {
+          ...shareStatusData,
+          isPublic: true,
+          visibility: "public",
+        },
+      });
+
+      cy.mount(
+        <ShareModal
+          contentId={contentId}
+          contentType={type}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Current Access Helper"]').should(
+        "contain.text",
+        "Current access: Public.",
+      );
+      cy.contains(linkHeading).scrollIntoView().should("be.visible");
+      cy.contains(`Anyone can open the ${helperNoun} with this link`).should(
+        "be.visible",
+      );
+      cy.contains("Copy link").should("be.visible");
+      cy.contains("Document link").should("not.exist");
+      cy.contains("Embed code").should("not.exist");
+      cy.contains("Copy embed code").should("not.exist");
+    });
+  });
+
+  it("disables the public option for folders and explains why on hover", () => {
+    const actionSpy = cy.spy().as("actionSpy");
+    const mountOptions = setupMocks({
+      shareStatus: { ...shareStatusData, visibility: "private" },
+      actionHandler: async ({ request }) => {
+        const body = await request.json();
+        actionSpy(body);
+        return { status: 200 };
+      },
+    });
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType="folder"
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    // Explanation isn't visible until the user interacts with the disabled card.
+    cy.contains("Folders can't be made public yet").should("not.exist");
+
+    cy.get('[data-test="Share Publicly Button"]').should("be.disabled");
+    cy.get('[data-test="Share Unlisted Button"]').should("not.be.disabled");
+
+    // Hovering the wrapper reveals the tooltip explanation. React's synthetic
+    // onPointerEnter is implemented via a delegated pointerover listener at the
+    // root, and Chakra's Tooltip filters out touch pointers, so dispatch a
+    // bubbling pointerover with pointerType: "mouse".
+    cy.get('[data-test="Folder Public Disabled Tooltip"]').trigger(
+      "pointerover",
+      { eventConstructor: "PointerEvent", pointerType: "mouse" },
+    );
+    cy.get('[role="tooltip"]')
+      .should("be.visible")
+      .and("contain.text", "Folders can't be made public yet")
+      .and("contain.text", "try unlisted instead");
+
+    // Clicking the disabled public card should not stage a change or submit.
+    cy.get('[data-test="Share Publicly Button"]').click({ force: true });
+    cy.get('[data-test="Share Submit Button"]').should("not.exist");
+    cy.get("@actionSpy").should("not.have.been.called");
+  });
+
+  it("loads share status exactly once when the modal opens (no rerender loop)", () => {
+    const loaderSpy = cy.spy().as("loaderSpy");
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType={contentType}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      {
+        routes: [
+          {
+            path: `/loadShareStatus/${contentId}`,
+            loader: () => {
+              loaderSpy();
+              return shareStatusData;
+            },
+          },
+        ],
+      },
+    );
+
+    // Wait for the modal to render with data, then give the fetcher time to
+    // settle so any rerender-loop re-fetches would have a chance to fire.
+    cy.get('[data-test="Access Heading"]').should("contain.text", "Access");
+    cy.wait(500);
+
+    cy.get("@loaderSpy").should("have.been.calledOnce");
+  });
+
   describe("Accessibility", () => {
     it("is accessible when not public", () => {
       const mountOptions = setupMocks();
@@ -570,7 +696,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       cy.mount(
         <ShareModal
           contentId={contentId}
-          contentType={contentType}
+          contentType="singleDoc"
           modalIsOpen={true}
           closeModal={cy.spy().as("onClose")}
         />,
