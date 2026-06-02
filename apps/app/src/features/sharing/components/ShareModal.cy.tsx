@@ -584,6 +584,52 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     });
   });
 
+  it("disables the public option for folders and explains why on hover", () => {
+    const actionSpy = cy.spy().as("actionSpy");
+    const mountOptions = setupMocks({
+      shareStatus: { ...shareStatusData, visibility: "private" },
+      actionHandler: async ({ request }) => {
+        const body = await request.json();
+        actionSpy(body);
+        return { status: 200 };
+      },
+    });
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType="folder"
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    // Explanation isn't visible until the user interacts with the disabled card.
+    cy.contains("Folders can't be made public yet").should("not.exist");
+
+    cy.get('[data-test="Share Publicly Button"]').should("be.disabled");
+    cy.get('[data-test="Share Unlisted Button"]').should("not.be.disabled");
+
+    // Hovering the wrapper reveals the tooltip explanation. React's synthetic
+    // onPointerEnter is implemented via a delegated pointerover listener at the
+    // root, and Chakra's Tooltip filters out touch pointers, so dispatch a
+    // bubbling pointerover with pointerType: "mouse".
+    cy.get('[data-test="Folder Public Disabled Tooltip"]').trigger(
+      "pointerover",
+      { eventConstructor: "PointerEvent", pointerType: "mouse" },
+    );
+    cy.get('[role="tooltip"]')
+      .should("be.visible")
+      .and("contain.text", "Folders can't be made public yet")
+      .and("contain.text", "try unlisted instead");
+
+    // Clicking the disabled public card should not stage a change or submit.
+    cy.get('[data-test="Share Publicly Button"]').click({ force: true });
+    cy.get('[data-test="Share Submit Button"]').should("not.exist");
+    cy.get("@actionSpy").should("not.have.been.called");
+  });
+
   it("loads share status exactly once when the modal opens (no rerender loop)", () => {
     const loaderSpy = cy.spy().as("loaderSpy");
 

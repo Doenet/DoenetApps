@@ -486,7 +486,7 @@ function SharePublicly({
   const hasUnsavedVisibility = selectedVisibility !== currentVisibility;
   const canSubmitVisibility =
     hasUnsavedVisibility &&
-    !isVisibilityDisabled(selectedVisibility, parentVisibility);
+    !isVisibilityDisabled(selectedVisibility, parentVisibility, contentType);
   const showAccessCta = selectedVisibility !== "public" && canSubmitVisibility;
   const showPublicAccessCta =
     selectedVisibility === "public" && hasUnsavedVisibility;
@@ -586,10 +586,16 @@ function SharePublicly({
               const disabled = isVisibilityDisabled(
                 option.value,
                 parentVisibility,
+                contentType,
               );
-              return (
+              const disabledReason =
+                disabled &&
+                option.value === "public" &&
+                contentType === "folder"
+                  ? "Folders can't be made public yet — try unlisted instead."
+                  : null;
+              const card = (
                 <VisibilityOptionCard
-                  key={option.value}
                   title={option.title}
                   description={option.description}
                   icon={option.icon}
@@ -598,6 +604,20 @@ function SharePublicly({
                   dataTest={option.dataTest}
                   onClick={() => setSelectedVisibility(option.value)}
                 />
+              );
+              return disabledReason ? (
+                <Tooltip
+                  key={option.value}
+                  label={disabledReason}
+                  hasArrow
+                  openDelay={300}
+                >
+                  <Box width="100%" data-test="Folder Public Disabled Tooltip">
+                    {card}
+                  </Box>
+                </Tooltip>
+              ) : (
+                <Box key={option.value}>{card}</Box>
               );
             })}
           </SimpleGrid>
@@ -1017,12 +1037,18 @@ function getVisibilityLabel(visibility: Visibility) {
 function isVisibilityDisabled(
   visibility: Visibility,
   parentVisibility: Visibility,
+  contentType: ContentType,
 ) {
   if (visibility === "private") {
     return parentVisibility !== "private";
   }
   if (visibility === "unlisted") {
     return parentVisibility === "public";
+  }
+  // Folders cannot yet be made public; the server rejects this and there is no
+  // mechanism to enforce public-share requirements across folder descendants.
+  if (visibility === "public" && contentType === "folder") {
+    return true;
   }
   return false;
 }
