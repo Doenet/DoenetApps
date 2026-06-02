@@ -526,6 +526,12 @@ app.post(
 //   },
 // );
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+
+// Must exceed the ALB's idle_timeout (30s, set in infra/cloudformation/service-common.yml)
+// so the ALB always closes idle sockets first. Otherwise Node tears down a pooled
+// connection just as the ALB reuses it, and the client gets a 502.
+server.keepAliveTimeout = 65_000;
+server.headersTimeout = 66_000;
