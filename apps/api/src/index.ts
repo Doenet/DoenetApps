@@ -12,6 +12,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as MagicLinkStrategy } from "passport-magic-link";
 import { Strategy as AnonymIdStrategy } from "../passport-anonymous/lib/strategy";
 import { Strategy as LocalStrategy } from "passport-local";
+import jwt from "jsonwebtoken";
 
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
@@ -128,12 +129,40 @@ passport.use(
   new MagicLinkStrategy(
     {
       secret: process.env.MAGIC_LINK_SECRET || "",
+      // TODO: Is this allowReuse doing anything?
       allowReuse: true,
       userFields: ["email", "fromAnonymous"],
       tokenField: "token",
       ttl: 60 * 60,
     },
     async (user, token) => {
+      const decoded = jwt.decode(token) as {
+        iat?: number;
+        exp?: number;
+      } | null;
+      const issuedAtIso = decoded?.iat
+        ? new Date(decoded.iat * 1000).toISOString()
+        : undefined;
+      const expiresAtIso = decoded?.exp
+        ? new Date(decoded.exp * 1000).toISOString()
+        : undefined;
+      const issuedAtHuman = decoded?.iat
+        ? new Date(decoded.iat * 1000).toUTCString()
+        : "unknown";
+      const expiresAtHuman = decoded?.exp
+        ? new Date(decoded.exp * 1000).toUTCString()
+        : "unknown";
+
+      console.log(`[Auth] Sending magic link email.`, {
+        tokenPrefix: `${token.slice(0, 12)}…`,
+        email: user.email,
+        issuedAt: issuedAtIso,
+        expiresAt: expiresAtIso,
+        fromAnonymous: user.fromAnonymous?.trim()
+          ? user.fromAnonymous
+          : undefined,
+      });
+
       const confirmURL = `${appUrl}/confirmSignIn?token=${token}`;
 
       if (mockSigninEmail) {
@@ -152,7 +181,10 @@ passport.use(
         throw Error("Could not send email");
       }
 
-      email_html = email_html.replace(/CONFIRM_LINK/g, confirmURL);
+      email_html = email_html
+        .replace(/CONFIRM_LINK/g, confirmURL)
+        .replace(/TOKEN_ISSUED_AT/g, issuedAtHuman)
+        .replace(/TOKEN_EXPIRES_AT/g, expiresAtHuman);
 
       const params = {
         Source: sendingEmailAddress,
@@ -166,7 +198,7 @@ passport.use(
           },
           Body: {
             Text: {
-              Data: `To finish your login into Doenet, go to the URL: ${confirmURL}`,
+              Data: `To finish your login into Doenet, go to the URL: ${confirmURL}\n\nLink generated at ${issuedAtHuman} and expires at ${expiresAtHuman}.`,
             },
             Html: {
               Data: email_html,
@@ -452,8 +484,32 @@ app.post(
     }
     next();
   },
-  // 2) hand off to passport‑magic‑link
-  passport.authenticate("magiclink", { action: "requestToken" }),
+  // 2) hand off to passport‑magic‑link, with failure logging
+  (req, res, next) => {
+    const email =
+      typeof req.body?.email === "string" ? req.body.email : "<missing>";
+    passport.authenticate(
+      "magiclink",
+      { action: "requestToken" },
+      // Strategy's requestToken ends with pass() on success, so this callback
+      // is only invoked for fail() / error().
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (err: any, _user: any, info: any) => {
+        if (err) {
+          console.error(`[Auth Error] Magic link email send failed.`, {
+            email,
+            err,
+          });
+          return next(err);
+        }
+        console.warn(`[Auth Failed] Magic link email send rejected.`, {
+          email,
+          reason: info?.message ?? "Unknown reason",
+        });
+        return res.status(401).send({ error: "Unable to send magic link." });
+      },
+    )(req, res, next);
+  },
 );
 
 // app.get(
