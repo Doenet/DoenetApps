@@ -498,10 +498,14 @@ function SharePublicly({
     !publicRequirementsComplete ||
     fetcher.state !== "idle";
   const showDistributionActions = currentVisibility !== "private";
-  const documentLinkHelperText =
+  // Embed code only makes sense for single documents; compound types and
+  // folders have no standalone embeddable view.
+  const showEmbedCode = contentType === "singleDoc";
+  const contentTypeLabel = contentTypeToName[contentType].toLowerCase();
+  const contentLinkHelperText =
     currentVisibility === "unlisted"
-      ? "Anyone with this link can open the document"
-      : "Anyone can open the document with this link";
+      ? `Anyone with this link can open the ${contentTypeLabel}`
+      : `Anyone can open the ${contentTypeLabel} with this link`;
 
   function submitVisibility() {
     const nextVisibility = selectedVisibility;
@@ -702,13 +706,13 @@ function SharePublicly({
               color="gray.800"
               mb="0.35rem"
             >
-              Document link
+              {`${contentTypeToName[contentType]} link`}
             </Text>
             <Text color="gray.700" fontSize="sm" mb="0.65rem">
-              {documentLinkHelperText}
+              {contentLinkHelperText}
             </Text>
             <Tooltip
-              label="Copies the current document link."
+              label={`Copies the current ${contentTypeLabel} link.`}
               hasArrow
               openDelay={500}
             >
@@ -735,45 +739,47 @@ function SharePublicly({
             </Tooltip>
           </Box>
 
-          <Box>
-            <Text
-              fontSize="sm"
-              fontWeight="semibold"
-              color="gray.800"
-              mb="0.35rem"
-            >
-              Embed code
-            </Text>
-            <Text color="gray.700" fontSize="sm" mb="0.65rem">
-              Use this code to embed the document on another site or LMS.
-            </Text>
-            <Tooltip
-              label="Embed this content in another website or LMS using an iframe."
-              hasArrow
-              openDelay={500}
-            >
-              <Button
-                size="sm"
-                variant="outline"
-                borderColor="gray.300"
-                bg="white"
+          {showEmbedCode ? (
+            <Box>
+              <Text
+                fontSize="sm"
+                fontWeight="semibold"
                 color="gray.800"
-                onClick={() => {
-                  navigator.clipboard.writeText(embedCode);
-                  setCopiedEmbedCode(true);
-                  setCopiedShareLink(false);
-                }}
-                _hover={{ bg: "gray.50" }}
+                mb="0.35rem"
               >
-                {copiedEmbedCode ? (
-                  <IoMdCheckmark fontSize="1.1rem" />
-                ) : (
-                  <FiCode fontSize="1.1rem" />
-                )}
-                <Text ml="0.45rem">Copy embed code</Text>
-              </Button>
-            </Tooltip>
-          </Box>
+                Embed code
+              </Text>
+              <Text color="gray.700" fontSize="sm" mb="0.65rem">
+                Use this code to embed the document on another site or LMS.
+              </Text>
+              <Tooltip
+                label="Embed this content in another website or LMS using an iframe."
+                hasArrow
+                openDelay={500}
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderColor="gray.300"
+                  bg="white"
+                  color="gray.800"
+                  onClick={() => {
+                    navigator.clipboard.writeText(embedCode);
+                    setCopiedEmbedCode(true);
+                    setCopiedShareLink(false);
+                  }}
+                  _hover={{ bg: "gray.50" }}
+                >
+                  {copiedEmbedCode ? (
+                    <IoMdCheckmark fontSize="1.1rem" />
+                  ) : (
+                    <FiCode fontSize="1.1rem" />
+                  )}
+                  <Text ml="0.45rem">Copy embed code</Text>
+                </Button>
+              </Tooltip>
+            </Box>
+          ) : null}
         </VStack>
       ) : null}
     </VStack>

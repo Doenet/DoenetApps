@@ -535,6 +535,55 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       .and("equal", `/documentEditor/${contentId}/settings?showRequired`);
   });
 
+  const nonDocCases = [
+    { type: "folder", linkHeading: "Folder link", helperNoun: "folder" },
+    {
+      type: "sequence",
+      linkHeading: "Problem Set link",
+      helperNoun: "problem set",
+    },
+    {
+      type: "select",
+      linkHeading: "Question Bank link",
+      helperNoun: "question bank",
+    },
+  ] as const;
+
+  nonDocCases.forEach(({ type, linkHeading, helperNoun }) => {
+    it(`shows a typed link but hides embed code for public ${type}`, () => {
+      const mountOptions = setupMocks({
+        shareStatus: {
+          ...shareStatusData,
+          isPublic: true,
+          visibility: "public",
+        },
+      });
+
+      cy.mount(
+        <ShareModal
+          contentId={contentId}
+          contentType={type}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Current Access Helper"]').should(
+        "contain.text",
+        "Current access: Public.",
+      );
+      cy.contains(linkHeading).scrollIntoView().should("be.visible");
+      cy.contains(`Anyone can open the ${helperNoun} with this link`).should(
+        "be.visible",
+      );
+      cy.contains("Copy link").should("be.visible");
+      cy.contains("Document link").should("not.exist");
+      cy.contains("Embed code").should("not.exist");
+      cy.contains("Copy embed code").should("not.exist");
+    });
+  });
+
   it("loads share status exactly once when the modal opens (no rerender loop)", () => {
     const loaderSpy = cy.spy().as("loaderSpy");
 
@@ -601,7 +650,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       cy.mount(
         <ShareModal
           contentId={contentId}
-          contentType={contentType}
+          contentType="singleDoc"
           modalIsOpen={true}
           closeModal={cy.spy().as("onClose")}
         />,
