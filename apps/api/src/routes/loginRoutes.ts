@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import passportLib from "passport";
 import { getUser, getUserInfoFromEmail } from "../query/user";
 import axios from "axios";
@@ -34,15 +34,67 @@ loginRouter.get(
 
 loginRouter.get(
   "/magiclink",
-  passport.authenticate("magiclink", {
-    action: "acceptToken",
-    userPrimaryKey: "email",
-  }),
-  async (req: Request, res: Response) => {
-    const user = await getUserInfoFromEmail(
-      (req.user as { email: string }).email,
-    );
-    res.send({ user });
+
+  (req: Request, res: Response, next: NextFunction) => {
+    // 1. Wrap the passport authentication call
+    passport.authenticate(
+      "magiclink",
+      {
+        action: "acceptToken",
+        userPrimaryKey: "email",
+      },
+      // 2. Add the custom callback
+      // @skip
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (err: any, user: Express.User | false | null, info: any) => {
+        // Handle server/database errors
+        if (err) {
+          console.error(
+            `[Auth Error] Server error during magic link login:`,
+            err,
+          );
+          return next(err);
+        }
+
+        // Handle authentication failures (e.g., expired/invalid token)
+        if (!user) {
+          const failureReason = info?.message || "Unknown reason";
+
+          // --> Create your log entry here <--
+          console.warn(
+            `[Auth Failed] Magic link login failed. Reason: ${failureReason}`,
+          );
+
+          // Return a 401 to the client
+          return res
+            .status(401)
+            .send({ error: "Invalid or expired magic link." });
+        }
+
+        // 3. Manually establish the session
+        // (Required when using a custom callback if you are using stateful sessions)
+        req.logIn(user, async (loginErr) => {
+          if (loginErr) {
+            console.error(`[Auth Error] Session creation failed:`, loginErr);
+            return next(loginErr);
+          }
+
+          try {
+            // 4. Proceed with your original success logic
+            const userInfo = await getUserInfoFromEmail(
+              (user as { email: string }).email,
+            );
+            return res.send({ user: userInfo });
+          } catch (fetchErr) {
+            console.error(
+              `[Auth Error] Authentication succeeded but DB failed to fetch user info:`,
+              fetchErr,
+            );
+            return next(fetchErr);
+          }
+        });
+      },
+    )(req, res, next);
   },
 );
 
