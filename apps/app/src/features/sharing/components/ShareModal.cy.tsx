@@ -535,6 +535,37 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       .and("equal", `/documentEditor/${contentId}/settings?showRequired`);
   });
 
+  it("loads share status exactly once when the modal opens (no rerender loop)", () => {
+    const loaderSpy = cy.spy().as("loaderSpy");
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType={contentType}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      {
+        routes: [
+          {
+            path: `/loadShareStatus/${contentId}`,
+            loader: () => {
+              loaderSpy();
+              return shareStatusData;
+            },
+          },
+        ],
+      },
+    );
+
+    // Wait for the modal to render with data, then give the fetcher time to
+    // settle so any rerender-loop re-fetches would have a chance to fire.
+    cy.get('[data-test="Access Heading"]').should("contain.text", "Access");
+    cy.wait(500);
+
+    cy.get("@loaderSpy").should("have.been.calledOnce");
+  });
+
   describe("Accessibility", () => {
     it("is accessible when not public", () => {
       const mountOptions = setupMocks();

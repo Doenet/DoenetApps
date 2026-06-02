@@ -126,10 +126,17 @@ function UncontrolledShareModal({
   }, [contentId, fetcher]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && fetcher.state === "idle" && !fetcher.data) {
       reloadShareStatus();
     }
-  }, [isOpen, reloadShareStatus]);
+  }, [isOpen, fetcher.state, fetcher.data, reloadShareStatus]);
+
+  // Reset cached data on close so the next open refetches.
+  useEffect(() => {
+    if (!isOpen && fetcher.data) {
+      fetcher.reset();
+    }
+  }, [isOpen, fetcher]);
 
   return (
     <ShareModalLayout
