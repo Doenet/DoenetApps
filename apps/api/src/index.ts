@@ -140,15 +140,24 @@ passport.use(
         iat?: number;
         exp?: number;
       } | null;
+      const issuedAtIso = decoded?.iat
+        ? new Date(decoded.iat * 1000).toISOString()
+        : undefined;
+      const expiresAtIso = decoded?.exp
+        ? new Date(decoded.exp * 1000).toISOString()
+        : undefined;
+      const issuedAtHuman = decoded?.iat
+        ? new Date(decoded.iat * 1000).toUTCString()
+        : "unknown";
+      const expiresAtHuman = decoded?.exp
+        ? new Date(decoded.exp * 1000).toUTCString()
+        : "unknown";
+
       console.log(`[Auth] Sending magic link email.`, {
         tokenPrefix: `${token.slice(0, 12)}…`,
         email: user.email,
-        issuedAt: decoded?.iat
-          ? new Date(decoded.iat * 1000).toISOString()
-          : undefined,
-        expiresAt: decoded?.exp
-          ? new Date(decoded.exp * 1000).toISOString()
-          : undefined,
+        issuedAt: issuedAtIso,
+        expiresAt: expiresAtIso,
         fromAnonymous: user.fromAnonymous?.trim()
           ? user.fromAnonymous
           : undefined,
@@ -172,7 +181,10 @@ passport.use(
         throw Error("Could not send email");
       }
 
-      email_html = email_html.replace(/CONFIRM_LINK/g, confirmURL);
+      email_html = email_html
+        .replace(/CONFIRM_LINK/g, confirmURL)
+        .replace(/TOKEN_ISSUED_AT/g, issuedAtHuman)
+        .replace(/TOKEN_EXPIRES_AT/g, expiresAtHuman);
 
       const params = {
         Source: sendingEmailAddress,
@@ -186,7 +198,7 @@ passport.use(
           },
           Body: {
             Text: {
-              Data: `To finish your login into Doenet, go to the URL: ${confirmURL}`,
+              Data: `To finish your login into Doenet, go to the URL: ${confirmURL}\n\nLink generated at ${issuedAtHuman} and expires at ${expiresAtHuman}.`,
             },
             Html: {
               Data: email_html,
