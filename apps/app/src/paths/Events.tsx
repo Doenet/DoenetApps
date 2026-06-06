@@ -43,11 +43,42 @@ export function Events() {
                   Drop in anytime during the two hours.
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Dates:</strong> Tuesdays (no office hours Tuesday,
-                  June 2)
+                  <strong>Dates:</strong> Tuesdays
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Location:</strong> Online, via Zoom. Link:{" "}
+                  <ChakraLink
+                    href="https://mathtech.org/dropin"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    https://mathtech.org/dropin
+                  </ChakraLink>
+                </Text>
+              </VStack>
+            </Box>
+
+            {/* Virtual Workshop Reunion */}
+            <Box w="100%">
+              <Heading size="lg" mb={3}>
+                Virtual workshop reunion
+              </Heading>
+              <VStack align="start" spacing={3}>
+                <Text fontSize="1.3rem" lineHeight="1.3">
+                  We are crashing the beginning of Doenet office hours to have a
+                  reunion for participants from our June Doenet community
+                  workshop! Stop by to reconnect with the cool people you met at
+                  the workshop, get support on your Doenet projects, and share
+                  what you've been working on.
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Dates:</strong> Tuesday, June 23, 2026
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Time:</strong> 2–3pm Eastern, 11am–1pm Pacific
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Location:</strong> Online, via Zoom. Link:{" "}
@@ -67,6 +98,108 @@ export function Events() {
               <Heading size="lg" mb={3} mt={5}>
                 Virtual training workshops
               </Heading>
+
+              <VStack
+                align="start"
+                spacing={3}
+                mb={6}
+                pl={4}
+                borderLeft="3px solid"
+                borderColor="border"
+              >
+                <Heading size="md">
+                  <ChakraLink
+                    href="https://scholarlattice.org/collections/71068412-a9df-4431-ad59-6e9759814792"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    Getting Started with GitHub
+                  </ChakraLink>
+                </Heading>
+                <Text fontSize="1.3rem" lineHeight="1.3">
+                  In this 2-hour virtual workshop held on Zoom, participants
+                  will learn how to use GitHub to contribute to open-source
+                  projects like Doenet. The workshop will be based on the
+                  material from{" "}
+                  <ChakraLink
+                    href="https://g4m.code4math.org/g4m.html"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    GitHub for Mathematicians
+                  </ChakraLink>
+                  .
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Date:</strong> Tuesday, June 9, 2026
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <Button
+                    as="a"
+                    href="https://scholarlattice.org/collections/71068412-a9df-4431-ad59-6e9759814792"
+                    colorScheme="blue"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Details and registration at ScholarLattice
+                  </Button>
+                </Text>
+              </VStack>
+
+              <VStack
+                align="start"
+                spacing={3}
+                mb={6}
+                pl={4}
+                borderLeft="3px solid"
+                borderColor="border"
+              >
+                <Heading size="md">
+                  <ChakraLink
+                    href="https://scholarlattice.org/collections/eef2f028-25cc-42d8-9915-6b7438df42aa"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    Intro to Doenet Development
+                  </ChakraLink>
+                </Heading>
+                <Text fontSize="1.3rem" lineHeight="1.3">
+                  In this 2-hour virtual workshop held on Zoom, participants
+                  will learn how to contribute to the software behind Doenet.
+                  The workshop assumes some basic familiarity with GitHub, such
+                  as covered in our{" "}
+                  <ChakraLink
+                    href="https://scholarlattice.org/collections/71068412-a9df-4431-ad59-6e9759814792"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    Getting Started with GitHub workshop
+                  </ChakraLink>
+                  . Participants will learn how to set up a local development
+                  environment, understand the structure of the Doenet codebase,
+                  and get guidance on how to find and work on issues.
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Date:</strong> Thursday, June 11, 2026
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <Button
+                    as="a"
+                    href="https://scholarlattice.org/collections/eef2f028-25cc-42d8-9915-6b7438df42aa"
+                    colorScheme="blue"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Details and registration at ScholarLattice
+                  </Button>
+                </Text>
+              </VStack>
 
               <VStack
                 align="start"
@@ -169,46 +302,6 @@ export function Events() {
                 Doenet will be at the following workshops and conferences. We
                 hope to see you there!
               </Text>
-
-              <VStack
-                align="start"
-                spacing={3}
-                mb={6}
-                pl={4}
-                borderLeft="3px solid"
-                borderColor="border"
-              >
-                <Heading size="md">Doenet Community Workshop</Heading>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Dates:</strong> June 1–5 2026
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Location:</strong> University of Minnesota
-                </Text>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  We invite you to participate in a five-day in-person workshop
-                  to learn how to create richly interactive classroom activities
-                  using the free and open-source Doenet platform. Not only is
-                  Doenet a fun way to create cool activities, it is also a
-                  community of STEM instructors and authors who strive to engage
-                  students' minds and spur active interaction with mathematical
-                  ideas. We welcome you to work together with us to develop an
-                  open-source community, resources, and tools that enable anyone
-                  to create exploratory activities with feedback.
-                </Text>
-
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <Button
-                    as="a"
-                    href="https://cse.umn.edu/math/events/doenet-community-workshop-2026"
-                    colorScheme="blue"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Details and registration at the University of Minnesota
-                  </Button>
-                </Text>
-              </VStack>
 
               <VStack
                 align="start"

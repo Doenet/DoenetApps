@@ -324,7 +324,6 @@ export function Home() {
           <CardHeader>
             <Heading size="sm">
               Virtual office hours, Tuesdays, 2–4pm Eastern, 11am–1pm Pacific
-              (no office hours Tuesday, June 2)
             </Heading>
           </CardHeader>
           <CardBody>
