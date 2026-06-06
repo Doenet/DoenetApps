@@ -1,6 +1,6 @@
 // import axios from 'axios';
 import {
-  Button,
+  // Button,
   Box,
   Icon,
   Text,
@@ -15,6 +15,7 @@ import {
   DrawerOverlay,
   Drawer,
 } from "@chakra-ui/react";
+import Button from "react-bootstrap/Button";
 import React, { useEffect, useRef, useState } from "react";
 import {
   redirect,
@@ -287,9 +288,10 @@ export function Portfolio() {
           </Text>
           <div style={{ position: "absolute", top: "48px", right: "10px" }}>
             <Button
+              variant="primary"
               data-test="Add Activity"
-              size="xs"
-              colorScheme="blue"
+              // size="xs"
+              // colorScheme="blue"
               onClick={async () => {
                 //Create a portfilio activity and redirect to the editor for it
                 let response = await fetch("/api/createPortfolioActivity.php");
