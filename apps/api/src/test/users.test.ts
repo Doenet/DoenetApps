@@ -106,16 +106,17 @@ test("turn author mode on and off", async () => {
   expect(userInfo.user.isAuthor).eq(false);
 });
 
-test("user apis do not provide email", async () => {
-  const { userId: loggedInUserId } = await createTestUser();
+test("a logged-in user can see their own email, but author lookups do not expose email", async () => {
+  const { userId: loggedInUserId, email } = await createTestUser();
+
   const results1 = await getMyUserInfo({ loggedInUserId });
-  expect(results1.user).not.toHaveProperty("email");
+  expect(results1.user.email).eq(email);
 
   const results2 = await getAuthorInfo(loggedInUserId);
   expect(results2).not.toHaveProperty("email");
 
   const results3 = await getUserInfoIfLoggedIn({ loggedInUserId });
-  expect(results3!.user).not.toHaveProperty("email");
+  expect(results3!.user.email).eq(email);
 });
 
 describe("student handles", () => {

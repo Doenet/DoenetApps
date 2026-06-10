@@ -87,6 +87,7 @@ export async function getMyUserInfo({
     where: { userId: loggedInUserId },
     select: {
       userId: true,
+      email: true,
       firstNames: true,
       lastNames: true,
       isAnonymous: true,
