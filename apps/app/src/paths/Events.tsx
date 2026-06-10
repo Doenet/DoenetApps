@@ -64,8 +64,15 @@ export function Events() {
             {/* Virtual Workshop Reunion */}
             <Box w="100%">
               <Heading size="lg" mb={3}>
-                Virtual workshop reunion
+                <ChakraLink
+                  href="https://luma.com/jej9sscb"
+                  isExternal
+                  textDecoration="underline"
+                >
+                  Doenet workshop reunion
+                </ChakraLink>
               </Heading>
+
               <VStack align="start" spacing={3}>
                 <Text fontSize="1.3rem" lineHeight="1.3">
                   We are crashing the beginning of Doenet office hours to have a
@@ -78,7 +85,7 @@ export function Events() {
                   <strong>Dates:</strong> Tuesday, June 23, 2026
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 2–3pm Eastern, 11am–1pm Pacific
+                  <strong>Time:</strong> 2–3pm Eastern, 11am–noon Pacific
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Location:</strong> Online, via Zoom. Link:{" "}
@@ -90,6 +97,17 @@ export function Events() {
                     https://mathtech.org/dropin
                   </ChakraLink>
                 </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <Button
+                    as="a"
+                    href="https://luma.com/jej9sscb"
+                    colorScheme="blue"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Register at Luma
+                  </Button>
+                </Text>
               </VStack>
             </Box>
 
@@ -98,6 +116,51 @@ export function Events() {
               <Heading size="lg" mb={3} mt={5}>
                 Virtual training workshops
               </Heading>
+
+              <VStack
+                align="start"
+                spacing={3}
+                mb={6}
+                pl={4}
+                borderLeft="3px solid"
+                borderColor="border"
+              >
+                <Heading size="md">
+                  <ChakraLink
+                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
+                    isExternal
+                    textDecoration="underline"
+                  >
+                    June Doenet Virtual Workshop
+                  </ChakraLink>
+                </Heading>
+                <Text fontSize="1.3rem" lineHeight="1.3">
+                  In this 4-day virtual workshop held on Zoom, participants will
+                  learn how to create accessible, dynamic and interactive
+                  activities in Doenet. The workshop will also provide guidance
+                  on using the available resources to learn more about Doenet,
+                  including how to connect with the supportive Doenet community
+                  of developers and experienced instructors.
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Date:</strong> Monday June 15 through Thursday June
+                  18, 2026
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <strong>Time:</strong> 1–4pm Eastern, 10am–1pm Pacific
+                </Text>
+                <Text fontSize="1rem" lineHeight="1.4">
+                  <Button
+                    as="a"
+                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
+                    colorScheme="blue"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Details and registration at ScholarLattice
+                  </Button>
+                </Text>
+              </VStack>
 
               <VStack
                 align="start"
@@ -131,10 +194,10 @@ export function Events() {
                   .
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Tuesday, June 9, 2026
+                  <strong>Date:</strong> Tuesday, June 23, 2026
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
+                  <strong>Time:</strong> 3–5pm Eastern, noon–2pm Pacific
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <Button
@@ -183,7 +246,7 @@ export function Events() {
                   and get guidance on how to find and work on issues.
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Thursday, June 11, 2026
+                  <strong>Date:</strong> Thursday, June 25, 2026
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
@@ -192,51 +255,6 @@ export function Events() {
                   <Button
                     as="a"
                     href="https://scholarlattice.org/collections/eef2f028-25cc-42d8-9915-6b7438df42aa"
-                    colorScheme="blue"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Details and registration at ScholarLattice
-                  </Button>
-                </Text>
-              </VStack>
-
-              <VStack
-                align="start"
-                spacing={3}
-                mb={6}
-                pl={4}
-                borderLeft="3px solid"
-                borderColor="border"
-              >
-                <Heading size="md">
-                  <ChakraLink
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-                    isExternal
-                    textDecoration="underline"
-                  >
-                    June Doenet Virtual Workshop
-                  </ChakraLink>
-                </Heading>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  In this 4-day virtual workshop held on Zoom, participants will
-                  learn how to create accessible, dynamic and interactive
-                  activities in Doenet. The workshop will also provide guidance
-                  on using the available resources to learn more about Doenet,
-                  including how to connect with the supportive Doenet community
-                  of developers and experienced instructors.
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Monday June 15 through Thursday June
-                  18, 2026
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 1–4pm Eastern, 10am–1pm Pacific
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <Button
-                    as="a"
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
                     colorScheme="blue"
                     target="_blank"
                     rel="noopener noreferrer"
