@@ -128,7 +128,7 @@ if($success) {
 
     // $itemWeights = mysqli_real_escape_string($conn,$_POST['itemWeights']);
     // $itemWeights = json_encode($_POST['itemWeights']);
-    $itemWeights = implode(",",$_POST['itemWeights']);
+    $itemWeights = implode(",",$_POST['itemWeights'] ?? []);
 
     $sql = "
     UPDATE course_content

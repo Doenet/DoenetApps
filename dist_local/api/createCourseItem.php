@@ -47,13 +47,13 @@ if ($success){
   $cloneMode = mysqli_real_escape_string($conn,$_POST["cloneMode"]);
   $pageDoenetIds = array_map(function ($item) use ($conn) {
       return mysqli_real_escape_string($conn, $item);
-  }, $_POST["pageDoenetIds"]);
+  }, $_POST["pageDoenetIds"] ?? []);
   $pageLabels = array_map(function ($item) use ($conn) {
     return mysqli_real_escape_string($conn, $item);
-}, $_POST["pageLabels"]);
+}, $_POST["pageLabels"] ?? []);
   $orderDoenetIds = array_map(function ($item) use ($conn) {
     return mysqli_real_escape_string($conn, $item);
-}, $_POST["orderDoenetIds"]);
+}, $_POST["orderDoenetIds"] ?? []);
   $activityLabel = mysqli_real_escape_string($conn,$_POST["activityLabel"]);
   $DangerousActivityObj = json_encode($_POST['activityObj']);
 

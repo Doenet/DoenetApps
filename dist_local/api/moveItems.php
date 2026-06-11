@@ -93,7 +93,7 @@ if ($success){
 
 
 if ($success){
-  $number_items = count($_POST["selectedItemIds"]);
+  $number_items = count($_POST["selectedItemIds"] ?? []);
 
   $new_values = "";
   for ($i = 0; $i < $number_items; $i++) {
@@ -113,7 +113,7 @@ if ($success){
   $result = $conn->query($sql); 
 
   /* Update driveId of all child nodes in moved folders */
-  $number_items = count($_POST["selectedItemChildrenIds"]);
+  $number_items = count($_POST["selectedItemChildrenIds"] ?? []);
 
   $id_list = "(";
 
