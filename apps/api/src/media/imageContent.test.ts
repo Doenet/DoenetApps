@@ -58,12 +58,35 @@ describe("createImageContent", () => {
     expect(row.imageHeight).toBe(80);
     expect(row.storageKey).toBeNull();
     expect(row.isPublic).toBe(false);
-    expect(row.visibility).toBe("private");
+    expect(row.visibility).toBe("unlisted");
     expect(row.courseRootId).toBeNull();
     expect(row.sharedWith).toEqual([]);
   });
 
-  test("inherits public visibility and license from a public parent", async () => {
+  test("stays unlisted under a private parent, regardless of the parent's visibility", async () => {
+    const owner = await createTestUser();
+    const { contentId: folderId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "folder",
+      parentId: null,
+    });
+
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: folderId,
+      name: "in-private.png",
+      mimeType: "image/png",
+      sizeBytes: 1,
+      imageWidth: 1,
+      imageHeight: 1,
+    });
+
+    const row = await getContent(contentId);
+    expect(row.isPublic).toBe(false);
+    expect(row.visibility).toBe("unlisted");
+  });
+
+  test("is unlisted under a public parent but still inherits license", async () => {
     const owner = await createTestUser();
     const { contentId: folderId } = await createContent({
       loggedInUserId: owner.userId,
@@ -92,8 +115,8 @@ describe("createImageContent", () => {
     });
 
     const row = await getContent(contentId);
-    expect(row.isPublic).toBe(true);
-    expect(row.visibility).toBe("public");
+    expect(row.isPublic).toBe(false);
+    expect(row.visibility).toBe("unlisted");
     expect(row.licenseCode).toBe("CCBYSA");
   });
 
@@ -350,6 +373,12 @@ describe("findViewableImage", () => {
       sizeBytes: 42,
       imageWidth: 4,
       imageHeight: 4,
+    });
+    // Uploaded images are created `unlisted`, but these access-control tests
+    // need a `private` baseline they can then override per case.
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { visibility: "private", isPublic: false },
     });
     await setImageStorageKey({
       contentId,

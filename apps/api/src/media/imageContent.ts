@@ -19,9 +19,11 @@ export async function canUserUploadImages(
 
 /**
  * Creates a new image content row in `parentId` of `loggedInUserId`'s tree.
- * Inherits visibility / share / license / course context from the parent via
- * `prepareNewChild`. The id is auto-generated; the storage key is set
- * later by `setImageStorageKey` once the bytes land in storage.
+ * Inherits share / license / course context from the parent via
+ * `prepareNewChild`, but visibility is always `unlisted` regardless of the
+ * parent — images are inline assets that should be link-reachable but never
+ * surface in search/explore. The id is auto-generated; the storage key is
+ * set later by `setImageStorageKey` once the bytes land in storage.
  */
 export async function createImageContent({
   loggedInUserId,
@@ -41,14 +43,8 @@ export async function createImageContent({
   imageHeight: number;
 }) {
   const ownerId = loggedInUserId;
-  const {
-    sortIndex,
-    isPublic,
-    visibility,
-    licenseCode,
-    sharedWith,
-    courseRootId,
-  } = await prepareNewChild({ ownerId, parentId });
+  const { sortIndex, licenseCode, sharedWith, courseRootId } =
+    await prepareNewChild({ ownerId, parentId });
 
   const content = await prisma.content.create({
     data: {
@@ -56,8 +52,8 @@ export async function createImageContent({
       type: "image",
       parentId,
       name,
-      isPublic,
-      visibility,
+      isPublic: false,
+      visibility: "unlisted",
       licenseCode,
       sortIndex,
       courseRootId,

@@ -102,6 +102,12 @@ async function makeImage(
       storageKey: `images/${fromUUID(contentId)}.png`,
     });
   }
+  // Uploaded images are created `unlisted`; these access-control tests need a
+  // `private` baseline, with cases that want public/unlisted overriding it.
+  await prisma.content.update({
+    where: { id: contentId },
+    data: { visibility: "private", isPublic: false },
+  });
   return contentId;
 }
 
