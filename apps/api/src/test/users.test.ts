@@ -106,16 +106,28 @@ test("turn author mode on and off", async () => {
   expect(userInfo.user.isAuthor).eq(false);
 });
 
-test("user apis do not provide email", async () => {
-  const { userId: loggedInUserId } = await createTestUser();
-  const results1 = await getMyUserInfo({ loggedInUserId });
-  expect(results1.user).not.toHaveProperty("email");
+test("a logged-in user can see their own email", async () => {
+  const { userId: loggedInUserId, email } = await createTestUser();
 
-  const results2 = await getAuthorInfo(loggedInUserId);
-  expect(results2).not.toHaveProperty("email");
+  const myInfo = await getMyUserInfo({ loggedInUserId });
+  expect(myInfo.user.email).eq(email);
 
-  const results3 = await getUserInfoIfLoggedIn({ loggedInUserId });
-  expect(results3!.user).not.toHaveProperty("email");
+  const optionalInfo = await getUserInfoIfLoggedIn({ loggedInUserId });
+  expect(optionalInfo!.user.email).eq(email);
+});
+
+test("author lookups do not expose another user's email", async () => {
+  const { userId: viewerUserId } = await createTestUser();
+  const { userId: authorUserId, email: authorEmail } = await createTestUser();
+
+  // sanity-check: the author actually has an email recorded
+  expect(authorEmail).toBeTruthy();
+
+  const authorInfo = await getAuthorInfo(authorUserId);
+  expect(authorInfo).not.toHaveProperty("email");
+  // and verify the viewer's own author lookup is symmetric (still no email)
+  const viewerLookup = await getAuthorInfo(viewerUserId);
+  expect(viewerLookup).not.toHaveProperty("email");
 });
 
 describe("student handles", () => {
