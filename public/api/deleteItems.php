@@ -52,30 +52,30 @@ if ($success){
     $courseId = mysqli_real_escape_string($conn, $_POST['courseId']);
     $pagesDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["pagesDoenetIds"]);
+    }, $_POST["pagesDoenetIds"] ?? []);
     $courseContentDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["courseContentDoenetIds"]);
+    }, $_POST["courseContentDoenetIds"] ?? []);
     $activitiesJson = $_POST["activitiesJson"];
     $activitiesJsonDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["activitiesJsonDoenetIds"]);
+    }, $_POST["activitiesJsonDoenetIds"] ?? []);
     $collectionsJson = $_POST["collectionsJson"];
     $collectionsJsonDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["collectionsJsonDoenetIds"]);
+    }, $_POST["collectionsJsonDoenetIds"] ?? []);
     $pageLinkDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["pageLinkDoenetIds"]);
+    }, $_POST["pageLinkDoenetIds"] ?? []);
     $baseCollectionsDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["baseCollectionsDoenetIds"]);
+    }, $_POST["baseCollectionsDoenetIds"] ?? []);
     $baseActivitiesDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["baseActivitiesDoenetIds"]);
+    }, $_POST["baseActivitiesDoenetIds"] ?? []);
     $baseSectionsDoenetIds = array_map(function ($item) use ($conn) {
         return mysqli_real_escape_string($conn, $item);
-    }, $_POST["baseSectionsDoenetIds"]);
+    }, $_POST["baseSectionsDoenetIds"] ?? []);
 
 
     $permissions = permissionsAndSettingsForOneCourseFunction($conn,$userId,$courseId);

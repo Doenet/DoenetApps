@@ -23,7 +23,7 @@ $doenetId =  mysqli_real_escape_string($conn,$_POST["doenetId"]);
 $courseId = mysqli_real_escape_string($conn,$_POST["courseId"]);
 $emailAddresses = array_map(function($item) use($conn) {
   return mysqli_real_escape_string($conn, $item);
-}, $_POST['emailAddresses']);
+}, $_POST['emailAddresses'] ?? []);
 
 
 $permissions = permissionsAndSettingsForOneCourseFunction($conn,$userId,$courseId);

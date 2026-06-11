@@ -45,22 +45,22 @@ if ($success) {
     //Set up merge data
     $mergeHeads = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeHeads']);
+    }, $_POST['mergeHeads'] ?? []);
     $mergeExternalId = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeExternalId']);
+    }, $_POST['mergeExternalId'] ?? []);
     $mergeFirstName = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeFirstName']);
+    }, $_POST['mergeFirstName'] ?? []);
     $mergeLastName = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeLastName']);
+    }, $_POST['mergeLastName'] ?? []);
     $mergeEmail = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeEmail']);
+    }, $_POST['mergeEmail'] ?? []);
     $mergeSection = array_map(function ($doenetId) use ($conn) {
         return mysqli_real_escape_string($conn, $doenetId);
-    }, $_POST['mergeSection']);
+    }, $_POST['mergeSection'] ?? []);
 
     // Insert or Update records
     for ($i = 0; $i < count($mergeEmail); $i++) {
