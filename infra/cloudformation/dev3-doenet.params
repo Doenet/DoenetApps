@@ -25,7 +25,7 @@
   },
   {
     "ParameterKey": "Priority",
-    "ParameterValue": "1"
+    "ParameterValue": "10"
   },
   {
     "ParameterKey": "EcsLaunchType",
