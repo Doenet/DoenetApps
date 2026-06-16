@@ -169,9 +169,13 @@ Parameters:
   #    Type : 'AWS::SSM::Parameter::Value<String>'
   #    Default: '/webdev/LoadBalancerFullName'
 
-  #  CloudwatchSNSTopic:
-  #    Type : 'AWS::SSM::Parameter::Value<String>'
-  #    Default: '/webdev/CloudwatchSNSWarningTopic'
+  CloudwatchSNSWarningTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSWarningTopic"
+
+  CloudwatchSNSCriticalTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSCriticalTopic"
 
   MinCount:
     Type: Number
@@ -608,7 +612,30 @@ Resources:
       AlarmActions:
         - !If [EcsInEc2, !Ref ScaleECSClusterEC2Up, !Ref "AWS::NoValue"]
         - !Ref ECSServiceScaleUpPolicy
-      #        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
+  ECSClusterExtendedCPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-Extended-High-CPU"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 20
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
       Dimensions:
         - Name: ServiceName
           Value: !GetAtt Service.Name
@@ -635,6 +662,30 @@ Resources:
         - !If [EcsInEc2, !Ref ScaleECSClusterEC2Down, !Ref "AWS::NoValue"]
         - !Ref ECSServiceScaleDownPolicy
       #        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
+  ECSClusterExtendedMemoryHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-Extended-High-Memory"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 20
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
       Dimensions:
         - Name: ServiceName
           Value: !GetAtt Service.Name

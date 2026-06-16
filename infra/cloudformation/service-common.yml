@@ -574,6 +574,204 @@ Resources:
       Type: String
       Value: !Ref PrivateNamespace
 
+  CheckAlarmLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CheckAlarmPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: cloudwatch:DescribeAlarms
+                Resource: "*"
+
+  CheckAlarmLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${EnvironmentName}-checkAlarm"
+      Runtime: nodejs24.x
+      Handler: index.handler
+      Role: !GetAtt CheckAlarmLambdaRole.Arn
+      Code:
+        ZipFile: |
+          const { CloudWatchClient, DescribeAlarmsCommand } = require("@aws-sdk/client-cloudwatch");
+
+          const cloudWatchClient = new CloudWatchClient({});
+
+          exports.handler = async (event, context) => {
+              console.log(event);
+              try {
+                  const alarmName = event.alarmName;
+                  if (!alarmName) {
+                      console.error('ALARM_NAME environment variable is not set');
+                      return { statusCode: 400, body: JSON.stringify({ error: 'ALARM_NAME environment variable is not set' }) };
+                  }
+                  console.log(`Checking alarm: ${alarmName}`);
+                  const command = new DescribeAlarmsCommand({ AlarmNames: [alarmName] });
+                  const response = await cloudWatchClient.send(command);
+                  if (!response.MetricAlarms?.length && !response.CompositeAlarms?.length) {
+                      console.error(`Alarm "${alarmName}" not found`);
+                      return { statusCode: 404, body: JSON.stringify({ error: `Alarm "${alarmName}" not found` }) };
+                  }
+                  let alarm = response.MetricAlarms?.length > 0 ? response.MetricAlarms[0] : response.CompositeAlarms[0];
+                  const alarmInfo = {
+                      alarm_name: alarm.AlarmName,
+                      state_value: alarm.StateValue,
+                      state_reason: alarm.StateReason,
+                      state_updated_timestamp: alarm.StateUpdatedTimestamp?.toISOString(),
+                      alarm_description: alarm.AlarmDescription || '',
+                      alarm_arn: alarm.AlarmArn
+                  };
+                  console.log(`Alarm: ${alarmName}, State: ${alarm.StateValue}, Reason: ${alarm.StateReason}, Updated: ${alarm.StateUpdatedTimestamp}`);
+                  return { statusCode: 200, body: { message: 'Alarm state retrieved successfully', alarm_info: alarmInfo } };
+              } catch (error) {
+                  console.error('Error occurred:', error);
+                  if (error.name === 'InvalidParameterValue' || error.name === 'ValidationException')
+                      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid parameter', message: error.message }) };
+                  if (error.name === 'AccessDenied' || error.name === 'UnauthorizedOperation')
+                      return { statusCode: 403, body: JSON.stringify({ error: 'Access denied', message: 'Insufficient permissions to describe CloudWatch alarms' }) };
+                  if (error.name === 'Throttling' || error.name === 'ThrottlingException')
+                      return { statusCode: 429, body: JSON.stringify({ error: 'Request throttled', message: 'Too many requests, please try again later' }) };
+                  return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error', message: error.message || 'An unexpected error occurred' }) };
+              }
+          };
+
+  CheckAlarmLambdaSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/CheckAlarmLambdaArn"
+      Type: String
+      Value: !GetAtt CheckAlarmLambda.Arn
+
+  NagStepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NagStepFunctionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CheckAlarmLambda.Arn
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref CloudwatchSNSCriticalTopic
+
+  NagStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${EnvironmentName}-nag-state-machine"
+      RoleArn: !GetAtt NagStepFunctionRole.Arn
+      Definition:
+        Comment: A description of my state machine
+        QueryLanguage: JSONata
+        StartAt: Lambda Invoke
+        States:
+          Lambda Invoke:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Output: "{% $merge([$states.result.Payload, {'alarmName': $exists($states.input.alarmName) ? $states.input.alarmName : $states.input.detail.alarmName}]) %}"
+            Arguments:
+              FunctionName: !GetAtt CheckAlarmLambda.Arn
+              Payload:
+                alarmName: "{% $exists($states.input.alarmName) ? $states.input.alarmName : $states.input.detail.alarmName %}"
+            Retry:
+              - ErrorEquals:
+                  - Lambda.ServiceException
+                  - Lambda.AWSLambdaException
+                  - Lambda.SdkClientException
+                  - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 3
+                BackoffRate: 2
+                JitterStrategy: FULL
+            Next: Choice
+          Choice:
+            Type: Choice
+            Choices:
+              - Next: SNS Publish
+                Condition: "{% $states.input.body.alarm_info.state_value = 'ALARM' %}"
+            Default: Pass
+          Pass:
+            Type: Pass
+            End: true
+          SNS Publish:
+            Type: Task
+            Resource: arn:aws:states:::sns:publish
+            Output: "{% {'alarmName': $states.input.alarmName} %}"
+            Arguments:
+              Message: "{% $states.input %}"
+              TopicArn: !Ref CloudwatchSNSCriticalTopic
+            Next: Wait
+          Wait:
+            Type: Wait
+            Seconds: 300
+            Next: Lambda Invoke
+
+  NagEventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NagEventBridgePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref NagStateMachine
+
+  NagEventBridgeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${EnvironmentName}-nag-extended-alarms"
+      EventPattern:
+        source:
+          - aws.cloudwatch
+        detail-type:
+          - CloudWatch Alarm State Change
+        detail:
+          alarmName:
+            - wildcard: !Sub "${EnvironmentName}-*-Extended-*"
+          state:
+            value:
+              - ALARM
+      Targets:
+        - Id: NagStateMachine
+          Arn: !Ref NagStateMachine
+          RoleArn: !GetAtt NagEventBridgeRole.Arn
+
+  NagStateMachineSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/NagStateMachineArn"
+      Type: String
+      Value: !Ref NagStateMachine
+
 Outputs:
   CloudwatchSNSWarningTopic:
     Value: !Ref CloudwatchSNSWarningTopic
