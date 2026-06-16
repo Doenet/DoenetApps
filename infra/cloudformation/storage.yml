@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Doenet persistent storage (user-uploaded media bucket)
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+
+Resources:
+  # User-uploaded image storage. Private — only the API reads/writes it
+  # server-side via SigV4. Not fronted by CloudFront so it can never
+  # accidentally serve private content to anonymous CloudFront traffic.
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${EnvironmentName}-media-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  MediaBucketSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/S3MediaBucket"
+      Type: String
+      Value: !Ref MediaBucket
+      Description: Bucket name for user-uploaded media (consumed by the API task)
+
+Outputs:
+  MediaBucketName:
+    Description: Name of the media S3 bucket
+    Value: !Ref MediaBucket

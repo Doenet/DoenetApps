@@ -8,6 +8,7 @@ SAM_CONFIG_ENV=dev
 declare -g -A STACKS
 STACKS['dev3-doenet-networking']='networking'
 STACKS['dev3-doenet-repositories']='repositories'
+STACKS['dev3-doenet-storage']='storage'
 STACKS['dev3-doenet-common']='service-common'
 STACKS['dev3-doenet-mysql']='service'
 STACKS['dev3-doenet']='service'
@@ -19,6 +20,7 @@ declare -g -a STACK_ORDER
 STACK_ORDER=(
   dev3-doenet-networking
   dev3-doenet-repositories
+  dev3-doenet-storage
   dev3-doenet-common
   dev3-doenet-mysql
   dev3-doenet
