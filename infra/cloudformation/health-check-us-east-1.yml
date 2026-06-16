@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: EventBridge rule for nag alarms — deployed via StackSet to us-east-1
+
+Parameters:
+  EnvironmentName:
+    Type: String
+
+  ServiceName:
+    Type: String
+
+  TargetAccountId:
+    Type: String
+    Description: AWS account ID owning the us-east-2 default event bus
+
+  HealthCheckDomain:
+    Type: String
+    Description: Domain name to monitor with the Route53 health check (e.g. example.com)
+
+  HealthCheckUri:
+    Type: String
+    Description: Path to monitor with the Route53 health check (e.g. api/health)
+
+Resources:
+  NagEventBridgeForwardRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NagEventBridgeForwardPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !Sub "arn:aws:events:us-east-2:${TargetAccountId}:event-bus/default"
+
+  HealthCheck:
+    Type: AWS::Route53::HealthCheck
+    Properties:
+      HealthCheckConfig:
+        Type: HTTP
+        FullyQualifiedDomainName: !Ref HealthCheckDomain
+        ResourcePath: !Ref HealthCheckUri
+        Port: 80
+        RequestInterval: 30
+        FailureThreshold: 3
+        Regions:
+          - us-east-1
+          - us-west-1
+          - us-west-2
+      HealthCheckTags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ServiceName}-health-check"
+
+  HealthCheckAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-HealthCheck-Extended-Alarm"
+      AlarmDescription: !Sub "Route53 health check failure for ${HealthCheckUri}"
+      Namespace: AWS/Route53
+      MetricName: HealthCheckStatus
+      Dimensions:
+        - Name: HealthCheckId
+          Value: !Ref HealthCheck
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+
+  NagEventBridgeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${EnvironmentName}-${ServiceName}-nag-extended-alarms"
+      EventPattern:
+        source:
+          - aws.cloudwatch
+        detail-type:
+          - CloudWatch Alarm State Change
+        detail:
+          alarmName:
+            - wildcard: !Sub "${EnvironmentName}-${ServiceName}-*-Extended-*"
+          state:
+            value:
+              - ALARM
+      Targets:
+        - Id: UsEast2DefaultBus
+          Arn: !Sub "arn:aws:events:us-east-2:${TargetAccountId}:event-bus/default"
+          RoleArn: !GetAtt NagEventBridgeForwardRole.Arn

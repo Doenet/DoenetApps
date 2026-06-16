@@ -32,7 +32,7 @@
     "ParameterValue": "FARGATE"
   },
   {
-    "ParameterKey": "HealthCheckUrl",
+    "ParameterKey": "HealthCheckUri",
     "ParameterValue": "/"
   },
   {
@@ -104,8 +104,12 @@
     "ParameterValue": "/prod/EcsCluster"
   },
   {
-    "ParameterKey": "LoadBalancerListener",
+    "ParameterKey": "LoadBalancerHttpsListener",
     "ParameterValue": "/prod/LoadBalancerHttpsListener"
+  },
+  {
+    "ParameterKey": "LoadBalancerHttpListener",
+    "ParameterValue": "/prod/LoadBalancerHttpListener"
   },
   {
     "ParameterKey": "EfsFileSystemId",
@@ -142,5 +146,13 @@
   {
     "ParameterKey": "CloudwatchSNSCriticalTopic",
     "ParameterValue": "/prod/CloudwatchSNSCriticalTopic"
-  }  
+  },
+  {
+    "ParameterKey": "HealthCheckTemplateS3Key",
+    "ParameterValue": "prod-doenet/health-check-us-east-1.yml"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "doenet-cf-prod"
+  }
 ]

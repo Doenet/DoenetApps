@@ -410,6 +410,7 @@ Resources:
       Value:
         !If [LbIsEnabled, !GetAtt LoadBalancer.CanonicalHostedZoneID, "not set"]
 
+  # LoadBalancerHttpListener and LoadBalancerListener flip-flop depending on if SSL is enabled.
   LoadBalancerHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Condition: SSLIsDisabled
@@ -432,14 +433,7 @@ Resources:
       Port: 80
       Protocol: HTTP
 
-  LoadBalancerHttpListenerSSMParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: ECS
-      Name: !Sub "/${EnvironmentName}/LoadBalancerHttpListener"
-      Type: String
-      Value: !If [SSLIsDisabled, !Ref LoadBalancerHttpListener, "not set"]
-
+  # See comment above!!!
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Condition: SSLIsEnabled
@@ -460,6 +454,19 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
+
+  LoadBalancerHttpListenerSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "/${EnvironmentName}/LoadBalancerHttpListener"
+      Type: String
+      Value:
+        !If [
+          SSLIsEnabled,
+          !Ref LoadBalancerListener,
+          !Ref LoadBalancerHttpListener,
+        ]
 
   LoadBalancerHttpsListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -606,12 +613,14 @@ Resources:
         ZipFile: |
           const { CloudWatchClient, DescribeAlarmsCommand } = require("@aws-sdk/client-cloudwatch");
 
-          const cloudWatchClient = new CloudWatchClient({});
-
           exports.handler = async (event, context) => {
               console.log(event);
               try {
                   const alarmName = event.alarmName;
+                  const region = event.region;
+
+                  const cloudWatchClient = new CloudWatchClient({region: region});
+
                   if (!alarmName) {
                       console.error('ALARM_NAME environment variable is not set');
                       return { statusCode: 400, body: JSON.stringify({ error: 'ALARM_NAME environment variable is not set' }) };
@@ -688,11 +697,12 @@ Resources:
           Lambda Invoke:
             Type: Task
             Resource: arn:aws:states:::lambda:invoke
-            Output: "{% $merge([$states.result.Payload, {'alarmName': $exists($states.input.alarmName) ? $states.input.alarmName : $states.input.detail.alarmName}]) %}"
+            Output: "{% $merge([$states.result.Payload, {'region': $states.input.region, 'alarmName': $exists($states.input.alarmName) ? $states.input.alarmName : $states.input.detail.alarmName}]) %}"
             Arguments:
               FunctionName: !GetAtt CheckAlarmLambda.Arn
               Payload:
                 alarmName: "{% $exists($states.input.alarmName) ? $states.input.alarmName : $states.input.detail.alarmName %}"
+                region: "{% $states.input.region %}"
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -716,7 +726,7 @@ Resources:
           SNS Publish:
             Type: Task
             Resource: arn:aws:states:::sns:publish
-            Output: "{% {'alarmName': $states.input.alarmName} %}"
+            Output: "{% {'alarmName': $states.input.alarmName, 'region': $states.input.region} %}"
             Arguments:
               Message: "{% $states.input %}"
               TopicArn: !Ref CloudwatchSNSCriticalTopic
