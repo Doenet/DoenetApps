@@ -21,9 +21,9 @@ STACK_ORDER=(
     prod-doenet-networking
     prod-doenet-repositories
     prod-doenet-common
+    prod-doenet-frontend
     prod-doenet-mysql
     prod-doenet
-    prod-doenet-frontend
 )
 
 declare -g -a SAM_STACKS

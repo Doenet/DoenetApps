@@ -20,9 +20,9 @@ STACK_ORDER=(
   dev3-doenet-networking
   dev3-doenet-repositories
   dev3-doenet-common
+  dev3-doenet-frontend
   dev3-doenet-mysql
   dev3-doenet
-  dev3-doenet-frontend
 )
 
 declare -g -a SAM_STACKS
