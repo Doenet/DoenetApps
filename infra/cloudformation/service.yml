@@ -58,6 +58,7 @@ Metadata:
           - LoadBalancerHostedZoneId
           - CloudMapPrivateNamespace
           - S3AppBucket
+          - S3MediaBucket
 #          - LoadBalancerFullName
 #          - CloudwatchSNSTopic
 
@@ -165,6 +166,10 @@ Parameters:
   S3AppBucket:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: The of the application bucket
+
+  S3MediaBucket:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: The name of the user-uploaded media bucket
 
   RedshiftSecretArn:
     Type: String
