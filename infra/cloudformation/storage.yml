@@ -7,9 +7,9 @@ Parameters:
     Description: The environment name (the SSM prefix path name)
 
 Resources:
-  # User-uploaded image storage. Private — only the API reads/writes it
-  # server-side via SigV4. Not fronted by CloudFront so it can never
-  # accidentally serve private content to anonymous CloudFront traffic.
+  # User-uploaded image storage. Bucket is private; the media-cdn stack
+  # grants read-only access to the CloudFront distribution via OAC. The API
+  # still writes server-side via SigV4 using the task role.
   MediaBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain

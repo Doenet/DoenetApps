@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/prod/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/prod/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "MediaBucketName",
+    "ParameterValue": "/prod/S3MediaBucket"
+  },
+  {
+    "ParameterKey": "MediaBucketRegion",
+    "ParameterValue": "us-east-2"
+  },
+  {
+    "ParameterKey": "MediaSubdomain",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "doenet-cf-prod"
+  },
+  {
+    "ParameterKey": "TemplateS3Key",
+    "ParameterValue": "prod-doenet/media-cdn.yml"
+  },
+  {
+    "ParameterKey": "ForceUpdateToken",
+    "ParameterValue": "DUMMY"
+  }
+]
