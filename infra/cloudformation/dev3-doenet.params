@@ -20,6 +20,10 @@
     "ParameterValue": "/dev3/S3Bucket"
   },
   {
+    "ParameterKey": "S3MediaBucket",
+    "ParameterValue": "/dev3/S3MediaBucket"
+  },
+  {
     "ParameterKey": "CloudMapPrivateNamespace",
     "ParameterValue": "/dev3/CloudMapPrivateNamespace"
   },

@@ -8,6 +8,7 @@ SAM_CONFIG_ENV=prod
 declare -g -A STACKS
 STACKS['prod-doenet-networking']='networking'
 STACKS['prod-doenet-repositories']='repositories'
+STACKS['prod-doenet-storage']='storage'
 STACKS['prod-doenet-common']='service-common'
 STACKS['prod-doenet-mysql']='rds'
 STACKS['prod-doenet']='service'
@@ -20,6 +21,7 @@ STACK_ORDER=(
     prod-doenet-ses
     prod-doenet-networking
     prod-doenet-repositories
+    prod-doenet-storage
     prod-doenet-common
     prod-doenet-mysql
     prod-doenet
