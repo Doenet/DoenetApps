@@ -29,7 +29,7 @@
   },
   {
     "ParameterKey": "DBClass",
-    "ParameterValue": "db.t4g.medium"
+    "ParameterValue": "db.t4g.small"
   },
   {
     "ParameterKey": "DBAllocatedStorage",

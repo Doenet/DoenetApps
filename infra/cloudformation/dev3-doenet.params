@@ -65,7 +65,7 @@
   },
   {
     "ParameterKey": "ContainerMemory",
-    "ParameterValue": "2048"
+    "ParameterValue": "4096"
   },
   {
     "ParameterKey": "ContainerCpu",
