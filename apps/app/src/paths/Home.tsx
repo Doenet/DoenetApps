@@ -299,8 +299,8 @@ export function Home() {
         <Card>
           <CardHeader>
             <Heading size="sm">
-              June Doenet Virtual Workshop
-              <br /> June 15-18, 1–4pm Eastern, 10am–1pm Pacific
+              July Doenet Virtual Workshop
+              <br /> July 14-17, 3–6pm Eastern, noon–3pm Pacific
             </Heading>
           </CardHeader>
           <CardBody>
@@ -315,7 +315,7 @@ export function Home() {
 
             <Button
               as="a"
-              href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
+              href="https://scholarlattice.org/collections/2ed44057-3e32-43de-90af-ad1e3806175e"
               colorScheme="blue"
               target="_blank"
               rel="noopener noreferrer"

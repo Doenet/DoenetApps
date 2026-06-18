@@ -127,51 +127,6 @@ export function Events() {
               >
                 <Heading size="md">
                   <ChakraLink
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-                    isExternal
-                    textDecoration="underline"
-                  >
-                    June Doenet Virtual Workshop
-                  </ChakraLink>
-                </Heading>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  In this 4-day virtual workshop held on Zoom, participants will
-                  learn how to create accessible, dynamic and interactive
-                  activities in Doenet. The workshop will also provide guidance
-                  on using the available resources to learn more about Doenet,
-                  including how to connect with the supportive Doenet community
-                  of developers and experienced instructors.
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Monday June 15 through Thursday June
-                  18, 2026
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 1–4pm Eastern, 10am–1pm Pacific
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <Button
-                    as="a"
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-                    colorScheme="blue"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Details and registration at ScholarLattice
-                  </Button>
-                </Text>
-              </VStack>
-
-              <VStack
-                align="start"
-                spacing={3}
-                mb={6}
-                pl={4}
-                borderLeft="3px solid"
-                borderColor="border"
-              >
-                <Heading size="md">
-                  <ChakraLink
                     href="https://scholarlattice.org/collections/71068412-a9df-4431-ad59-6e9759814792"
                     isExternal
                     textDecoration="underline"
