@@ -1,0 +1,10 @@
+Environment:
+  - Name: PORT
+    Value: "3000"
+Secrets:
+  - Name: DATABASE_URL
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/umami/DatabaseUrl"
+  - Name: APP_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/umami/AppSecret"

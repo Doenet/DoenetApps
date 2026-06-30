@@ -1,0 +1,20 @@
+MountPoints:
+  - SourceVolume: efs-share
+    ContainerPath: /var/lib/postgresql/data
+Environment:
+  - Name: POSTGRES_DB
+    Value: "umami"
+  - Name: POSTGRES_USER
+    Value: "umami"
+HealthCheck:
+  Command:
+    - CMD-SHELL
+    - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+  Interval: 30
+  Timeout: 5
+  Retries: 5
+  StartPeriod: 30
+Secrets:
+  - Name: POSTGRES_PASSWORD
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/umami/DBPassword"

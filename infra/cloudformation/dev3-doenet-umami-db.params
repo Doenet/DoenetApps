@@ -1,0 +1,138 @@
+[
+  {
+    "ParameterKey": "RedshiftSecretArn",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "DomainNames",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "umami-db"
+  },
+  {
+    "ParameterKey": "S3AppBucket",
+    "ParameterValue": "/dev3/S3Bucket"
+  },
+  {
+    "ParameterKey": "CloudMapPrivateNamespace",
+    "ParameterValue": "/dev3/CloudMapPrivateNamespace"
+  },
+  {
+    "ParameterKey": "Priority",
+    "ParameterValue": "2"
+  },
+  {
+    "ParameterKey": "EcsLaunchType",
+    "ParameterValue": "FARGATE"
+  },
+  {
+    "ParameterKey": "HealthCheckUrl",
+    "ParameterValue": "/health"
+  },
+  {
+    "ParameterKey": "UseLbForService",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3a.small"
+  },
+  {
+    "ParameterKey": "ECSAMI",
+    "ParameterValue": "/aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id"
+  },
+  {
+    "ParameterKey": "ImageUrl",
+    "ParameterValue": "postgres:15-alpine"
+  },
+  {
+    "ParameterKey": "TaskDefIncludesFile",
+    "ParameterValue": "s3://doenet-cf-dev/dev3-doenet/dev3-umami-db-taskdef-includes.yml"
+  },
+  {
+    "ParameterKey": "TaskRoleIncludesFile",
+    "ParameterValue": "s3://doenet-cf-dev/dev3-doenet/service-taskrole-includes.yml"
+  },
+  {
+    "ParameterKey": "ContainerPort",
+    "ParameterValue": "5432"
+  },
+  {
+    "ParameterKey": "ContainerMemory",
+    "ParameterValue": "1024"
+  },
+  {
+    "ParameterKey": "ContainerCpu",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "HealthCheckGracePeriod",
+    "ParameterValue": "300"
+  },
+  {
+    "ParameterKey": "MaxCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MinCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "SecurityGroup",
+    "ParameterValue": "/dev3/EcsInstanceSecurityGroup"
+  },
+  {
+    "ParameterKey": "PrivateSubnets",
+    "ParameterValue": "/dev3/PrivateSubnets"
+  },
+  {
+    "ParameterKey": "VPC",
+    "ParameterValue": "/dev3/VPC"
+  },
+  {
+    "ParameterKey": "EnvironmentKmsKey",
+    "ParameterValue": "/dev3/EnvironmentKmsKey"
+  },
+  {
+    "ParameterKey": "EcsCluster",
+    "ParameterValue": "/dev3/EcsCluster"
+  },
+  {
+    "ParameterKey": "LoadBalancerListener",
+    "ParameterValue": "/dev3/LoadBalancerHttpsListener"
+  },
+  {
+    "ParameterKey": "EfsFileSystemId",
+    "ParameterValue": "/dev3/EfsFileSystemId"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/dev3/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/dev3/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "LoadBalancerDnsName",
+    "ParameterValue": "/dev3/LoadBalancerDnsName"
+  },
+  {
+    "ParameterKey": "LoadBalancerHostedZoneId",
+    "ParameterValue": "/dev3/LoadBalancerHostedZoneId"
+  },
+  {
+    "ParameterKey": "RestrictedCIDRs",
+    "ParameterValue": "notapplicable"
+  },
+  {
+    "ParameterKey": "PathPattern",
+    "ParameterValue": "notapplicable"
+  }
+]
