@@ -50,13 +50,15 @@ Metadata:
           - PrivateSubnets
           - SecurityGroup
           - EnvironmentKmsKey
-          - LoadBalancerListener
+          - LoadBalancerHttpsListener
+          - LoadBalancerHttpListener
           - PublicHostedZoneId
           - PublicHostedZoneName
           - LoadBalancerDnsName
           - LoadBalancerHostedZoneId
           - CloudMapPrivateNamespace
           - S3AppBucket
+          - S3MediaBucket
 #          - LoadBalancerFullName
 #          - CloudwatchSNSTopic
 
@@ -129,9 +131,13 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: "/webdev/EcsCluster"
 
-  LoadBalancerListener:
+  LoadBalancerHttpsListener:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: "/webdev/LoadBalancerHttpsListener"
+
+  LoadBalancerHttpListener:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/LoadBalancerHttpListener"
 
   EfsFileSystemId:
     Type: "AWS::SSM::Parameter::Value<String>"
@@ -161,6 +167,10 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<String>"
     Description: The of the application bucket
 
+  S3MediaBucket:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: The name of the user-uploaded media bucket
+
   RedshiftSecretArn:
     Type: String
     Description: The of ARN of the REDSHIFT_CONFIG secret
@@ -169,9 +179,13 @@ Parameters:
   #    Type : 'AWS::SSM::Parameter::Value<String>'
   #    Default: '/webdev/LoadBalancerFullName'
 
-  #  CloudwatchSNSTopic:
-  #    Type : 'AWS::SSM::Parameter::Value<String>'
-  #    Default: '/webdev/CloudwatchSNSWarningTopic'
+  CloudwatchSNSWarningTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSWarningTopic"
+
+  CloudwatchSNSCriticalTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSCriticalTopic"
 
   MinCount:
     Type: Number
@@ -195,9 +209,9 @@ Parameters:
     Type: Number
     Description: The ordering of rules in the listener (cannot be the same as another app)
 
-  HealthCheckUrl:
+  HealthCheckUri:
     Type: String
-    Description: The URL used by the Target Group to verify the container is functioning properly before placing in service
+    Description: The URI used by the Target Group to verify the container is functioning properly before placing in service
 
   UseLbForService:
     Type: String
@@ -236,6 +250,15 @@ Parameters:
     Description: ECS-Optimized AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
+
+  TemplateS3Bucket:
+    Type: String
+    Description: S3 bucket containing CloudFormation templates
+
+  HealthCheckTemplateS3Key:
+    Type: String
+    Description: S3 key for the health-check-us-east-1.yml template
+    Default: cloudformation/health-check-us-east-1.yml
 
 Conditions:
   EcsInFargate: !Equals
@@ -608,7 +631,30 @@ Resources:
       AlarmActions:
         - !If [EcsInEc2, !Ref ScaleECSClusterEC2Up, !Ref "AWS::NoValue"]
         - !Ref ECSServiceScaleUpPolicy
-      #        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
+  ECSClusterExtendedCPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-Extended-High-CPU"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 20
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
       Dimensions:
         - Name: ServiceName
           Value: !GetAtt Service.Name
@@ -641,12 +687,36 @@ Resources:
         - Name: ClusterName
           Value: !Ref EcsCluster
 
+  ECSClusterExtendedMemoryHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-Extended-High-Memory"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 20
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Condition: UseLbForService
     Properties:
       HealthCheckIntervalSeconds: 10
-      HealthCheckPath: !Ref HealthCheckUrl
+      HealthCheckPath: !Ref HealthCheckUri
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -717,7 +787,21 @@ Resources:
             SourceIpConfig:
               Values: !Ref RestrictedCIDRs
           - !Ref "AWS::NoValue"
-      ListenerArn: !Ref LoadBalancerListener
+      ListenerArn: !Ref LoadBalancerHttpsListener
+      Priority: !Ref Priority
+
+  ServiceHttpListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: UseLbForService
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - !Ref HealthCheckUri
+      ListenerArn: !Ref LoadBalancerHttpListener
       Priority: !Ref Priority
 
   PublicDnsRecord:
@@ -788,7 +872,7 @@ Resources:
   #          Values:
   #            - !FindInMap [Service, !Ref ServiceName, pathpattern]
   #            - !FindInMap [Service, !Ref ServiceName, pathpatternstar]
-  #      ListenerArn: !Ref LoadBalancerListener
+  #      ListenerArn: !Ref LoadBalancerHttpsListener
   #      Priority: !FindInMap [Service, !Ref ServiceName, priority]
 
   #  ApplicationLBStatusCheckAlarm:
@@ -1205,3 +1289,36 @@ Resources:
         - COGNITO
       GenerateSecret: true
       UserPoolId: !Ref UserPool
+
+  NagEventBridgeStackSet:
+    Type: AWS::CloudFormation::StackSet
+    Condition: UseLbForService
+    Properties:
+      StackSetName: !Sub "${EnvironmentName}-${ServiceName}-nag-eventbridge-us-east-1"
+      Description: Forwards nag alarm events from us-east-1 to the us-east-2 default event bus
+      AdministrationRoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationStackSetAdministrationRole"
+      ExecutionRoleName: AWSCloudFormationStackSetExecutionRole
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      PermissionModel: SELF_MANAGED
+      StackInstancesGroup:
+        - DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions:
+            - us-east-1
+      Parameters:
+        - ParameterKey: EnvironmentName
+          ParameterValue: !Ref EnvironmentName
+        - ParameterKey: ServiceName
+          ParameterValue: !Ref ServiceName
+        - ParameterKey: TargetAccountId
+          ParameterValue: !Ref AWS::AccountId
+        - ParameterKey: HealthCheckDomain
+          ParameterValue: !If
+            - UseDomainNames
+            - !Select [0, !Ref DomainNames]
+            - !Sub "${ServiceName}.${PublicHostedZoneName}"
+        - ParameterKey: HealthCheckUri
+          ParameterValue: !Sub "${HealthCheckUri}"
+      TemplateURL: !Sub "https://${TemplateS3Bucket}.s3.amazonaws.com/${HealthCheckTemplateS3Key}"

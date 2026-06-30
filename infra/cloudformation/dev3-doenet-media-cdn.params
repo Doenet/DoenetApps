@@ -12,24 +12,24 @@
     "ParameterValue": "/dev3/PublicHostedZoneId"
   },
   {
+    "ParameterKey": "MediaBucketName",
+    "ParameterValue": "/dev3/S3MediaBucket"
+  },
+  {
+    "ParameterKey": "MediaBucketRegion",
+    "ParameterValue": "us-east-2"
+  },
+  {
+    "ParameterKey": "MediaSubdomain",
+    "ParameterValue": "media"
+  },
+  {
     "ParameterKey": "TemplateS3Bucket",
     "ParameterValue": "doenet-cf-dev"
   },
   {
     "ParameterKey": "TemplateS3Key",
-    "ParameterValue": "dev3-doenet/s3-hosted.yml"
-  },
-  {
-    "ParameterKey": "LoadBalancerDnsName",
-    "ParameterValue": "/dev3/LoadBalancerDnsName"
-  },
-  {
-    "ParameterKey": "AppServiceName",
-    "ParameterValue": "app"
-  },
-  {
-    "ParameterKey": "SiteServiceName",
-    "ParameterValue": "site"
+    "ParameterValue": "dev3-doenet/media-cdn.yml"
   },
   {
     "ParameterKey": "ForceUpdateToken",

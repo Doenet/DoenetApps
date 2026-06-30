@@ -24,14 +24,13 @@ Parameters:
     Description: Service name for the site bucket (e.g., site)
     Default: site
 
-  MediaServiceName:
-    Type: String
-    Description: Service name for the media bucket (user-uploaded images)
-    Default: media
-
   LoadBalancerDnsName:
     Type: String
     Description: DNS name of the Application Load Balancer
+
+  ForceUpdateToken:
+    Type: String
+    Description: Changes on each deploy to force a StackSet update
 
 Resources:
   AppBucket:
@@ -53,27 +52,6 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-
-  # User-uploaded image storage. Private — only the API reads it server-side
-  # via SigV4. Not fronted by CloudFront so it can never accidentally serve
-  # private content to anonymous CloudFront traffic.
-  MediaBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${EnvironmentName}-${MediaServiceName}-${AWS::AccountId}-${AWS::Region}"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-
-  MediaBucketNameParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${EnvironmentName}/${MediaServiceName}/BucketName"
-      Type: String
-      Value: !Ref MediaBucket
-      Description: Bucket name for user-uploaded media (consumed by the API)
 
   AppOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
@@ -323,13 +301,13 @@ Outputs:
     Description: Name of the app S3 bucket
     Value: !Ref AppBucket
 
+  ForceUpdateToken:
+    Description: Echoes the force-update token used for this deployment
+    Value: !Ref ForceUpdateToken
+
   SiteBucketName:
     Description: Name of the site S3 bucket
     Value: !Ref SiteBucket
-
-  MediaBucketName:
-    Description: Name of the media (user-uploads) S3 bucket
-    Value: !Ref MediaBucket
 
   WebsiteURL:
     Description: Website URL

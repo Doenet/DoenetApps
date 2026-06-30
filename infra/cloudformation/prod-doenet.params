@@ -20,6 +20,10 @@
     "ParameterValue": "/prod/S3Bucket"
   },
   {
+    "ParameterKey": "S3MediaBucket",
+    "ParameterValue": "/prod/S3MediaBucket"
+  },
+  {
     "ParameterKey": "CloudMapPrivateNamespace",
     "ParameterValue": "/prod/CloudMapPrivateNamespace"
   },
@@ -32,7 +36,7 @@
     "ParameterValue": "FARGATE"
   },
   {
-    "ParameterKey": "HealthCheckUrl",
+    "ParameterKey": "HealthCheckUri",
     "ParameterValue": "/"
   },
   {
@@ -65,7 +69,7 @@
   },
   {
     "ParameterKey": "ContainerMemory",
-    "ParameterValue": "2048"
+    "ParameterValue": "4096"
   },
   {
     "ParameterKey": "ContainerCpu",
@@ -104,8 +108,12 @@
     "ParameterValue": "/prod/EcsCluster"
   },
   {
-    "ParameterKey": "LoadBalancerListener",
+    "ParameterKey": "LoadBalancerHttpsListener",
     "ParameterValue": "/prod/LoadBalancerHttpsListener"
+  },
+  {
+    "ParameterKey": "LoadBalancerHttpListener",
+    "ParameterValue": "/prod/LoadBalancerHttpListener"
   },
   {
     "ParameterKey": "EfsFileSystemId",
@@ -134,5 +142,21 @@
   {
     "ParameterKey": "PathPattern",
     "ParameterValue": "/api"
+  },
+  {
+    "ParameterKey": "CloudwatchSNSWarningTopic",
+    "ParameterValue": "/prod/CloudwatchSNSWarningTopic"
+  },
+  {
+    "ParameterKey": "CloudwatchSNSCriticalTopic",
+    "ParameterValue": "/prod/CloudwatchSNSCriticalTopic"
+  },
+  {
+    "ParameterKey": "HealthCheckTemplateS3Key",
+    "ParameterValue": "prod-doenet/health-check-us-east-1.yml"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "doenet-cf-prod"
   }
 ]
