@@ -1,10 +1,20 @@
 import type { Request, Response } from "express";
 import { NoSuchKey } from "@aws-sdk/client-s3";
+import type { Visibility } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
 import { handleErrors } from "../errors/routeErrorHandler";
 import { findViewableImage } from "./imageContent";
 import { getImageStream } from "./s3";
 import { serveImageParamSchema } from "./serve.schema";
+
+// Unlisted/private must stay out of shared caches; max-age kept short so a
+// flip to private propagates within a few minutes.
+function cacheControlFor(visibility: Visibility): string {
+  if (visibility === "public") {
+    return "public, max-age=3600";
+  }
+  return "private, max-age=300";
+}
 
 export async function handleServeImage(req: Request, res: Response) {
   try {
@@ -41,7 +51,7 @@ export async function handleServeImage(req: Request, res: Response) {
     } else if (image.sizeBytes) {
       res.setHeader("Content-Length", image.sizeBytes.toString());
     }
-    res.setHeader("Cache-Control", "private, max-age=300");
+    res.setHeader("Cache-Control", cacheControlFor(image.visibility));
 
     body.on("error", (err) => {
       console.error("Media stream error", err);

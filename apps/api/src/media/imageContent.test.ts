@@ -371,7 +371,32 @@ describe("findViewableImage", () => {
       storageKey: "images/x.png",
       mimeType: "image/png",
       sizeBytes: 42n,
+      visibility: "private",
     });
+  });
+
+  test("returns visibility=public when the image is public", async () => {
+    const owner = await createTestUser();
+    const contentId = await makeReadyImage(owner.userId);
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { visibility: "public", isPublic: true },
+    });
+
+    const result = await findViewableImage({ contentId });
+    expect(result?.visibility).toBe("public");
+  });
+
+  test("returns visibility=unlisted when the image is unlisted", async () => {
+    const owner = await createTestUser();
+    const contentId = await makeReadyImage(owner.userId);
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { visibility: "unlisted" },
+    });
+
+    const result = await findViewableImage({ contentId });
+    expect(result?.visibility).toBe("unlisted");
   });
 
   test("returns null when a stranger views a private image", async () => {

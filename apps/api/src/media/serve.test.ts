@@ -187,6 +187,7 @@ describe("handleServeImage", () => {
     await call(mockReq({ contentId }), res);
 
     expect(res.statusCode).toBe(200);
+    expect(res.headers["Cache-Control"]).toBe("public, max-age=3600");
   });
 
   test("anonymous request can fetch an unlisted image", async () => {
@@ -206,6 +207,7 @@ describe("handleServeImage", () => {
     await call(mockReq({ contentId }), res);
 
     expect(res.statusCode).toBe(200);
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
   });
 
   test("shared-with user can fetch a private image", async () => {
