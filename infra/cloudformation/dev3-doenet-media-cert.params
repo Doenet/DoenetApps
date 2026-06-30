@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "dev3.doenet.org"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "Z0066937J8QHRAL9H84P"
+  },
+  {
+    "ParameterKey": "Subdomain",
+    "ParameterValue": "media"
+  }
+]
