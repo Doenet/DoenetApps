@@ -551,10 +551,15 @@ export function Activities() {
     actionBarContext = config.context;
     actions = config.actions;
   } else {
+    const anyAssignmentSelected = selectedContentDescriptions.some(
+      (c) => c.assignmentInfo !== undefined,
+    );
+
     const config = configOrganizeContentList({
       cardSelections,
       cardMovement,
       forceDisableMoveUpAndDown: haveQuery,
+      anyAssignmentSelected,
       FIX_ME_miscellaneous_buttons,
       onMoveTo: () => {
         const selectedContent = content.find(
