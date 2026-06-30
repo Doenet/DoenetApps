@@ -40,6 +40,16 @@ const theme = extendTheme({
   components: {
     Button,
     IconButton: Button,
+    Checkbox: {
+      baseStyle: {
+        control: {
+          borderColor: "gray.500",
+          _hover: {
+            borderColor: "gray.600",
+          },
+        },
+      },
+    },
     FormError: {
       baseStyle: {
         text: {
