@@ -8,7 +8,17 @@ import {
 
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 
-import { Box, Button, Grid, GridItem, Text, Tooltip } from "@chakra-ui/react";
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Box,
+  Button,
+  Grid,
+  GridItem,
+  Text,
+  Tooltip,
+} from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
 import {
   EnterClassCode,
@@ -255,6 +265,10 @@ export function AssignmentViewer() {
   if (!user) {
     throw Error("User should have been defined");
   }
+
+  const isAnonymous = user.isAnonymous === true;
+  const anonymousBannerHeight = "40px";
+  const headerHeight = isAnonymous ? "120px" : "80px";
 
   const [attemptNumber, setAttemptNumber] = useState<number>(
     loaderData.attemptNumber,
@@ -565,8 +579,6 @@ export function AssignmentViewer() {
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
-  const headerHeight = "80px";
-
   let viewer: ReactElement<any>;
   if (loaderData.type === "singleDoc") {
     const maxAttempts = assignment.assignmentInfo?.maxAttempts ?? 0;
@@ -697,6 +709,25 @@ export function AssignmentViewer() {
           ></GridItem>
         </Grid>
       </GridItem>
+
+      {isAnonymous && (
+        <Box
+          position="fixed"
+          top="80px"
+          height={anonymousBannerHeight}
+          width="100%"
+          zIndex="500"
+          data-test="Anonymous User Banner"
+        >
+          <Alert status="warning" height={anonymousBannerHeight}>
+            <AlertIcon />
+            <AlertDescription>
+              You are logged in as an anonymous user. Your work is saved in this
+              browser only and may be lost if you clear your browser data.
+            </AlertDescription>
+          </Alert>
+        </Box>
+      )}
 
       <GridItem
         area="centerContent"
