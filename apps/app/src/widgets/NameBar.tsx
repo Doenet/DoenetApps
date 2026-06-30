@@ -52,7 +52,7 @@ export function NameBar({
   if (!isEditable || contentId === null || !fetcher) {
     // Read-only header for root folder: icon sits inside the title box (non-editable)
     return (
-      <Box position="relative" maxWidth={maxWidth} width={width}>
+      <Box position="relative" maxWidth={maxWidth} width={width} flex={1}>
         <Show above="md">
           <Box
             position="absolute"
@@ -98,7 +98,7 @@ export function NameBar({
   }
 
   return (
-    <Box position="relative" maxWidth={maxWidth} width={width}>
+    <Box position="relative" maxWidth={maxWidth} width={width} flex={1}>
       <Show above="md">
         <Box
           position="absolute"
@@ -118,6 +118,7 @@ export function NameBar({
         value={name}
         width={width}
         maxWidth={maxWidth}
+        flex={1}
         fontWeight="bold"
         fontSize={fontSizeMode === "folder" ? "xl" : undefined}
         textAlign="left"
