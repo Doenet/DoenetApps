@@ -462,6 +462,10 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
+app.get("/api/test-crash", (_req, _res) => {
+  throw new Error("Intentional crash to test Alb5xxAlarm");
+});
+
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server" + JSON.stringify(req?.user));
 });
