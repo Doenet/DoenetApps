@@ -782,6 +782,26 @@ Resources:
       Type: String
       Value: !Ref NagStateMachine
 
+  Alb5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: LbIsEnabled
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-ALB-Extended-5XX-Errors"
+      AlarmDescription: ALB is returning 5XX errors
+      Namespace: AWS/ApplicationELB
+      MetricName: HTTPCode_Target_5XX_Count
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt LoadBalancer.LoadBalancerFullName
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
+
 Outputs:
   CloudwatchSNSWarningTopic:
     Value: !Ref CloudwatchSNSWarningTopic
