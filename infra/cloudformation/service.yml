@@ -991,6 +991,8 @@ Resources:
               MinCapacity=0,
               RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
             )
+            cw = boto3.client('cloudwatch', region_name='us-east-1')
+            cw.disable_alarm_actions(AlarmNames=['${EnvironmentName}-${ServiceName}-HealthCheck-Extended-Alarm'])
             ssm.put_parameter(Name=lightsParam, Value='off', Overwrite=True)
 
           def routeTrafficToLightsOnLambda() :
@@ -1091,6 +1093,8 @@ Resources:
               MinCapacity=${MinCount},
               RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
             )
+            cw = boto3.client('cloudwatch', region_name='us-east-1')
+            cw.enable_alarm_actions(AlarmNames=['${EnvironmentName}-${ServiceName}-HealthCheck-Extended-Alarm'])
             ssm.put_parameter(Name=lightsParam, Value='on', Overwrite=True)
 
           def serviceIsReady() :
@@ -1233,6 +1237,8 @@ Resources:
                   - "elasticloadbalancing:DescribeTargetHealth"
                   - "ssm:PutParameter"
                   - "ssm:GetParameter"
+                  - "cloudwatch:DisableAlarmActions"
+                  - "cloudwatch:EnableAlarmActions"
                 Resource: "*"
 
   UserPool:
