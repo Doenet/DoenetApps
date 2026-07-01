@@ -1,1 +1,0 @@
-import{ao as r,bn as t,a as i,j as c}from"./index-99bd2cb8.js";const u=r.memo(function(l){let{name:f,id:n,SVs:e,children:o}=t(l);if(e.hidden)return null;let s="<",a=">";return e.selfClosed?a="/>":e.closing&&(s="</"),i("code",{id:n,style:{color:"var(--mainGreen)"},children:[c("a",{name:n}),s,o,a]})});export{u as default};

@@ -1,1 +1,0 @@
-import{u as s,j as n,a}from"./index-99bd2cb8.js";function c(o){const e=s();let t=Object.fromEntries(new URLSearchParams(e.search));return n("div",{style:o.style,children:a("h1",{children:['Sorry! "',t==null?void 0:t.path,'" was not found.']})})}export{c as default};

@@ -1,1 +1,0 @@
-import{bj as s,j as e,_ as a,B as o}from"./index-99bd2cb8.js";const C=t=>{const{createCourse:r}=s();return e("div",{style:t.style,children:e(a,{vertical:!0,children:e(o,{width:"menu",value:"Create New Course",onClick:r,"data-test":"createCourse",children:"Create New Course"})})})};export{C as default};

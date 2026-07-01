@@ -3,7 +3,7 @@ import React from "react";
 // Informational banner announcing the migration to the new Doenet website.
 // Edit NOTICE_DATE / the message text here in one place; it is used by both
 // the wide variant (home page) and the thin variant (every other page).
-const NOTICE_DATE = "May 29, 2026";
+const NOTICE_DATE = "July 1, 2026";
 
 const wrapperBase = {
   backgroundColor: "#fff3cd",
@@ -42,14 +42,18 @@ export default function MigrationBanner({ variant = "thin" }) {
         role="region"
         aria-label="Site migration notice"
       >
-        <strong>
-          Significant changes are coming to Doenet in the next month.
-        </strong>{" "}
-        We are switching to the system currently at{" "}
+        <strong>On July 17, this site will move to legacy.doenet.org.</strong>{" "}
+        The new{" "}
         <ExternalLink href="https://beta.doenet.org">
           beta.doenet.org
-        </ExternalLink>
-        . More information coming soon. Questions? Go to{" "}
+        </ExternalLink>{" "}
+        will become{" "}
+        <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
+        See the{" "}
+        <ExternalLink href="https://community.doenet.org/t/transition-to-new-doenet-web-site/209">
+          full announcement
+        </ExternalLink>{" "}
+        for details. Questions? Post to{" "}
         <ExternalLink href="https://community.doenet.org">
           community.doenet.org
         </ExternalLink>
@@ -73,14 +77,16 @@ export default function MigrationBanner({ variant = "thin" }) {
       role="region"
       aria-label="Site migration notice"
     >
-      <strong>
-        Significant changes are coming to Doenet in the next month.
-      </strong>{" "}
-      We are switching to the system currently at{" "}
-      <ExternalLink href="https://beta.doenet.org">
-        beta.doenet.org
-      </ExternalLink>
-      . More information coming soon. Questions? Go to{" "}
+      <strong>On July 17, this site will move to legacy.doenet.org.</strong>{" "}
+      The new{" "}
+      <ExternalLink href="https://beta.doenet.org">beta.doenet.org</ExternalLink>{" "}
+      will become{" "}
+      <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
+      See the{" "}
+      <ExternalLink href="https://community.doenet.org/t/transition-to-new-doenet-web-site/209">
+        full announcement
+      </ExternalLink>{" "}
+      for details. Questions? Post to{" "}
       <ExternalLink href="https://community.doenet.org">
         community.doenet.org
       </ExternalLink>
