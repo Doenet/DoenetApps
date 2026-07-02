@@ -69,7 +69,7 @@
   },
   {
     "ParameterKey": "ContainerMemory",
-    "ParameterValue": "4096"
+    "ParameterValue": "6144"
   },
   {
     "ParameterKey": "ContainerCpu",
@@ -81,7 +81,7 @@
   },
   {
     "ParameterKey": "MaxCount",
-    "ParameterValue": "1"
+    "ParameterValue": "2"
   },
   {
     "ParameterKey": "MinCount",
