@@ -177,6 +177,27 @@ describe("createImageContent", () => {
     expect(row.courseRootId).toEqual(folderId);
   });
 
+  test("rejects upload directly into a problem set (sequence)", async () => {
+    const owner = await createTestUser();
+    const { contentId: psetId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "sequence",
+      parentId: null,
+    });
+
+    await expect(
+      createImageContent({
+        loggedInUserId: owner.userId,
+        parentId: psetId,
+        name: "nope.png",
+        mimeType: "image/png",
+        sizeBytes: 1,
+        imageWidth: 1,
+        imageHeight: 1,
+      }),
+    ).rejects.toThrow("Cannot upload an image into a problem set");
+  });
+
   test("rejects upload under an assigned activity", async () => {
     const owner = await createTestUser();
     const { contentId: psetId } = await createContent({

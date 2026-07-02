@@ -1,5 +1,6 @@
 import { prisma } from "../model";
 import { prepareNewChild } from "../content-tree";
+import { InvalidRequestError } from "../utils/error";
 import { filterViewableContent } from "../utils/permissions";
 
 /**
@@ -43,8 +44,12 @@ export async function createImageContent({
   imageHeight: number;
 }) {
   const ownerId = loggedInUserId;
-  const { sortIndex, licenseCode, sharedWith, courseRootId } =
+  const { sortIndex, parentType, licenseCode, sharedWith, courseRootId } =
     await prepareNewChild({ ownerId, parentId });
+
+  if (parentType === "sequence") {
+    throw new InvalidRequestError("Cannot upload an image into a problem set");
+  }
 
   const content = await prisma.content.create({
     data: {

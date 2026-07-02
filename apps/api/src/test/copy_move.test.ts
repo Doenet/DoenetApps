@@ -29,6 +29,7 @@ import { getAssignmentNonRootIds } from "./testQueries";
 import { markFolderAsCourse } from "../query/course";
 import { createStudentHandleAccounts } from "../query/user";
 import { createNewAttempt } from "../query/scores";
+import { createImageContent } from "../media/imageContent";
 
 test("copy folder", async () => {
   const { userId: ownerId } = await createTestUser();
@@ -874,6 +875,31 @@ test("cannot move into assigned problem set", async () => {
       desiredPosition: 0,
     }),
   ).rejects.toThrow("Cannot move content into an assigned activity");
+});
+
+test("cannot move an image into a problem set", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [problemSetId] = await setupTestContent(ownerId, {
+    "problem set 1": pset({}),
+  });
+  const { contentId: imageId } = await createImageContent({
+    loggedInUserId: ownerId,
+    parentId: null,
+    name: "img.png",
+    mimeType: "image/png",
+    sizeBytes: 1,
+    imageWidth: 1,
+    imageHeight: 1,
+  });
+
+  await expect(
+    moveContent({
+      contentId: imageId,
+      loggedInUserId: ownerId,
+      changeParentIdTo: problemSetId,
+      desiredPosition: 0,
+    }),
+  ).rejects.toThrow("Cannot move an image into a problem set");
 });
 
 test("cannot copy into assigned problem set", async () => {
