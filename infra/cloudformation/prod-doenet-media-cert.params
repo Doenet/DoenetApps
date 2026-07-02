@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "beta.doenet.org"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "Z0126382ZHTT46RB59N8"
+  },
+  {
+    "ParameterKey": "Subdomain",
+    "ParameterValue": "media"
+  }
+]

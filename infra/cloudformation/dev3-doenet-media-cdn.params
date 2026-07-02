@@ -4,6 +4,10 @@
     "ParameterValue": "dev3"
   },
   {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "media"
+  },
+  {
     "ParameterKey": "PublicHostedZoneName",
     "ParameterValue": "/dev3/PublicHostedZoneName"
   },
@@ -12,27 +16,15 @@
     "ParameterValue": "/dev3/PublicHostedZoneId"
   },
   {
-    "ParameterKey": "MediaBucketName",
+    "ParameterKey": "BucketName",
     "ParameterValue": "/dev3/S3MediaBucket"
   },
   {
-    "ParameterKey": "MediaBucketRegion",
-    "ParameterValue": "us-east-2"
-  },
-  {
-    "ParameterKey": "MediaSubdomain",
+    "ParameterKey": "Subdomain",
     "ParameterValue": "media"
   },
   {
-    "ParameterKey": "TemplateS3Bucket",
-    "ParameterValue": "doenet-cf-dev"
-  },
-  {
-    "ParameterKey": "TemplateS3Key",
-    "ParameterValue": "dev3-doenet/media-cdn.yml"
-  },
-  {
-    "ParameterKey": "ForceUpdateToken",
-    "ParameterValue": "DUMMY"
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:568298704244:certificate/24e74424-9cd1-4fa9-b170-b565ca12a40b"
   }
 ]
