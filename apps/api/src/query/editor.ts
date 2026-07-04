@@ -27,6 +27,7 @@ import {
   InvalidRequestError,
   PermissionDeniedRedirectError,
 } from "../utils/error";
+import { fromUUID } from "../utils/uuid";
 import { StatusCodes } from "http-status-codes";
 import { getPublicShareViolations, type PublicShareIssue } from "../access";
 
@@ -376,6 +377,7 @@ export async function getEditorShareStatus({
     },
     select: {
       type: true,
+      ownerId: true,
       isPublic: true,
       visibility: true,
       sharedWith: {
@@ -428,6 +430,7 @@ export async function getEditorShareStatus({
 
   return {
     isPublic: results.isPublic,
+    ownerId: fromUUID(results.ownerId),
     visibility: results.visibility,
     parentIsPublic: results.parent?.isPublic ?? false,
     parentVisibility: results.parent?.visibility ?? "private",

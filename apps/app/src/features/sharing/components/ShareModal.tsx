@@ -216,6 +216,7 @@ function ShareModalBody({
         publicShareIssues={shareStatus.publicShareIssues}
         contentId={contentId}
         contentType={contentType}
+        ownerId={shareStatus.ownerId}
         closeModal={onClose}
         onVisibilityChange={onVisibilityChange}
         reloadShareStatus={reloadShareStatus}
@@ -343,6 +344,7 @@ function SharePublicly({
   publicShareIssues,
   contentId,
   contentType,
+  ownerId,
   closeModal,
   onVisibilityChange,
   reloadShareStatus,
@@ -354,6 +356,7 @@ function SharePublicly({
   publicShareIssues: PublicShareIssue[];
   contentId: string;
   contentType: ContentType;
+  ownerId: string;
   closeModal: () => void;
   onVisibilityChange?: (visibility: Visibility) => void;
   reloadShareStatus?: () => void;
@@ -365,7 +368,12 @@ function SharePublicly({
   const [pendingVisibilityUpdate, setPendingVisibilityUpdate] =
     useState<Visibility | null>(null);
 
-  const shareableLink = `${window.location.origin}/activityViewer/${contentId}`;
+  // Folders open in the shared-activities browser; other content opens in the
+  // activity viewer. Using the activity-viewer link for a folder 404s.
+  const shareableLink =
+    contentType === "folder"
+      ? `${window.location.origin}/sharedActivities/${ownerId}/${contentId}`
+      : `${window.location.origin}/activityViewer/${contentId}`;
   const embedCode = `<iframe src="${window.location.origin}/embed/${contentId}" width="100%" height="800" style="border: 0"></iframe>`;
 
   const [copiedShareLink, setCopiedShareLink] = useState(false);

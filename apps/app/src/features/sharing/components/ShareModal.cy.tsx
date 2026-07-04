@@ -15,6 +15,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
   };
 
   const shareStatusData: SharingData = {
+    ownerId: "mockOwnerId",
     visibility: "private",
     parentVisibility: "private",
     canSharePublicly: true,
@@ -581,6 +582,89 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       cy.contains("Document link").should("not.exist");
       cy.contains("Embed code").should("not.exist");
       cy.contains("Copy embed code").should("not.exist");
+    });
+  });
+
+  it("copies the shared-activities link for a folder", () => {
+    const mountOptions = setupMocks({
+      shareStatus: {
+        ...shareStatusData,
+        ownerId: "owner-abc",
+        isPublic: false,
+        visibility: "unlisted",
+      },
+    });
+
+    const writeTextStub = cy.stub().as("writeTextStub");
+    cy.window().then((win) => {
+      if (win.navigator.clipboard && "writeText" in win.navigator.clipboard) {
+        cy.stub(win.navigator.clipboard, "writeText").callsFake(writeTextStub);
+      } else {
+        Object.defineProperty(win.navigator, "clipboard", {
+          value: { writeText: writeTextStub },
+          configurable: true,
+        });
+      }
+    });
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType="folder"
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    cy.contains("Copy link").click();
+
+    cy.window().then((win) => {
+      cy.get("@writeTextStub").should(
+        "have.been.calledWith",
+        `${win.location.origin}/sharedActivities/owner-abc/${contentId}`,
+      );
+    });
+  });
+
+  it("copies the activity-viewer link for a non-folder", () => {
+    const mountOptions = setupMocks({
+      shareStatus: {
+        ...shareStatusData,
+        isPublic: true,
+        visibility: "public",
+      },
+    });
+
+    const writeTextStub = cy.stub().as("writeTextStub");
+    cy.window().then((win) => {
+      if (win.navigator.clipboard && "writeText" in win.navigator.clipboard) {
+        cy.stub(win.navigator.clipboard, "writeText").callsFake(writeTextStub);
+      } else {
+        Object.defineProperty(win.navigator, "clipboard", {
+          value: { writeText: writeTextStub },
+          configurable: true,
+        });
+      }
+    });
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType="sequence"
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    cy.contains("Copy link").click();
+
+    cy.window().then((win) => {
+      cy.get("@writeTextStub").should(
+        "have.been.calledWith",
+        `${win.location.origin}/activityViewer/${contentId}`,
+      );
     });
   });
 
