@@ -42,7 +42,11 @@ import {
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
 
-import { editorDiagnosticsUrl, editorUrl } from "../../../utils/url";
+import {
+  contentViewerUrl,
+  editorDiagnosticsUrl,
+  editorUrl,
+} from "../../../utils/url";
 import type { ShareController } from "../hooks/useShareController";
 import { loadShareStatus } from "../loaders";
 import type { PublicShareIssue, SharingData } from "../types";
@@ -368,12 +372,11 @@ function SharePublicly({
   const [pendingVisibilityUpdate, setPendingVisibilityUpdate] =
     useState<Visibility | null>(null);
 
-  // Folders open in the shared-activities browser; other content opens in the
-  // activity viewer. Using the activity-viewer link for a folder 404s.
-  const shareableLink =
-    contentType === "folder"
-      ? `${window.location.origin}/sharedActivities/${ownerId}/${contentId}`
-      : `${window.location.origin}/activityViewer/${contentId}`;
+  const shareableLink = `${window.location.origin}${contentViewerUrl(
+    contentType,
+    contentId,
+    ownerId,
+  )}`;
   const embedCode = `<iframe src="${window.location.origin}/embed/${contentId}" width="100%" height="800" style="border: 0"></iframe>`;
 
   const [copiedShareLink, setCopiedShareLink] = useState(false);

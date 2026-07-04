@@ -28,6 +28,7 @@ import { DisplayLicenseItem } from "../widgets/Licenses";
 import { ContentInfoDrawer } from "../drawers/ContentInfoDrawer";
 import CardList from "../widgets/CardList";
 import { menuIcons } from "../utils/activity";
+import { contentViewerUrl } from "../utils/url";
 import { SiteContext } from "./SiteHeader";
 import { AddContentToMenu } from "../popups/AddContentToMenu";
 import { CreateContentMenu } from "../dropdowns/CreateContentMenu";
@@ -282,10 +283,11 @@ export function SharedActivities() {
 
     return {
       content: activity,
-      cardLink:
-        activity.type == "folder"
-          ? `/sharedActivities/${activity.ownerId}/${activity.contentId}`
-          : `/activityViewer/${activity.contentId}`,
+      cardLink: contentViewerUrl(
+        activity.type,
+        activity.contentId,
+        activity.ownerId,
+      ),
       menuItems,
     };
   });

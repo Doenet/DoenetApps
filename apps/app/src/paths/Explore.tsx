@@ -45,6 +45,7 @@ import { clearQueryParameter } from "../utils/explore";
 import { FilterPanel } from "../widgets/FilterPanel";
 import { ExploreFilterDrawer } from "../drawers/ExploreFilterDrawer";
 import { menuIcons } from "../utils/activity";
+import { contentViewerUrl } from "../utils/url";
 import { SiteContext } from "./SiteHeader";
 import { AddContentToMenu } from "../popups/AddContentToMenu";
 import { CopyContentAndReportFinish } from "../popups/CopyContentAndReportFinish";
@@ -338,10 +339,7 @@ export function Explore() {
   ) {
     const cardContent: CardContent[] = matches.map((itemObj) => {
       const { contentId, owner, type: contentType } = itemObj;
-      const cardLink =
-        contentType === "folder" && owner != undefined
-          ? `/sharedActivities/${owner.userId}/${contentId}`
-          : `/activityViewer/${contentId}`;
+      const cardLink = contentViewerUrl(contentType, contentId, owner?.userId);
 
       const ownerAvatarName = createNameNoTag(owner!);
       const ownerName = createNameCheckCurateTag(owner!);
