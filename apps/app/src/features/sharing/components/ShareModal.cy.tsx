@@ -24,6 +24,21 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     parentSharedWith: [],
   };
 
+  // Stub navigator.clipboard.writeText and alias it as "writeTextStub".
+  function stubClipboard() {
+    cy.window().then((win) => {
+      const writeTextStub = cy.stub().as("writeTextStub");
+      if (win.navigator.clipboard && "writeText" in win.navigator.clipboard) {
+        cy.stub(win.navigator.clipboard, "writeText").callsFake(writeTextStub);
+      } else {
+        Object.defineProperty(win.navigator, "clipboard", {
+          value: { writeText: writeTextStub },
+          configurable: true,
+        });
+      }
+    });
+  }
+
   function setupMocks({
     shareStatus = shareStatusData,
     actionHandler,
@@ -595,17 +610,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       },
     });
 
-    const writeTextStub = cy.stub().as("writeTextStub");
-    cy.window().then((win) => {
-      if (win.navigator.clipboard && "writeText" in win.navigator.clipboard) {
-        cy.stub(win.navigator.clipboard, "writeText").callsFake(writeTextStub);
-      } else {
-        Object.defineProperty(win.navigator, "clipboard", {
-          value: { writeText: writeTextStub },
-          configurable: true,
-        });
-      }
-    });
+    stubClipboard();
 
     cy.mount(
       <ShareModal
@@ -636,17 +641,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       },
     });
 
-    const writeTextStub = cy.stub().as("writeTextStub");
-    cy.window().then((win) => {
-      if (win.navigator.clipboard && "writeText" in win.navigator.clipboard) {
-        cy.stub(win.navigator.clipboard, "writeText").callsFake(writeTextStub);
-      } else {
-        Object.defineProperty(win.navigator, "clipboard", {
-          value: { writeText: writeTextStub },
-          configurable: true,
-        });
-      }
-    });
+    stubClipboard();
 
     cy.mount(
       <ShareModal
