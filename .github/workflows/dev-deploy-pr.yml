@@ -50,7 +50,9 @@ jobs:
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     outputs:
-      authorized: ${{ steps.check.outputs.authorized }}
+      # Single "clear to deploy" signal: a real command, from someone with
+      # write access, whose merged result isn't blocked by conflicts.
+      go: ${{ steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true' && steps.merge.outputs.blocked != 'true' }}
       deploy_ref: ${{ steps.cmd.outputs.deploy_ref }}
       deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
@@ -119,9 +121,31 @@ jobs:
             --body "🚫 \`/deploy-dev\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
           exit 1
 
+      - name: Block merge-mode deploy of a conflicted PR
+        id: merge
+        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true' && endsWith(steps.cmd.outputs.deploy_ref, '/merge')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number }}
+        run: |
+          # GitHub computes mergeability asynchronously, so poll briefly. Only
+          # block when we're sure it's unmergeable; treat "unknown" as proceed
+          # (checkout of refs/pull/N/merge would otherwise fail loudly anyway).
+          mergeable=null
+          for _ in 1 2 3 4 5; do
+            mergeable=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" -q '.mergeable' 2>/dev/null || echo null)
+            [[ "$mergeable" == "true" || "$mergeable" == "false" ]] && break
+            sleep 2
+          done
+          if [[ "$mergeable" == "false" ]]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+              --body "⚠️ This PR has merge conflicts with its base, so \`/deploy-dev\` (which builds the merged result) can't run. Use \`/deploy-dev head\` to deploy the branch as-is."
+            echo "blocked=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Open GitHub deployment
         id: deployment
-        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true'
+        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true' && steps.merge.outputs.blocked != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.issue.number }}
@@ -150,7 +174,7 @@ jobs:
 
   deploy-backend:
     needs: gate
-    if: needs.gate.outputs.authorized == 'true'
+    if: needs.gate.outputs.go == 'true'
     uses: ./.github/workflows/reusable-deploy-backend.yml
     with:
       deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
@@ -165,7 +189,7 @@ jobs:
 
   deploy-frontend:
     needs: gate
-    if: needs.gate.outputs.authorized == 'true'
+    if: needs.gate.outputs.go == 'true'
     uses: ./.github/workflows/reusable-deploy-frontend.yml
     with:
       deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
@@ -178,7 +202,7 @@ jobs:
 
   deploy-site:
     needs: gate
-    if: needs.gate.outputs.authorized == 'true'
+    if: needs.gate.outputs.go == 'true'
     uses: ./.github/workflows/reusable-deploy-site.yml
     with:
       deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
@@ -191,7 +215,7 @@ jobs:
 
   notify:
     needs: [gate, deploy-backend, deploy-frontend, deploy-site]
-    if: always() && needs.gate.outputs.authorized == 'true'
+    if: always() && needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       # Read-only creds so we can ask whether dev3 is actually awake before
