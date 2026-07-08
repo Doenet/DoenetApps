@@ -1023,6 +1023,8 @@ Resources:
               MinCapacity=0,
               RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
             )
+            events = boto3.client('events', region_name='us-east-1')
+            events.disable_rule(Name='${EnvironmentName}-${ServiceName}-nag-extended-alarms')
             ssm.put_parameter(Name=lightsParam, Value='off', Overwrite=True)
 
           def routeTrafficToLightsOnLambda() :
@@ -1123,6 +1125,8 @@ Resources:
               MinCapacity=${MinCount},
               RoleARN='arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
             )
+            events = boto3.client('events', region_name='us-east-1')
+            events.enable_rule(Name='${EnvironmentName}-${ServiceName}-nag-extended-alarms')
             ssm.put_parameter(Name=lightsParam, Value='on', Overwrite=True)
 
           def serviceIsReady() :
@@ -1265,6 +1269,8 @@ Resources:
                   - "elasticloadbalancing:DescribeTargetHealth"
                   - "ssm:PutParameter"
                   - "ssm:GetParameter"
+                  - "events:DisableRule"
+                  - "events:EnableRule"
                 Resource: "*"
 
   UserPool:

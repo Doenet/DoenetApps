@@ -10,6 +10,7 @@ import { formatAssignmentBlurb } from "../utils/assignment";
 import { NameBar } from "../widgets/NameBar";
 import { BsPeople } from "react-icons/bs";
 import { createNameNoTag } from "../utils/names";
+import { contentViewerUrl } from "../utils/url";
 import { useCardSelections } from "../hooks/cardSelections";
 
 export async function loader() {
@@ -82,10 +83,11 @@ export function SharedWithMe() {
       cardMenuRefs.current[position] = element;
     };
 
-    const cardLink =
-      activity.type === "folder"
-        ? `/sharedActivities/${activity.ownerId}/${activity.contentId}`
-        : `/activityViewer/${activity.contentId}`;
+    const cardLink = contentViewerUrl(
+      activity.type,
+      activity.contentId,
+      activity.ownerId,
+    );
 
     const ownerName = createNameNoTag(activity.owner!);
 

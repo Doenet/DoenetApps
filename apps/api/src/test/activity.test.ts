@@ -40,7 +40,7 @@ import {
   getEditorShareStatus,
 } from "../query/editor";
 import { setContentLicense } from "../query/license";
-import { isEqualUUID } from "../utils/uuid";
+import { fromUUID, isEqualUUID } from "../utils/uuid";
 import { Doc } from "../types";
 import {
   InvalidRequestError,
@@ -119,6 +119,7 @@ test("New activity starts out private, then delete it", async () => {
   });
   expect(sharing).eqls({
     isPublic: false,
+    ownerId: fromUUID(userId),
     visibility: "private",
     canSharePublicly: false,
     publicShareIssues: [
