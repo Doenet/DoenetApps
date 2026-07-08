@@ -17,6 +17,7 @@ export type PublicShareIssue =
  * and by editor headers that surface public compliance warnings.
  */
 export type SharingData = {
+  ownerId: string;
   visibility: Visibility;
   parentVisibility: Visibility;
   canSharePublicly: boolean;
