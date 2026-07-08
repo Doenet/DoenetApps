@@ -711,6 +711,38 @@ Resources:
         - Name: ClusterName
           Value: !Ref EcsCluster
 
+  # Detects short, periodic CPU spikes that the Average-based alarms above miss.
+  #
+  # In the past, we've had short ~100% Maximum spikes on a ~2-minute cadence.
+  # These events were not caught by the Extended CPU alarm, which uses averages.
+  # This alarm watches the Maximum statistic with M-out-of-N evaluation: fire
+  # when >=3 of the last 10 one-minute datapoints peak at >=90%.
+  ECSClusterPeriodicCPUSpikeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-${ServiceName}-Periodic-CPU-Spike"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 10
+      DatapointsToAlarm: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 60
+      Statistic: Maximum
+      Threshold: 90.0
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref CloudwatchSNSWarningTopic
+      Dimensions:
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+        - Name: ClusterName
+          Value: !Ref EcsCluster
+
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Condition: UseLbForService
