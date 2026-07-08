@@ -106,24 +106,54 @@ jobs:
     if: always() && needs.create-deployment.outputs.deployment_id != ''
     runs-on: ubuntu-latest
     steps:
+      # Read-only creds so we can ask whether dev3 is actually awake before
+      # claiming a deployment is live. Best-effort: never fails the job.
+      - name: Configure AWS credentials
+        id: aws
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: arn:aws:iam::568298704244:role/github-actions-dev3
+          role-session-name: dev3-deploy-status
+          aws-region: us-east-2
+
       - name: Finalize GitHub deployment status
         env:
           GH_TOKEN: ${{ github.token }}
           ID: ${{ needs.create-deployment.outputs.deployment_id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          HAVE_AWS: ${{ steps.aws.outcome }}
           B: ${{ needs.deploy-backend.result }}
           F: ${{ needs.deploy-frontend.result }}
           S: ${{ needs.deploy-site.result }}
         run: |
           if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
-            state=success
+            # The pipeline succeeded, but dev3 scales to zero on the lights-out
+            # schedule (and the backend deploy is a no-op while it's asleep).
+            # Reflect whether it's actually serving so the tab can't claim a
+            # ref is live while the environment is off.
+            lights=unknown
+            if [[ "$HAVE_AWS" == "success" ]]; then
+              lights=$(aws ssm get-parameter --name /dev3/doenet/lights \
+                --query Parameter.Value --output text 2>/dev/null || echo unknown)
+            fi
+            if [[ "$lights" == "off" ]]; then
+              state=inactive
+              desc="dev3 is asleep (lights off); this ref serves on next wake"
+            else
+              state=success
+              desc="deployed to dev3"
+            fi
           else
             state=failure
+            desc="dev3 deploy failed (backend:$B frontend:$F site:$S)"
           fi
-          # On success GitHub auto-inactivates the previous dev3 deployment, so
-          # the Environments tab always reflects what is currently live.
+          # On a success status GitHub auto-inactivates the previous dev3
+          # deployment, so the Environments tab reflects what is currently live.
           gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${ID}/statuses" \
             -f state="$state" \
+            -f description="$desc" \
             -f environment=dev3 \
             -f environment_url=https://dev3.doenet.org \
             -f log_url="$RUN_URL" >/dev/null
