@@ -5,6 +5,17 @@ To deploy changes to AWS, run the `aws-deploy` script.
 To lint CloudFormation templates without deploying them, use `cfn-lint`.
 https://github.com/aws-cloudformation/cfn-lint
 
+## Testing a PR on dev3
+
+Maintainers can deploy an unmerged PR to the shared dev3 environment by
+commenting `/deploy-dev` on it (or `/deploy-dev head` to deploy the branch as
+pushed rather than merged into `main`).
+
+> **Caution:** deploying builds and runs the PR's own code (its Dockerfile and
+> npm build scripts) on a runner that has dev3's AWS credentials in scope. Only
+> run `/deploy-dev` on a PR whose code you trust — deploying an external
+> contributor's PR means running their code with those credentials.
+
 ## What is currently on dev3?
 
 dev3 is a single shared environment. Every deploy (a push to `main`, a

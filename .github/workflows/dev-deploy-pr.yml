@@ -12,6 +12,10 @@ name: Dev Deploy (PR command)
 #   - The commenter's repo permission is checked before anything runs.
 #   - The comment body is only ever read via an env var, never interpolated
 #     into a shell script, to avoid command injection.
+#   - HOWEVER: deploying builds and runs the PR's OWN code (its Dockerfile and
+#     npm build scripts) on a runner that has dev3's AWS credentials in scope.
+#     Deploying an external contributor's PR = running their code with those
+#     creds. Only run /deploy-dev on a PR whose code you have reviewed/trust.
 
 on:
   issue_comment:
@@ -25,24 +29,62 @@ permissions:
   deployments: write
 
 # Share dev3's single deploy slot with the push/dispatch workflow so a PR test
-# and a main deploy can't run against dev3 at the same time.
+# and a main deploy can't run against dev3 at the same time. Do NOT cancel in
+# progress: this workflow is triggered by comments from anyone on a public repo,
+# and cancelling would let a drive-by commenter kill an in-flight deploy before
+# the auth check runs. Unauthorized comments queue briefly, then fail auth and
+# release the slot. (A push to `main` still preempts, via dev-deploy.yml.)
 concurrency:
   group: dev-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   gate:
-    # Only PR comments that start with the command word.
+    # Cheap pre-filter: a PR comment that starts with the command word, from a
+    # repo insider. This keeps drive-by comments from public users out of the
+    # shared concurrency group entirely. The authoritative permission check
+    # (write access) still runs below — author_association is only a filter.
     if: >
       github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '/deploy-dev')
+      startsWith(github.event.comment.body, '/deploy-dev') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     outputs:
       authorized: ${{ steps.check.outputs.authorized }}
-      deploy_ref: ${{ steps.ref.outputs.deploy_ref }}
+      deploy_ref: ${{ steps.cmd.outputs.deploy_ref }}
       deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
+      - name: Parse command
+        id: cmd
+        env:
+          BODY: ${{ github.event.comment.body }}
+          PR: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Exact match on the first line only, so ordinary comments that merely
+          # mention the command (e.g. "/deploy-dev worked great") don't deploy,
+          # and startsWith() collisions like "/deploy-development" are rejected.
+          line="${BODY%%$'\n'*}"
+          read -r cmd arg extra <<<"$line"
+          if [[ "$cmd" != "/deploy-dev" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ -n "$extra" || ( -n "$arg" && "$arg" != "head" ) ]]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+              --body "Usage: \`/deploy-dev\` (PR merged into main) or \`/deploy-dev head\` (branch as-is)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$arg" == "head" ]]; then
+            echo "deploy_ref=refs/pull/${PR}/head" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_ref=refs/pull/${PR}/merge" >> "$GITHUB_OUTPUT"
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
       - name: Acknowledge the command
+        if: steps.cmd.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMENT_ID: ${{ github.event.comment.id }}
@@ -53,6 +95,7 @@ jobs:
 
       - name: Check commenter permission
         id: check
+        if: steps.cmd.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           ACTOR: ${{ github.event.comment.user.login }}
@@ -66,7 +109,7 @@ jobs:
           fi
 
       - name: Reject unauthorized commenter
-        if: steps.check.outputs.authorized != 'true'
+        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.issue.number }}
@@ -76,22 +119,9 @@ jobs:
             --body "🚫 \`/deploy-dev\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
           exit 1
 
-      - name: Resolve deploy ref
-        id: ref
-        env:
-          BODY: ${{ github.event.comment.body }}
-          PR: ${{ github.event.issue.number }}
-        run: |
-          # Second whitespace-delimited token of the first line selects the ref kind.
-          arg=$(printf '%s' "$BODY" | awk 'NR==1 {print $2}')
-          if [[ "$arg" == "head" ]]; then
-            echo "deploy_ref=refs/pull/${PR}/head" >> "$GITHUB_OUTPUT"
-          else
-            echo "deploy_ref=refs/pull/${PR}/merge" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Open GitHub deployment
         id: deployment
+        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.issue.number }}
