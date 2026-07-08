@@ -8,8 +8,9 @@ https://github.com/aws-cloudformation/cfn-lint
 ## Testing a PR on dev3
 
 Maintainers can deploy an unmerged PR to the shared dev3 environment by
-commenting `/deploy-dev` on it (or `/deploy-dev head` to deploy the branch as
-pushed rather than merged into `main`).
+commenting `/deploy-dev` on it. This deploys the PR merged into the current tip
+of `main`, so you always test it combined with the latest main — even when the
+branch is behind. A PR with conflicts is blocked with a hint to update it first.
 
 > **Caution:** deploying builds and runs the PR's own code (its Dockerfile and
 > npm build scripts) on a runner that has dev3's AWS credentials in scope. Only

@@ -1,10 +1,11 @@
 name: Dev Deploy (PR command)
 
 # Deploy an unmerged PR to the shared dev3 environment by commenting
-# `/deploy-dev` on the PR. Maintainers only.
+# `/deploy-dev` on the PR (no arguments). Maintainers only.
 #
-#   /deploy-dev        deploy refs/pull/<N>/merge  (PR merged into its base — default)
-#   /deploy-dev head   deploy refs/pull/<N>/head   (branch exactly as pushed; use if the PR has conflicts)
+# It deploys refs/pull/<N>/merge — the PR merged into the current tip of `main`
+# — so you always test the PR combined with the latest main, even when the
+# branch itself is behind. A PR with conflicts is blocked with a hint to update.
 #
 # Security notes:
 #   - issue_comment runs this workflow from the default branch, so the trusted
@@ -63,26 +64,23 @@ jobs:
           PR: ${{ github.event.issue.number }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Exact match on the first line only, so ordinary comments that merely
-          # mention the command (e.g. "/deploy-dev worked great") don't deploy,
-          # and startsWith() collisions like "/deploy-development" are rejected.
+          # Exact match on the first line, and the command takes no arguments, so
+          # ordinary comments that merely mention it (e.g. "/deploy-dev worked
+          # great") don't deploy, and collisions like "/deploy-development" are
+          # rejected.
           line="${BODY%%$'\n'*}"
-          read -r cmd arg extra <<<"$line"
+          read -r cmd extra <<<"$line"
           if [[ "$cmd" != "/deploy-dev" ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ -n "$extra" || ( -n "$arg" && "$arg" != "head" ) ]]; then
+          if [[ -n "$extra" ]]; then
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
-              --body "Usage: \`/deploy-dev\` (PR merged into main) or \`/deploy-dev head\` (branch as-is)."
+              --body "Usage: \`/deploy-dev\` — deploys this PR merged into the current \`main\` to dev3. It takes no arguments."
             echo "run=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$arg" == "head" ]]; then
-            echo "deploy_ref=refs/pull/${PR}/head" >> "$GITHUB_OUTPUT"
-          else
-            echo "deploy_ref=refs/pull/${PR}/merge" >> "$GITHUB_OUTPUT"
-          fi
+          echo "deploy_ref=refs/pull/${PR}/merge" >> "$GITHUB_OUTPUT"
           echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge the command
@@ -121,9 +119,9 @@ jobs:
             --body "🚫 \`/deploy-dev\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
           exit 1
 
-      - name: Block merge-mode deploy of a conflicted PR
+      - name: Block deploy of a conflicted PR
         id: merge
-        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true' && endsWith(steps.cmd.outputs.deploy_ref, '/merge')
+        if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.issue.number }}
@@ -139,7 +137,7 @@ jobs:
           done
           if [[ "$mergeable" == "false" ]]; then
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
-              --body "⚠️ This PR has merge conflicts with its base, so \`/deploy-dev\` (which builds the merged result) can't run. Use \`/deploy-dev head\` to deploy the branch as-is."
+              --body "⚠️ This PR can't be merged into \`main\` (conflicts), so \`/deploy-dev\` can't build the merged result. Resolve the conflicts or update your branch with \`main\`, then comment \`/deploy-dev\` again."
             echo "blocked=true" >> "$GITHUB_OUTPUT"
           fi
 
