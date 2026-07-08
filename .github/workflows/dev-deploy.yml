@@ -8,7 +8,7 @@ on:
         required: false
         type: string
   push:
-    branches: ["main", "infra/*"]
+    branches: ["main"]
 
 permissions:
   contents: read
