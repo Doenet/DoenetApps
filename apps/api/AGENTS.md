@@ -58,7 +58,7 @@ Four content types throughout the domain model: `"singleDoc"`, `"select"` (quest
 
 ## Health & Version
 
-`GET /api/health` returns `{ status: "ok", version: { ref, sha, builtAt } }`. The `version` fields are stamped into the image at deploy time via the `GIT_SHA` / `DEPLOY_REF` / `BUILD_TIME` build args (see `apps/api/Dockerfile` and `.github/workflows/reusable-deploy-backend.yml`), so hitting the endpoint tells you exactly what commit is running — the ground truth behind GitHub's deployment records. Fields are `null` in local dev. The static apps publish the same info at `/version.json`.
+`GET /api/health` returns `{ status: "ok", version: { ref, sha, builtAt } }`. The `version` fields are stamped into the image at deploy time via the `GIT_SHA` / `DEPLOY_REF` / `BUILD_TIME` build args (see `apps/api/Dockerfile` and `.github/workflows/reusable-deploy-backend.yml`), so hitting the endpoint tells you exactly what commit is running — the ground truth behind GitHub's deployment records. Fields are `null` in local dev. The frontend app publishes the same info at `/version.json` (same build, so the same commit).
 
 ## Test Utilities
 
