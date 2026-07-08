@@ -75,3 +75,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 RUN useradd serveruser
 RUN chown -R serveruser:serveruser /DoenetTools/node_modules/@prisma /DoenetTools/node_modules/.prisma
 USER serveruser
+
+# Deploy-time version metadata, surfaced at GET /api/health. Kept at the very
+# end so it changes on every deploy without invalidating the layers above.
+ARG GIT_SHA=unknown
+ARG DEPLOY_REF=unknown
+ARG BUILD_TIME=unknown
+ENV GIT_SHA=$GIT_SHA
+ENV DEPLOY_REF=$DEPLOY_REF
+ENV BUILD_TIME=$BUILD_TIME

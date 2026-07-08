@@ -62,6 +62,15 @@ jobs:
           npm ci
           cd apps/web && npm run build -- --mode ${{ inputs.build_mode }}
 
+      - name: Stamp version.json
+        env:
+          REF: ${{ inputs.deploy_ref }}
+        run: |
+          # Ground-truth marker of what was deployed, curl-able at /version.json.
+          jq -n --arg ref "$REF" --arg sha "$(git rev-parse HEAD)" \
+            --arg builtAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{ref: $ref, sha: $sha, builtAt: $builtAt}' > apps/web/dist/version.json
+
       - name: Sync to S3
         run: |
           aws s3 sync --delete apps/web/dist s3://${{ inputs.env_name }}-site-${{ inputs.aws_account_id }}-${{ inputs.aws_region }}
@@ -69,4 +78,4 @@ jobs:
       - name: Invalidate CloudFront cache
         run: |
           id=$(aws ssm get-parameter --name "/${{ inputs.env_name }}/app/DistributionId" --query "Parameter.Value" --output text)
-          aws cloudfront create-invalidation --distribution-id $id --paths "/blog/*" "/_astro/*"
+          aws cloudfront create-invalidation --distribution-id $id --paths "/blog/*" "/_astro/*" "/version.json"
