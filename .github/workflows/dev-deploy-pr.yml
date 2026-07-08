@@ -1,0 +1,211 @@
+name: Dev Deploy (PR command)
+
+# Deploy an unmerged PR to the shared dev3 environment by commenting
+# `/deploy-dev3` on the PR. Maintainers only.
+#
+#   /deploy-dev3        deploy refs/pull/<N>/merge  (PR merged into its base — default)
+#   /deploy-dev3 head   deploy refs/pull/<N>/head   (branch exactly as pushed; use if the PR has conflicts)
+#
+# Security notes:
+#   - issue_comment runs this workflow from the default branch, so the trusted
+#     logic and secrets here are never controlled by the PR under test.
+#   - The commenter's repo permission is checked before anything runs.
+#   - The comment body is only ever read via an env var, never interpolated
+#     into a shell script, to avoid command injection.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  issues: write
+  deployments: write
+
+# Share dev3's single deploy slot with the push/dispatch workflow so a PR test
+# and a main deploy can't run against dev3 at the same time.
+concurrency:
+  group: dev-deploy
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    # Only PR comments that start with the command word.
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/deploy-dev3')
+    runs-on: ubuntu-latest
+    outputs:
+      authorized: ${{ steps.check.outputs.authorized }}
+      deploy_ref: ${{ steps.ref.outputs.deploy_ref }}
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+    steps:
+      - name: Acknowledge the command
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          gh api -X POST \
+            "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}/reactions" \
+            -f content=eyes >/dev/null
+
+      - name: Check commenter permission
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.event.comment.user.login }}
+        run: |
+          perm=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}/permission" -q .permission)
+          echo "Commenter '${ACTOR}' has repo permission '${perm}'."
+          if [[ "$perm" == "admin" || "$perm" == "write" ]]; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reject unauthorized commenter
+        if: steps.check.outputs.authorized != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number }}
+          ACTOR: ${{ github.event.comment.user.login }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+            --body "🚫 \`/deploy-dev3\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
+          exit 1
+
+      - name: Resolve deploy ref
+        id: ref
+        env:
+          BODY: ${{ github.event.comment.body }}
+          PR: ${{ github.event.issue.number }}
+        run: |
+          # Second whitespace-delimited token of the first line selects the ref kind.
+          arg=$(printf '%s' "$BODY" | awk 'NR==1 {print $2}')
+          if [[ "$arg" == "head" ]]; then
+            echo "deploy_ref=refs/pull/${PR}/head" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_ref=refs/pull/${PR}/merge" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open GitHub deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Attribute the deployment to the PR head commit so GitHub links it to
+          # the PR (the built code may be refs/pull/N/merge, but the head SHA is
+          # the real commit that shows up on the PR timeline).
+          # Best-effort: deployment bookkeeping must never block an actual deploy.
+          head_sha=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" -q .head.sha 2>/dev/null || true)
+          if [[ -n "$head_sha" ]]; then
+            payload=$(jq -n --arg ref "$head_sha" \
+              '{ref: $ref, environment: "dev3", required_contexts: [], auto_merge: false, description: "dev3 deploy (PR command)"}')
+            id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments" --input - -q .id <<<"$payload" 2>/dev/null || true)
+          fi
+          if [[ -n "${id:-}" ]]; then
+            echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" \
+              -f state=in_progress \
+              -f environment=dev3 \
+              -f environment_url=https://dev3.doenet.org \
+              -f log_url="$RUN_URL" >/dev/null 2>&1 || true
+          else
+            echo "::warning::could not create dev3 deployment record; deploy continues"
+          fi
+
+  deploy-backend:
+    needs: gate
+    if: needs.gate.outputs.authorized == 'true'
+    uses: ./.github/workflows/reusable-deploy-backend.yml
+    with:
+      deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
+      aws_region: us-east-2
+      ecr_repository: dev3/doenet
+      ecs_cluster: dev3
+      ecs_service: doenet-FARGATE
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      sns_topic: arn:aws:sns:us-east-2:568298704244:dev3-critical-cloudwatch-notifications
+      tag_name: latest
+    secrets: inherit
+
+  deploy-frontend:
+    needs: gate
+    if: needs.gate.outputs.authorized == 'true'
+    uses: ./.github/workflows/reusable-deploy-frontend.yml
+    with:
+      deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
+      aws_region: us-east-1
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      aws_account_id: "568298704244"
+      env_name: dev3
+      build_mode: dev3
+    secrets: inherit
+
+  deploy-site:
+    needs: gate
+    if: needs.gate.outputs.authorized == 'true'
+    uses: ./.github/workflows/reusable-deploy-site.yml
+    with:
+      deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
+      aws_region: us-east-1
+      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
+      aws_account_id: "568298704244"
+      env_name: dev3
+      build_mode: dev3
+    secrets: inherit
+
+  notify:
+    needs: [gate, deploy-backend, deploy-frontend, deploy-site]
+    if: always() && needs.gate.outputs.authorized == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize GitHub deployment status
+        if: needs.gate.outputs.deployment_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.gate.outputs.deployment_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          B: ${{ needs.deploy-backend.result }}
+          F: ${{ needs.deploy-frontend.result }}
+          S: ${{ needs.deploy-site.result }}
+        run: |
+          if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
+            state=success
+          else
+            state=failure
+          fi
+          # On success GitHub auto-inactivates the previous dev3 deployment, so
+          # the Environments tab always reflects what is currently live.
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${ID}/statuses" \
+            -f state="$state" \
+            -f environment=dev3 \
+            -f environment_url=https://dev3.doenet.org \
+            -f log_url="$RUN_URL" >/dev/null
+
+      - name: Comment result on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number }}
+          REF: ${{ needs.gate.outputs.deploy_ref }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          B: ${{ needs.deploy-backend.result }}
+          F: ${{ needs.deploy-frontend.result }}
+          S: ${{ needs.deploy-site.result }}
+        run: |
+          if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
+            printf '%s\n' \
+              "✅ Deployed \`${REF}\` to **dev3** → https://dev3.doenet.org" \
+              "(first page load wakes it if the lights are off)." \
+              "" \
+              "_dev3 is shared: the next push to \`main\` overwrites this. To restore main:_" \
+              "\`gh workflow run dev-deploy.yml --ref main -f deploy_ref=main\`" > body.md
+          else
+            printf '%s\n' \
+              "❌ dev3 deploy of \`${REF}\` failed (backend: ${B}, frontend: ${F}, site: ${S}). See the [run log](${RUN_URL})." > body.md
+          fi
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file body.md

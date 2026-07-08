@@ -13,16 +13,61 @@ on:
 permissions:
   contents: read
   id-token: write
+  deployments: write
 
 concurrency:
   group: dev-deploy
   cancel-in-progress: true
 
 jobs:
+  # Resolve the ref once and open a GitHub deployment so the repo's dev3
+  # Environment always shows what is currently live on dev3.
+  create-deployment:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_ref: ${{ steps.ref.outputs.deploy_ref }}
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+    steps:
+      - name: Resolve deploy ref
+        id: ref
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.deploy_ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT" == "workflow_dispatch" && -n "$INPUT_REF" ]]; then
+            echo "deploy_ref=$INPUT_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_ref=$SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open GitHub deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ steps.ref.outputs.deploy_ref }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Best-effort: deployment bookkeeping must never block an actual deploy.
+          payload=$(jq -n --arg ref "$REF" \
+            '{ref: $ref, environment: "dev3", required_contexts: [], auto_merge: false, description: "dev3 deploy"}')
+          id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments" --input - -q .id <<<"$payload" 2>/dev/null || true)
+          if [[ -n "$id" ]]; then
+            echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" \
+              -f state=in_progress \
+              -f environment=dev3 \
+              -f environment_url=https://dev3.doenet.org \
+              -f log_url="$RUN_URL" >/dev/null 2>&1 || true
+          else
+            echo "::warning::could not create dev3 deployment record; deploy continues"
+          fi
+
   deploy-backend:
+    needs: create-deployment
     uses: ./.github/workflows/reusable-deploy-backend.yml
     with:
-      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      deploy_ref: ${{ needs.create-deployment.outputs.deploy_ref }}
       aws_region: us-east-2
       ecr_repository: dev3/doenet
       ecs_cluster: dev3
@@ -33,9 +78,10 @@ jobs:
     secrets: inherit
 
   deploy-frontend:
+    needs: create-deployment
     uses: ./.github/workflows/reusable-deploy-frontend.yml
     with:
-      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      deploy_ref: ${{ needs.create-deployment.outputs.deploy_ref }}
       aws_region: us-east-1
       gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
       aws_account_id: "568298704244"
@@ -44,12 +90,40 @@ jobs:
     secrets: inherit
 
   deploy-site:
+    needs: create-deployment
     uses: ./.github/workflows/reusable-deploy-site.yml
     with:
-      deploy_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_ref || github.sha }}
+      deploy_ref: ${{ needs.create-deployment.outputs.deploy_ref }}
       aws_region: us-east-1
       gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
       aws_account_id: "568298704244"
       env_name: dev3
       build_mode: dev3
     secrets: inherit
+
+  record-deployment:
+    needs: [create-deployment, deploy-backend, deploy-frontend, deploy-site]
+    if: always() && needs.create-deployment.outputs.deployment_id != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize GitHub deployment status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.create-deployment.outputs.deployment_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          B: ${{ needs.deploy-backend.result }}
+          F: ${{ needs.deploy-frontend.result }}
+          S: ${{ needs.deploy-site.result }}
+        run: |
+          if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
+            state=success
+          else
+            state=failure
+          fi
+          # On success GitHub auto-inactivates the previous dev3 deployment, so
+          # the Environments tab always reflects what is currently live.
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${ID}/statuses" \
+            -f state="$state" \
+            -f environment=dev3 \
+            -f environment_url=https://dev3.doenet.org \
+            -f log_url="$RUN_URL" >/dev/null
