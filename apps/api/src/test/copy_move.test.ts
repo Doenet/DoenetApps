@@ -888,8 +888,6 @@ test("cannot move an image into a problem set", async () => {
     name: "img.png",
     mimeType: "image/png",
     sizeBytes: 1,
-    imageWidth: 1,
-    imageHeight: 1,
   });
 
   await expect(

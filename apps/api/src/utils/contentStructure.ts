@@ -17,6 +17,7 @@ import { fromUUID, isEqualUUID } from "./uuid";
 import { DateTime } from "luxon";
 import { ActivitySource } from "@doenet-tools/shared";
 import { InvalidRequestError } from "./error";
+import { loadMediaConfig } from "../media/config";
 
 /**
  * Process a list of user info from the SharedWith table
@@ -215,6 +216,10 @@ export function returnContentSelect({
     classCode: true,
     sharedWith,
     licenseCode: true,
+    // Image content: storageKey is the S3 object key; combined with the CDN
+    // base URL in `processContent` it becomes `imageUrl`. Null for anything
+    // that's not an image, or for an image whose upload hasn't completed.
+    storageKey: true,
     parent: {
       select: {
         id: true,
@@ -368,6 +373,9 @@ type PreliminaryContent = {
   // from problem bank select
   shuffle: boolean;
   paginate: boolean;
+
+  // Image content
+  storageKey?: string | null;
 };
 
 /**
@@ -437,6 +445,10 @@ export function processContent(
 
     // document inside problem set
     repeatInProblemSet,
+
+    // Image-only, pulled out so the raw S3 key doesn't leak into the response;
+    // it's exposed to the client as the computed `imageUrl` on the image case.
+    storageKey,
 
     ...preliminaryContent2
   } = preliminaryContent;
@@ -539,8 +551,11 @@ export function processContent(
       };
     }
     case "image": {
+      const { cdnBaseUrl } = loadMediaConfig();
+      const imageUrl = storageKey ? `${cdnBaseUrl}/${storageKey}` : null;
       return {
         type: "image",
+        imageUrl,
         ...baseContent,
       };
     }

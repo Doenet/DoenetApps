@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uuidSchema } from "../schemas/uuid";
+import { uuidOrNullSchema } from "../schemas/uuid";
 
 export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
@@ -8,18 +8,43 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/gif",
 ] as const;
 
+// Canonical MIME → file extension. The server puts the ext into the S3 key so
+// CDN URLs end with a sensible extension for browser sniffing.
+export const MIME_TO_EXT: Record<
+  (typeof ALLOWED_IMAGE_MIME_TYPES)[number],
+  string
+> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-export const MAX_IMAGE_DIMENSION = 2560;
 
-// Multipart form fields arrive as strings. Treat empty / missing as "root".
-const optionalParentId = z.preprocess(
-  (v) => (v === "" || v === undefined || v === null ? null : v),
-  z.union([uuidSchema, z.null()]),
-);
+// Presigned PUT URLs are short-lived — the client uploads immediately after
+// receiving the URL, so a small window is plenty and limits blast radius if a
+// URL leaks.
+export const PRESIGN_EXPIRES_SECONDS = 60;
 
-export const uploadImageBodySchema = z.object({
-  parentId: optionalParentId,
-  name: z.string().optional(),
+// Init only needs enough info to sign the S3 PUT — MIME + size. Everything
+// else (parent, name, dimensions) is provided on complete once the client
+// actually has the bytes it's about to send.
+export const initUploadImageBodySchema = z.object({
+  mimeType: z.enum(ALLOWED_IMAGE_MIME_TYPES),
+  sizeBytes: z.number().int().positive().max(MAX_IMAGE_BYTES),
 });
 
-export type UploadImageBody = z.infer<typeof uploadImageBodySchema>;
+export type InitUploadImageBody = z.infer<typeof initUploadImageBodySchema>;
+
+export const completeUploadImageBodySchema = z.object({
+  uploadKey: z.string().min(1).max(255),
+  parentId: uuidOrNullSchema,
+  name: z.string().trim().min(1).max(191).optional(),
+  mimeType: z.enum(ALLOWED_IMAGE_MIME_TYPES),
+  sizeBytes: z.number().int().positive().max(MAX_IMAGE_BYTES),
+});
+
+export type CompleteUploadImageBody = z.infer<
+  typeof completeUploadImageBodySchema
+>;

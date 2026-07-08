@@ -5,12 +5,7 @@ import { setContentLicense } from "../query/license";
 import { setContentIsPublic, shareContentWithEmail } from "../query/share";
 import { createTestUser } from "../test/utils";
 import { InvalidRequestError } from "../utils/error";
-import {
-  createImageContent,
-  deleteImageContent,
-  findViewableImage,
-  setImageStorageKey,
-} from "./imageContent";
+import { createImageContent, deleteImageContent } from "./imageContent";
 
 async function getContent(contentId: Uint8Array) {
   return prisma.content.findUniqueOrThrow({
@@ -26,8 +21,6 @@ async function getContent(contentId: Uint8Array) {
       courseRootId: true,
       mimeType: true,
       sizeBytes: true,
-      imageWidth: true,
-      imageHeight: true,
       storageKey: true,
       sharedWith: { select: { userId: true } },
     },
@@ -43,8 +36,6 @@ describe("createImageContent", () => {
       name: "donut.png",
       mimeType: "image/png",
       sizeBytes: 1024,
-      imageWidth: 100,
-      imageHeight: 80,
     });
 
     const row = await getContent(contentId);
@@ -54,8 +45,6 @@ describe("createImageContent", () => {
     expect(row.name).toBe("donut.png");
     expect(row.mimeType).toBe("image/png");
     expect(row.sizeBytes).toBe(1024n);
-    expect(row.imageWidth).toBe(100);
-    expect(row.imageHeight).toBe(80);
     expect(row.storageKey).toBeNull();
     expect(row.isPublic).toBe(false);
     expect(row.visibility).toBe("unlisted");
@@ -77,8 +66,6 @@ describe("createImageContent", () => {
       name: "in-private.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     const row = await getContent(contentId);
@@ -110,8 +97,6 @@ describe("createImageContent", () => {
       name: "in-public.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     const row = await getContent(contentId);
@@ -142,8 +127,6 @@ describe("createImageContent", () => {
       name: "shared.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     const row = await getContent(contentId);
@@ -169,8 +152,6 @@ describe("createImageContent", () => {
       name: "in-course.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     const row = await getContent(contentId);
@@ -192,8 +173,6 @@ describe("createImageContent", () => {
         name: "nope.png",
         mimeType: "image/png",
         sizeBytes: 1,
-        imageWidth: 1,
-        imageHeight: 1,
       }),
     ).rejects.toThrow("Cannot upload an image into a problem set");
   });
@@ -219,8 +198,6 @@ describe("createImageContent", () => {
         name: "nope.png",
         mimeType: "image/png",
         sizeBytes: 1,
-        imageWidth: 1,
-        imageHeight: 1,
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
   });
@@ -240,8 +217,6 @@ describe("createImageContent", () => {
         name: "child.png",
         mimeType: "image/png",
         sizeBytes: 1,
-        imageWidth: 1,
-        imageHeight: 1,
       }),
     ).rejects.toThrow();
   });
@@ -254,8 +229,6 @@ describe("createImageContent", () => {
       name: "parent.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     await expect(
@@ -265,8 +238,6 @@ describe("createImageContent", () => {
         name: "child.png",
         mimeType: "image/png",
         sizeBytes: 1,
-        imageWidth: 1,
-        imageHeight: 1,
       }),
     ).rejects.toThrow();
   });
@@ -287,15 +258,13 @@ describe("createImageContent", () => {
         name: "trespass.png",
         mimeType: "image/png",
         sizeBytes: 1,
-        imageWidth: 1,
-        imageHeight: 1,
       }),
     ).rejects.toThrow();
   });
 });
 
-describe("setImageStorageKey", () => {
-  test("updates the storage key for the owner's image", async () => {
+describe("createImageContent with storageKey", () => {
+  test("persists the supplied storageKey", async () => {
     const owner = await createTestUser();
     const { contentId } = await createImageContent({
       loggedInUserId: owner.userId,
@@ -303,43 +272,11 @@ describe("setImageStorageKey", () => {
       name: "x.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
-    });
-
-    await setImageStorageKey({
-      contentId,
-      ownerId: owner.userId,
       storageKey: "images/abc.png",
     });
 
     const row = await getContent(contentId);
     expect(row.storageKey).toBe("images/abc.png");
-  });
-
-  test("refuses to update another user's image", async () => {
-    const owner = await createTestUser();
-    const stranger = await createTestUser();
-    const { contentId } = await createImageContent({
-      loggedInUserId: owner.userId,
-      parentId: null,
-      name: "x.png",
-      mimeType: "image/png",
-      sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
-    });
-
-    await expect(
-      setImageStorageKey({
-        contentId,
-        ownerId: stranger.userId,
-        storageKey: "evil",
-      }),
-    ).rejects.toThrow();
-
-    const row = await getContent(contentId);
-    expect(row.storageKey).toBeNull();
   });
 });
 
@@ -352,8 +289,6 @@ describe("deleteImageContent", () => {
       name: "x.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     await deleteImageContent({ contentId, ownerId: owner.userId });
@@ -371,8 +306,6 @@ describe("deleteImageContent", () => {
       name: "x.png",
       mimeType: "image/png",
       sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
     });
 
     await expect(
@@ -381,132 +314,5 @@ describe("deleteImageContent", () => {
 
     const row = await prisma.content.findUnique({ where: { id: contentId } });
     expect(row).not.toBeNull();
-  });
-});
-
-describe("findViewableImage", () => {
-  async function makeReadyImage(ownerId: Uint8Array) {
-    const { contentId } = await createImageContent({
-      loggedInUserId: ownerId,
-      parentId: null,
-      name: "x.png",
-      mimeType: "image/png",
-      sizeBytes: 42,
-      imageWidth: 4,
-      imageHeight: 4,
-    });
-    // Uploaded images are created `unlisted`, but these access-control tests
-    // need a `private` baseline they can then override per case.
-    await prisma.content.update({
-      where: { id: contentId },
-      data: { visibility: "private", isPublic: false },
-    });
-    await setImageStorageKey({
-      contentId,
-      ownerId,
-      storageKey: "images/x.png",
-    });
-    return contentId;
-  }
-
-  test("returns serving metadata when the owner views their ready image", async () => {
-    const owner = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-
-    const result = await findViewableImage({
-      contentId,
-      loggedInUserId: owner.userId,
-    });
-    expect(result).toEqual({
-      storageKey: "images/x.png",
-      mimeType: "image/png",
-      sizeBytes: 42n,
-    });
-  });
-
-  test("returns null when a stranger views a private image", async () => {
-    const owner = await createTestUser();
-    const stranger = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-
-    expect(
-      await findViewableImage({
-        contentId,
-        loggedInUserId: stranger.userId,
-      }),
-    ).toBeNull();
-  });
-
-  test("returns null for an anonymous viewer on a private image", async () => {
-    const owner = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-
-    expect(await findViewableImage({ contentId })).toBeNull();
-  });
-
-  test("returns metadata for an anonymous viewer on a public image", async () => {
-    const owner = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-    await prisma.content.update({
-      where: { id: contentId },
-      data: { visibility: "public", isPublic: true },
-    });
-
-    const result = await findViewableImage({ contentId });
-    expect(result?.storageKey).toBe("images/x.png");
-  });
-
-  test("returns null when the row has no storage key yet", async () => {
-    const owner = await createTestUser();
-    const { contentId } = await createImageContent({
-      loggedInUserId: owner.userId,
-      parentId: null,
-      name: "x.png",
-      mimeType: "image/png",
-      sizeBytes: 1,
-      imageWidth: 1,
-      imageHeight: 1,
-    });
-    // Note: no setImageStorageKey — simulates the brief window between row
-    // insert and storage PUT.
-
-    expect(
-      await findViewableImage({
-        contentId,
-        loggedInUserId: owner.userId,
-      }),
-    ).toBeNull();
-  });
-
-  test("returns null when the content is not type=image", async () => {
-    const owner = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-    await prisma.content.update({
-      where: { id: contentId },
-      data: { type: "folder" },
-    });
-
-    expect(
-      await findViewableImage({
-        contentId,
-        loggedInUserId: owner.userId,
-      }),
-    ).toBeNull();
-  });
-
-  test("returns null when the content has been soft-deleted", async () => {
-    const owner = await createTestUser();
-    const contentId = await makeReadyImage(owner.userId);
-    await prisma.content.update({
-      where: { id: contentId },
-      data: { isDeletedOn: new Date() },
-    });
-
-    expect(
-      await findViewableImage({
-        contentId,
-        loggedInUserId: owner.userId,
-      }),
-    ).toBeNull();
   });
 });

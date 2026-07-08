@@ -247,8 +247,9 @@ export type ImageItem = ContentBase & {
   type: "image";
   mimeType?: string;
   sizeBytes?: number;
-  imageWidth?: number;
-  imageHeight?: number;
+  // Full CDN URL to the image bytes. Null before the S3 PUT completes;
+  // otherwise always populated by `processContent`.
+  imageUrl?: string | null;
 };
 
 export type Activity = Doc | QuestionBank | ProblemSet;

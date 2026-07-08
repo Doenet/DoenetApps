@@ -110,6 +110,7 @@ jobs:
       MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
       MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
       MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
+      MEDIA_CDN_BASE_URL: "http://localhost:9090/doenet-media"
 
     steps:
       # Checkout repo
@@ -210,6 +211,7 @@ jobs:
       MEDIA_S3_LOCAL_ENDPOINT: "http://localhost:9090"
       MEDIA_S3_LOCAL_ACCESS_KEY_ID: "ci"
       MEDIA_S3_LOCAL_SECRET_ACCESS_KEY: "ci"
+      MEDIA_CDN_BASE_URL: "http://localhost:9090/doenet-media"
 
     strategy:
       fail-fast: false

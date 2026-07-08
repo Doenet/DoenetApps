@@ -60,6 +60,40 @@ Resources:
               StringEquals:
                 "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
+  # Harden every response. The origin bytes are user-uploaded and the server
+  # never inspects them (direct-to-S3 upload), so a file could be arbitrary
+  # content stored under an image content-type. These headers stop a browser
+  # from sniffing a mislabeled payload into something executable and neuter it
+  # if it is opened directly.
+  ResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${EnvironmentName}-${ServiceName}-security-headers"
+        SecurityHeadersConfig:
+          # X-Content-Type-Options: nosniff — serve exactly the stored type.
+          ContentTypeOptions:
+            Override: true
+          # Locks down direct navigation to an object: no script, no frames,
+          # no subresources. Irrelevant when the image is loaded via <img>,
+          # but defends the top-level-navigation case.
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox"
+          FrameOptions:
+            Override: true
+            FrameOption: DENY
+          ReferrerPolicy:
+            Override: true
+            ReferrerPolicy: no-referrer
+        CustomHeadersConfig:
+          Items:
+            # Render inline when the type is a real image; a mislabeled payload
+            # is offered as a download rather than executed in the CDN origin.
+            - Header: Content-Disposition
+              Value: inline
+              Override: true
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -73,6 +107,7 @@ Resources:
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
+          ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
           AllowedMethods:
             - GET
             - HEAD

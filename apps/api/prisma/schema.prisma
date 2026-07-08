@@ -62,8 +62,6 @@ model content {
   // ====== Images =========
   mimeType               String?                  @db.VarChar(64)
   sizeBytes              BigInt?
-  imageWidth             Int?
-  imageHeight            Int?
   storageKey             String?                  @db.VarChar(255)
   //
   // ===== Code ==========

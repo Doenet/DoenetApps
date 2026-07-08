@@ -1,7 +1,6 @@
 import { prisma } from "../model";
 import { prepareNewChild } from "../content-tree";
 import { InvalidRequestError } from "../utils/error";
-import { filterViewableContent } from "../utils/permissions";
 
 /**
  * Whether a user is in the early-access cohort for image uploads. The image
@@ -23,8 +22,8 @@ export async function canUserUploadImages(
  * Inherits share / license / course context from the parent via
  * `prepareNewChild`, but visibility is always `unlisted` regardless of the
  * parent — images are inline assets that should be link-reachable but never
- * surface in search/explore. The id is auto-generated; the storage key is
- * set later by `setImageStorageKey` once the bytes land in storage.
+ * surface in search/explore. `storageKey` is the opaque S3 key the CDN reads
+ * from; it's optional only so tests can create rows without touching S3.
  */
 export async function createImageContent({
   loggedInUserId,
@@ -32,16 +31,14 @@ export async function createImageContent({
   name,
   mimeType,
   sizeBytes,
-  imageWidth,
-  imageHeight,
+  storageKey,
 }: {
   loggedInUserId: Uint8Array;
   parentId: Uint8Array | null;
   name: string;
   mimeType: string;
   sizeBytes: number;
-  imageWidth: number;
-  imageHeight: number;
+  storageKey?: string;
 }) {
   const ownerId = loggedInUserId;
   const { sortIndex, parentType, licenseCode, sharedWith, courseRootId } =
@@ -64,8 +61,7 @@ export async function createImageContent({
       courseRootId,
       mimeType,
       sizeBytes: BigInt(sizeBytes),
-      imageWidth,
-      imageHeight,
+      storageKey,
       sharedWith: {
         createMany: { data: sharedWith.map((userId) => ({ userId })) },
       },
@@ -79,26 +75,6 @@ export async function createImageContent({
   };
 }
 
-/**
- * Records the opaque storage key for an image row. The key is whatever the
- * storage adapter (currently `s3.ts`) uses to address the bytes — this layer
- * does not care.
- */
-export async function setImageStorageKey({
-  contentId,
-  ownerId,
-  storageKey,
-}: {
-  contentId: Uint8Array;
-  ownerId: Uint8Array;
-  storageKey: string;
-}) {
-  await prisma.content.update({
-    where: { id: contentId, ownerId, type: "image" },
-    data: { storageKey },
-  });
-}
-
 export async function deleteImageContent({
   contentId,
   ownerId,
@@ -109,44 +85,4 @@ export async function deleteImageContent({
   await prisma.content.delete({
     where: { id: contentId, ownerId, type: "image" },
   });
-}
-
-/**
- * Returns the image row's serving metadata if the caller may view it and the
- * bytes are ready (storage key present). Returns null in every other case —
- * row missing, wrong type, soft-deleted, not viewable, or not yet uploaded.
- *
- * Owns the full read-side gate so callers don't reimplement it.
- */
-export async function findViewableImage({
-  contentId,
-  loggedInUserId,
-}: {
-  contentId: Uint8Array;
-  loggedInUserId?: Uint8Array;
-}): Promise<{
-  storageKey: string;
-  mimeType: string;
-  sizeBytes: bigint | null;
-} | null> {
-  const row = await prisma.content.findFirst({
-    where: {
-      id: contentId,
-      type: "image",
-      ...filterViewableContent(loggedInUserId),
-    },
-    select: {
-      mimeType: true,
-      storageKey: true,
-      sizeBytes: true,
-    },
-  });
-
-  if (!row || !row.storageKey || !row.mimeType) return null;
-
-  return {
-    storageKey: row.storageKey,
-    mimeType: row.mimeType,
-    sizeBytes: row.sizeBytes,
-  };
 }

@@ -1,176 +1,177 @@
 import type { Request, Response } from "express";
+import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
-import multer from "multer";
-import { imageSize } from "image-size";
 import { handleErrors } from "../errors/routeErrorHandler";
 import { InvalidRequestError } from "../utils/error";
-import { fromUUID } from "../utils/uuid";
 import {
   canUserUploadImages,
   createImageContent,
   deleteImageContent,
-  setImageStorageKey,
 } from "./imageContent";
-import { deleteImage, putImage } from "./s3";
+import { deleteImage, headImage, presignPut } from "./s3";
+import { loadMediaConfig } from "./config";
 import {
-  ALLOWED_IMAGE_MIME_TYPES,
-  MAX_IMAGE_BYTES,
-  MAX_IMAGE_DIMENSION,
-  uploadImageBodySchema,
+  completeUploadImageBodySchema,
+  initUploadImageBodySchema,
+  MIME_TO_EXT,
+  PRESIGN_EXPIRES_SECONDS,
 } from "./upload.schema";
 
-// Canonical descriptors keyed by `image-size`'s detected format identifier.
-// This is the source of truth — never trust `file.mimetype` (client-supplied)
-// for what the bytes actually are.
-const FORMAT_INFO: Record<string, { mime: string; ext: string }> = {
-  jpg: { mime: "image/jpeg", ext: "jpg" },
-  png: { mime: "image/png", ext: "png" },
-  webp: { mime: "image/webp", ext: "webp" },
-  gif: { mime: "image/gif", ext: "gif" },
-};
+// The random half of the upload key. Kept in sync with `parseUploadKey` — if
+// the format here changes, the parser must accept both old and new.
+function makeUploadKey(mimeType: keyof typeof MIME_TO_EXT): string {
+  return `images/${randomUUID()}.${MIME_TO_EXT[mimeType]}`;
+}
 
-export const uploadImageMulter = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
-  fileFilter: (_req, file, cb) => {
-    if (
-      (ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.mimetype)
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-    }
-  },
-});
+// Only accept keys we minted ourselves — a UUID under `images/` with a known
+// extension. Prevents `/complete` from being tricked into recording an
+// attacker-chosen key.
+const UPLOAD_KEY_RE = /^images\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/;
 
-export async function handleUploadImage(req: Request, res: Response) {
+function requireLoggedIn(
+  req: Request,
+  res: Response,
+): req is Request & {
+  user: NonNullable<Request["user"]>;
+} {
   if (!req.user) {
     res.status(StatusCodes.FORBIDDEN).json({ error: "Must be logged in" });
-    return;
+    return false;
   }
-  if (!(await canUserUploadImages(req.user.userId))) {
+  return true;
+}
+
+async function requireCanUploadImages(
+  userId: Uint8Array,
+  res: Response,
+): Promise<boolean> {
+  if (!(await canUserUploadImages(userId))) {
     res.status(StatusCodes.FORBIDDEN).json({
       error: "Image uploads are not enabled for this account",
       code: "IMAGE_UPLOAD_NOT_ENABLED",
     });
-    return;
+    return false;
   }
-  const file = req.file;
-  if (!file) {
-    res
-      .status(StatusCodes.UNSUPPORTED_MEDIA_TYPE)
-      .json({ error: "Unsupported or missing image" });
-    return;
-  }
+  return true;
+}
+
+// Step 1: mint a presigned PUT URL scoped to a fresh key + declared MIME +
+// declared size. The client uploads directly to S3, then calls /complete with
+// the key we returned here. No DB row is written yet.
+export async function handleInitUpload(req: Request, res: Response) {
   try {
-    const body = uploadImageBodySchema.parse(req.body);
+    if (!requireLoggedIn(req, res)) return;
+    if (!(await requireCanUploadImages(req.user!.userId, res))) return;
 
-    const dims = imageSize(file.buffer);
-    if (!dims.width || !dims.height) {
-      throw new InvalidRequestError(
-        "Could not read image dimensions",
-        StatusCodes.UNSUPPORTED_MEDIA_TYPE,
-      );
-    }
-    if (dims.width > MAX_IMAGE_DIMENSION || dims.height > MAX_IMAGE_DIMENSION) {
-      throw new InvalidRequestError(
-        `Image too large (max ${MAX_IMAGE_DIMENSION}px per side)`,
-        StatusCodes.UNPROCESSABLE_ENTITY,
-      );
-    }
-
-    const format = dims.type && FORMAT_INFO[dims.type];
-    if (!format) {
-      throw new InvalidRequestError(
-        "Unsupported image format",
-        StatusCodes.UNSUPPORTED_MEDIA_TYPE,
-      );
-    }
-    if (file.mimetype !== format.mime) {
-      // Client-claimed MIME disagrees with what the bytes actually are.
-      throw new InvalidRequestError(
-        "Image MIME type does not match the file contents",
-        StatusCodes.UNSUPPORTED_MEDIA_TYPE,
-      );
-    }
-
-    const fallbackName =
-      file.originalname && file.originalname.trim()
-        ? file.originalname.trim()
-        : "Untitled Image";
-    const name = body.name?.trim() || fallbackName;
-
-    // DB row first (id auto-generated). On Prisma 6 + MySQL binary PKs the
-    // post-INSERT read fails when we pass an explicit id, so we let the DB
-    // assign one and patch in the storage key after the upload succeeds.
-    const { contentId, name: persistedName } = await createImageContent({
-      loggedInUserId: req.user.userId,
-      parentId: body.parentId,
-      name,
-      mimeType: format.mime,
-      sizeBytes: file.size,
-      imageWidth: dims.width,
-      imageHeight: dims.height,
+    const body = initUploadImageBodySchema.parse(req.body);
+    const uploadKey = makeUploadKey(body.mimeType);
+    const uploadUrl = await presignPut({
+      key: uploadKey,
+      contentType: body.mimeType,
+      contentLength: body.sizeBytes,
+      expiresIn: PRESIGN_EXPIRES_SECONDS,
     });
 
-    const storageKey = `images/${fromUUID(contentId)}.${format.ext}`;
-
-    try {
-      await putImage({
-        key: storageKey,
-        body: file.buffer,
-        contentType: format.mime,
-      });
-      await setImageStorageKey({
-        contentId,
-        ownerId: req.user.userId,
-        storageKey,
-      });
-    } catch (storageErr) {
-      // Roll back: remove the row (and the storage object if the put succeeded).
-      try {
-        await deleteImage(storageKey);
-      } catch {
-        // ignore
-      }
-      try {
-        await deleteImageContent({
-          contentId,
-          ownerId: req.user.userId,
-        });
-      } catch {
-        // ignore
-      }
-      throw storageErr;
-    }
-
-    res.status(StatusCodes.CREATED).json({
-      contentId: fromUUID(contentId),
-      name: persistedName,
+    res.status(StatusCodes.OK).json({
+      uploadKey,
+      uploadUrl,
+      expiresIn: PRESIGN_EXPIRES_SECONDS,
     });
   } catch (e) {
     handleErrors(res, e);
   }
 }
 
-export function handleUploadError(
-  err: unknown,
-  _req: Request,
-  res: Response,
-  next: (err?: unknown) => void,
-) {
-  if (err instanceof multer.MulterError) {
-    if (err.code === "LIMIT_FILE_SIZE") {
-      res.status(StatusCodes.REQUEST_TOO_LONG).json({
-        error: "File too large",
-        details: `Max ${MAX_IMAGE_BYTES} bytes`,
-      });
-      return;
+// Step 2: verify the S3 object exists and matches what the client declared,
+// then insert the content row. On any failure past the S3 write we clean up
+// the object so the bucket doesn't accumulate orphans.
+export async function handleCompleteUpload(req: Request, res: Response) {
+  try {
+    if (!requireLoggedIn(req, res)) return;
+    if (!(await requireCanUploadImages(req.user!.userId, res))) return;
+
+    const body = completeUploadImageBodySchema.parse(req.body);
+
+    if (!UPLOAD_KEY_RE.test(body.uploadKey)) {
+      throw new InvalidRequestError(
+        "Invalid uploadKey",
+        StatusCodes.BAD_REQUEST,
+      );
     }
-    res
-      .status(StatusCodes.BAD_REQUEST)
-      .json({ error: "Upload error", details: err.message });
-    return;
+    if (!body.uploadKey.endsWith(`.${MIME_TO_EXT[body.mimeType]}`)) {
+      throw new InvalidRequestError(
+        "uploadKey extension does not match mimeType",
+        StatusCodes.BAD_REQUEST,
+      );
+    }
+
+    let head;
+    try {
+      head = await headImage(body.uploadKey);
+    } catch {
+      // Missing object, expired presign, or key never uploaded.
+      throw new InvalidRequestError(
+        "Uploaded object not found",
+        StatusCodes.NOT_FOUND,
+      );
+    }
+    if (head.contentType && head.contentType !== body.mimeType) {
+      // Should be prevented by the presigned URL, but defense in depth.
+      await deleteImage(body.uploadKey).catch(() => {});
+      throw new InvalidRequestError(
+        "Uploaded content-type does not match",
+        StatusCodes.UNSUPPORTED_MEDIA_TYPE,
+      );
+    }
+    if (head.contentLength !== body.sizeBytes) {
+      await deleteImage(body.uploadKey).catch(() => {});
+      throw new InvalidRequestError(
+        "Uploaded size does not match",
+        StatusCodes.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const fallbackName = "Untitled Image";
+    const name = body.name?.trim() || fallbackName;
+
+    let contentId, persistedName;
+    try {
+      const created = await createImageContent({
+        loggedInUserId: req.user!.userId,
+        parentId: body.parentId,
+        name,
+        mimeType: body.mimeType,
+        sizeBytes: body.sizeBytes,
+        storageKey: body.uploadKey,
+      });
+      contentId = created.contentId;
+      persistedName = created.name;
+    } catch (dbErr) {
+      // Row never landed — the S3 object is orphaned, drop it.
+      await deleteImage(body.uploadKey).catch(() => {});
+      throw dbErr;
+    }
+
+    const { cdnBaseUrl } = loadMediaConfig();
+    const imageUrl = `${cdnBaseUrl}/${body.uploadKey}`;
+
+    // Roll back the row and object together if anything after this point
+    // errors — we haven't returned yet, so the client will retry.
+    try {
+      res.status(StatusCodes.CREATED).json({
+        contentId,
+        name: persistedName,
+        imageUrl,
+      });
+    } catch (writeErr) {
+      await deleteImage(body.uploadKey).catch(() => {});
+      await deleteImageContent({
+        contentId,
+        ownerId: req.user!.userId,
+      }).catch(() => {});
+      throw writeErr;
+    }
+  } catch (e) {
+    handleErrors(res, e);
   }
-  next(err);
 }

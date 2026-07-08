@@ -41,7 +41,7 @@ describe("Image upload", { tags: ["@group3"] }, function () {
       expect(writeText.callCount).to.equal(1);
       const arg = writeText.firstCall.args[0] as string;
       expect(arg).to.match(
-        /^<image source="https?:\/\/[^"]+\/api\/media\/[A-Za-z0-9_-]{22}" \/>$/,
+        /^<image source="https?:\/\/[^"]+\/images\/[0-9a-f-]{36}\.(png|jpg|webp|gif)" \/>$/,
       );
     });
   });
