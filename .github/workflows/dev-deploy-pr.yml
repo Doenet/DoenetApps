@@ -1,10 +1,10 @@
 name: Dev Deploy (PR command)
 
 # Deploy an unmerged PR to the shared dev3 environment by commenting
-# `/deploy-dev3` on the PR. Maintainers only.
+# `/deploy-dev` on the PR. Maintainers only.
 #
-#   /deploy-dev3        deploy refs/pull/<N>/merge  (PR merged into its base — default)
-#   /deploy-dev3 head   deploy refs/pull/<N>/head   (branch exactly as pushed; use if the PR has conflicts)
+#   /deploy-dev        deploy refs/pull/<N>/merge  (PR merged into its base — default)
+#   /deploy-dev head   deploy refs/pull/<N>/head   (branch exactly as pushed; use if the PR has conflicts)
 #
 # Security notes:
 #   - issue_comment runs this workflow from the default branch, so the trusted
@@ -35,7 +35,7 @@ jobs:
     # Only PR comments that start with the command word.
     if: >
       github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '/deploy-dev3')
+      startsWith(github.event.comment.body, '/deploy-dev')
     runs-on: ubuntu-latest
     outputs:
       authorized: ${{ steps.check.outputs.authorized }}
@@ -73,7 +73,7 @@ jobs:
           ACTOR: ${{ github.event.comment.user.login }}
         run: |
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
-            --body "🚫 \`/deploy-dev3\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
+            --body "🚫 \`/deploy-dev\` is limited to maintainers with write access — @${ACTOR} isn't authorized."
           exit 1
 
       - name: Resolve deploy ref
