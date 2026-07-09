@@ -22,7 +22,8 @@ API (this package)              browser                          S3
 
 1. **`/init`** (`upload.ts`) — checks the user is logged in and in the
    image-upload cohort (`canUserUploadImages`), mints a fresh
-   `images/<uuid>.<ext>` key, and returns a short-lived presigned `PUT` URL.
+   `images/<short-uuid>` key (no extension), and returns a short-lived presigned
+   `PUT` URL.
    The URL signs `Content-Type` and `Content-Length`, so S3 itself rejects a
    mismatched or oversized upload. No DB row yet.
 2. Browser **`PUT`s the bytes directly to S3** using that URL.

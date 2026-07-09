@@ -23,7 +23,7 @@ vi.mock("./config", () => ({
 
 import { prisma } from "../model";
 import { createTestUser } from "../test/utils";
-import { toUUID } from "../utils/uuid";
+import { fromUUID, newUUID, toUUID } from "../utils/uuid";
 import * as s3 from "./s3";
 import { handleCompleteUpload, handleInitUpload } from "./upload";
 import {
@@ -147,7 +147,7 @@ describe("handleInitUpload", () => {
     expect(vi.mocked(s3.presignPut)).not.toHaveBeenCalled();
   });
 
-  test("returns a presigned URL and uploadKey with the right extension", async () => {
+  test("returns a presigned URL and an extensionless short-uuid uploadKey", async () => {
     const user = await createUploader();
     const res = mockRes();
     await handleInitUpload(
@@ -161,7 +161,8 @@ describe("handleInitUpload", () => {
     expect(res.statusCode).toBe(StatusCodes.OK);
     const body = res.jsonBody as { uploadKey: string; uploadUrl: string };
     expect(body.uploadUrl).toBe("https://s3/presigned");
-    expect(body.uploadKey).toMatch(/^images\/[0-9a-f-]{36}\.jpg$/);
+    // `images/` + a base58 short-uuid (21–22 chars), no extension.
+    expect(body.uploadKey).toMatch(/^images\/[1-9A-HJ-NP-Za-km-z]{21,22}$/);
 
     const presignArgs = vi.mocked(s3.presignPut).mock.calls[0][0];
     expect(presignArgs.contentType).toBe("image/jpeg");
@@ -189,7 +190,7 @@ describe("handleCompleteUpload", () => {
     };
   }
 
-  const validKey = "images/00000000-0000-0000-0000-000000000000.png";
+  const validKey = `images/${fromUUID(newUUID())}`;
 
   test("400 when uploadKey has a bad shape", async () => {
     const user = await createUploader();
@@ -198,23 +199,6 @@ describe("handleCompleteUpload", () => {
       mockReq({
         user: { userId: user.userId },
         body: { ...validBody("../evil"), uploadKey: "../evil" },
-      }),
-      res as unknown as Response,
-    );
-    expect(res.statusCode).toBe(StatusCodes.BAD_REQUEST);
-    expect(vi.mocked(s3.headImage)).not.toHaveBeenCalled();
-  });
-
-  test("400 when uploadKey extension does not match mimeType", async () => {
-    const user = await createUploader();
-    const res = mockRes();
-    await handleCompleteUpload(
-      mockReq({
-        user: { userId: user.userId },
-        body: {
-          ...validBody(validKey),
-          mimeType: "image/jpeg",
-        },
       }),
       res as unknown as Response,
     );

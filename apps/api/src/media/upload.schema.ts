@@ -8,18 +8,6 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/gif",
 ] as const;
 
-// Canonical MIME → file extension. The server puts the ext into the S3 key so
-// CDN URLs end with a sensible extension for browser sniffing.
-export const MIME_TO_EXT: Record<
-  (typeof ALLOWED_IMAGE_MIME_TYPES)[number],
-  string
-> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
-
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 // Presigned PUT URLs are short-lived — the client uploads immediately after

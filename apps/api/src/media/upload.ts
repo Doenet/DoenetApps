@@ -1,29 +1,39 @@
 import type { Request, Response } from "express";
-import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { handleErrors } from "../errors/routeErrorHandler";
 import { InvalidRequestError } from "../utils/error";
-import { fromUUID } from "../utils/uuid";
+import { fromUUID, newUUID } from "../utils/uuid";
+import { uuidSchema } from "../schemas/uuid";
 import { canUserUploadImages, createImageContent } from "./imageContent";
 import { deleteImage, headImage, presignPut } from "./s3";
 import { loadMediaConfig } from "./config";
 import {
   completeUploadImageBodySchema,
   initUploadImageBodySchema,
-  MIME_TO_EXT,
   PRESIGN_EXPIRES_SECONDS,
 } from "./upload.schema";
 
-// The random half of the upload key. Kept in sync with `parseUploadKey` — if
-// the format here changes, the parser must accept both old and new.
-function makeUploadKey(mimeType: keyof typeof MIME_TO_EXT): string {
-  return `images/${randomUUID()}.${MIME_TO_EXT[mimeType]}`;
+const UPLOAD_KEY_PREFIX = "images/";
+
+// A fresh, unguessable storage key: `images/<short-uuid>`. The random half is a
+// short-uuid — the same 122 bits of entropy as a canonical UUID (the
+// unguessability the CDN-serving model relies on), just base58-encoded to keep
+// embedded references short. No extension: the object's stored Content-Type and
+// the row's `mimeType` carry the type, and CloudFront serves `nosniff`, so
+// nothing ever consults a URL suffix.
+function makeUploadKey(): string {
+  return `${UPLOAD_KEY_PREFIX}${fromUUID(newUUID())}`;
 }
 
-// Only accept keys we minted ourselves — a UUID under `images/` with a known
-// extension. Prevents `/complete` from being tricked into recording an
-// attacker-chosen key.
-const UPLOAD_KEY_RE = /^images\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/;
+// Only accept keys we minted ourselves — `images/<short-uuid>`. The random half
+// is validated through the same short-uuid schema the rest of the app uses
+// (rather than a bespoke regex) so the two never drift. Prevents `/complete`
+// from being tricked into recording an attacker-chosen key.
+function isValidUploadKey(key: string): boolean {
+  if (!key.startsWith(UPLOAD_KEY_PREFIX)) return false;
+  const id = key.slice(UPLOAD_KEY_PREFIX.length);
+  return uuidSchema.safeParse(id).success;
+}
 
 function requireLoggedIn(
   req: Request,
@@ -61,7 +71,7 @@ export async function handleInitUpload(req: Request, res: Response) {
     if (!(await requireCanUploadImages(req.user!.userId, res))) return;
 
     const body = initUploadImageBodySchema.parse(req.body);
-    const uploadKey = makeUploadKey(body.mimeType);
+    const uploadKey = makeUploadKey();
     const uploadUrl = await presignPut({
       key: uploadKey,
       contentType: body.mimeType,
@@ -89,15 +99,9 @@ export async function handleCompleteUpload(req: Request, res: Response) {
 
     const body = completeUploadImageBodySchema.parse(req.body);
 
-    if (!UPLOAD_KEY_RE.test(body.uploadKey)) {
+    if (!isValidUploadKey(body.uploadKey)) {
       throw new InvalidRequestError(
         "Invalid uploadKey",
-        StatusCodes.BAD_REQUEST,
-      );
-    }
-    if (!body.uploadKey.endsWith(`.${MIME_TO_EXT[body.mimeType]}`)) {
-      throw new InvalidRequestError(
-        "uploadKey extension does not match mimeType",
         StatusCodes.BAD_REQUEST,
       );
     }
