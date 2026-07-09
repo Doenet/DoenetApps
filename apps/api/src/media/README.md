@@ -7,14 +7,17 @@ between the browser, S3, and CloudFront.
 ## Upload (two steps)
 
 ```
-browser                         API (this package)              S3
-   │  POST /api/media/image/init │                               │
-   │────────────────────────────▶│  presign PUT (key+type+size)  │
-   │◀────────────────────────────│  { uploadKey, uploadUrl }     │
-   │  PUT bytes ─────────────────┼──────────────────────────────▶│
-   │  POST /api/media/image/complete                              │
-   │────────────────────────────▶│  HEAD object, verify, insert  │
-   │◀────────────────────────────│  { contentId, imageUrl }      │
+API (this package)              browser                          S3
+│                                  │                              │
+│◀─── POST /api/media/image/init ──│                              │
+│── { uploadKey, uploadUrl } ─────▶│                              │
+│                                  │                              │
+│                                  │──────── PUT bytes ──────────▶│
+│                                  │                              │
+│◀─ POST /api/media/image/complete │                              │
+│╌╌╌╌╌╌╌╌ HEAD object ╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌▶│
+│◀╌╌╌╌╌╌╌╌╌ type + size ╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌│
+│─ { contentId, imageUrl } ───────▶│                              │
 ```
 
 1. **`/init`** (`upload.ts`) — checks the user is logged in and in the
@@ -29,8 +32,7 @@ browser                         API (this package)              S3
    past the S3 write delete the orphaned object.
 
 Because the server never sees the bytes, it does **not** validate image
-contents or dimensions — that guarantee was dropped with the old proxied
-upload. `svg` is intentionally excluded from allowed types.
+contents or dimensions. `svg` is intentionally excluded from allowed types.
 
 ## Serving
 
