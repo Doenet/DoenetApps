@@ -459,7 +459,18 @@ if (
   app.use("/api/test", testRouter);
 }
 app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok" });
+  // `version` is stamped into the image at deploy time (see apps/api/Dockerfile
+  // and the deploy workflows). It's the ground truth for what is actually
+  // running, independent of GitHub's deployment records. Fields are null in
+  // local dev where the build args aren't set.
+  res.json({
+    status: "ok",
+    version: {
+      ref: process.env.DEPLOY_REF || null,
+      sha: process.env.GIT_SHA || null,
+      builtAt: process.env.BUILD_TIME || null,
+    },
+  });
 });
 
 app.get("/", (req: Request, res: Response) => {
