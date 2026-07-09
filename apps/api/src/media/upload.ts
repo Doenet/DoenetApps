@@ -3,11 +3,8 @@ import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { handleErrors } from "../errors/routeErrorHandler";
 import { InvalidRequestError } from "../utils/error";
-import {
-  canUserUploadImages,
-  createImageContent,
-  deleteImageContent,
-} from "./imageContent";
+import { fromUUID } from "../utils/uuid";
+import { canUserUploadImages, createImageContent } from "./imageContent";
 import { deleteImage, headImage, presignPut } from "./s3";
 import { loadMediaConfig } from "./config";
 import {
@@ -155,22 +152,11 @@ export async function handleCompleteUpload(req: Request, res: Response) {
     const { cdnBaseUrl } = loadMediaConfig();
     const imageUrl = `${cdnBaseUrl}/${body.uploadKey}`;
 
-    // Roll back the row and object together if anything after this point
-    // errors — we haven't returned yet, so the client will retry.
-    try {
-      res.status(StatusCodes.CREATED).json({
-        contentId,
-        name: persistedName,
-        imageUrl,
-      });
-    } catch (writeErr) {
-      await deleteImage(body.uploadKey).catch(() => {});
-      await deleteImageContent({
-        contentId,
-        ownerId: req.user!.userId,
-      }).catch(() => {});
-      throw writeErr;
-    }
+    res.status(StatusCodes.CREATED).json({
+      contentId: fromUUID(contentId),
+      name: persistedName,
+      imageUrl,
+    });
   } catch (e) {
     handleErrors(res, e);
   }

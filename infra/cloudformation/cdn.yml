@@ -88,8 +88,10 @@ Resources:
             ReferrerPolicy: no-referrer
         CustomHeadersConfig:
           Items:
-            # Render inline when the type is a real image; a mislabeled payload
-            # is offered as a download rather than executed in the CDN origin.
+            # Pin the disposition to `inline` so a real image renders in-page.
+            # This does NOT force a download for a mislabeled payload — the
+            # protection against execution is `nosniff` + the CSP sandbox above,
+            # which keep a non-image body from being sniffed or run as script.
             - Header: Content-Disposition
               Value: inline
               Override: true

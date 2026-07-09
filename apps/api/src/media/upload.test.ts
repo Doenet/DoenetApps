@@ -23,7 +23,7 @@ vi.mock("./config", () => ({
 
 import { prisma } from "../model";
 import { createTestUser } from "../test/utils";
-import { fromUUID, toUUID } from "../utils/uuid";
+import { toUUID } from "../utils/uuid";
 import * as s3 from "./s3";
 import { handleCompleteUpload, handleInitUpload } from "./upload";
 import {
@@ -297,19 +297,16 @@ describe("handleCompleteUpload", () => {
 
     expect(res.statusCode).toBe(StatusCodes.CREATED);
     const body = res.jsonBody as {
-      contentId: Uint8Array;
+      contentId: string;
       name: string;
       imageUrl: string;
     };
     expect(body.name).toBe("donut");
     expect(body.imageUrl).toBe(`https://cdn.test/${validKey}`);
+    expect(body.contentId).toMatch(/^[0-9A-Za-z_-]{22}$/);
 
-    const contentIdBytes =
-      body.contentId instanceof Uint8Array
-        ? body.contentId
-        : toUUID(fromUUID(body.contentId as unknown as Uint8Array));
     const row = await prisma.content.findUniqueOrThrow({
-      where: { id: contentIdBytes },
+      where: { id: toUUID(body.contentId) },
       select: {
         type: true,
         mimeType: true,
