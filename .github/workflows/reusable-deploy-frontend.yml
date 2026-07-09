@@ -68,6 +68,10 @@ jobs:
           REF: ${{ inputs.deploy_ref }}
         run: |
           # Ground-truth marker of what was deployed, curl-able at /version.json.
+          # The `.json` extension matters: AppSpaRewriteFunction in
+          # infra/cloudformation/s3-hosted.yml only rewrites dot-less paths to
+          # index.html, so this passes through to S3 as a real object. Keep the
+          # extension if that rewrite rule ever changes.
           jq -n --arg ref "$REF" --arg sha "$(git rev-parse HEAD)" \
             --arg builtAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{ref: $ref, sha: $sha, builtAt: $builtAt}' > apps/app/dist/version.json
