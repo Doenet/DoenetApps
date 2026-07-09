@@ -29,6 +29,16 @@ const FORMAT_INFO: Record<string, { mime: string; ext: string }> = {
   gif: { mime: "image/gif", ext: "gif" },
 };
 
+// Thrown by the multer fileFilter so handleUploadError can surface a 415
+// with the actual claimed type and the allowed list, instead of the generic
+// "missing file" fallback that fires when the filter silently drops the file.
+export class UnsupportedMimeTypeError extends Error {
+  constructor(public readonly claimedMimeType: string) {
+    super(`Unsupported image type: ${claimedMimeType}`);
+    this.name = "UnsupportedMimeTypeError";
+  }
+}
+
 export const uploadImageMulter = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
@@ -38,7 +48,7 @@ export const uploadImageMulter = multer({
     ) {
       cb(null, true);
     } else {
-      cb(null, false);
+      cb(new UnsupportedMimeTypeError(file.mimetype));
     }
   },
 });
@@ -159,6 +169,13 @@ export function handleUploadError(
   res: Response,
   next: (err?: unknown) => void,
 ) {
+  if (err instanceof UnsupportedMimeTypeError) {
+    res.status(StatusCodes.UNSUPPORTED_MEDIA_TYPE).json({
+      error: "Unsupported image type",
+      details: `Allowed: ${ALLOWED_IMAGE_MIME_TYPES.join(", ")}`,
+    });
+    return;
+  }
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
       res.status(StatusCodes.REQUEST_TOO_LONG).json({
