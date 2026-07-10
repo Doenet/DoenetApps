@@ -17,7 +17,7 @@ API (this package)              browser                          S3
 │◀─ POST /api/media/image/complete │                              │
 │╌╌╌╌╌╌╌╌ HEAD object ╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌▶│
 │◀╌╌╌╌╌╌╌╌╌ type + size ╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌│
-│─ { contentId, imageUrl } ───────▶│                              │
+│─ { contentId, imageSource } ────▶│                              │
 ```
 
 1. **`/init`** (`upload.ts`) — checks the user is logged in and in the
@@ -37,12 +37,18 @@ contents or dimensions. `svg` is intentionally excluded from allowed types.
 
 ## Serving
 
-There is **no serve endpoint**. Reads go through CloudFront directly:
-`imageUrl = ${MEDIA_CDN_BASE_URL}/${storageKey}`, composed in
-`contentStructure.ts` from the row's `storageKey`. The bucket is private;
-CloudFront reaches it via Origin Access Control, and a
-`ResponseHeadersPolicy` (`infra/cloudformation/cdn.yml`) adds `nosniff` /
-`Content-Disposition` / CSP.
+There is **no serve endpoint**. `contentStructure.ts` exposes the row's
+`storageKey` to the client as a minimal, domain-independent `imageSource =
+doenet:<short-uuid>` — the `images/` storage prefix is stripped, so only the
+short-uuid is embedded. Neither the CDN domain nor the storage layout is stored:
+the DoenetML viewer resolves `doenet:<short-uuid>` against its `doenetMediaUrl`
+flag at render time — `${doenetMediaUrl}/<short-uuid>` — where `doenetMediaUrl`
+is `MEDIA_CDN_BASE_URL` plus the `images/` root (see
+`apps/app/src/utils/media.ts`). So a document only ever holds `doenet:<short-uuid>`.
+
+Reads then go through CloudFront directly. The bucket is private; CloudFront
+reaches it via Origin Access Control, and a `ResponseHeadersPolicy`
+(`infra/cloudformation/cdn.yml`) adds `nosniff` / `Content-Disposition` / CSP.
 
 ## Conventions
 

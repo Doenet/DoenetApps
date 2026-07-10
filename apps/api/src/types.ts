@@ -247,9 +247,10 @@ export type ImageItem = ContentBase & {
   type: "image";
   mimeType?: string;
   sizeBytes?: number;
-  // Full CDN URL to the image bytes. Null before the S3 PUT completes;
-  // otherwise always populated by `processContent`.
-  imageUrl?: string | null;
+  // Domain-independent reference to the image bytes: `doenet:<short-uuid>`.
+  // The DoenetML viewer resolves it against `doenetMediaUrl` at render time.
+  // Null before the S3 PUT completes; otherwise populated by `processContent`.
+  imageSource?: string | null;
 };
 
 export type Activity = Doc | QuestionBank | ProblemSet;

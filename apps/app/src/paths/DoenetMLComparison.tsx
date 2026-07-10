@@ -1,4 +1,5 @@
 import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { doenetMediaUrl } from "../utils/media";
 import { PanelPair } from "../widgets/PanelPair";
 import {
   Box,
@@ -160,6 +161,7 @@ export function DoenetMLComparison() {
         showErrorsWarnings={false}
         showResponses={false}
         doenetViewerUrl={doenetViewerUrl}
+        doenetMediaUrl={doenetMediaUrl}
       />
     </Box>
   );
@@ -205,6 +207,7 @@ export function DoenetMLComparison() {
         showErrorsWarnings={false}
         showResponses={false}
         doenetViewerUrl={doenetViewerUrl}
+        doenetMediaUrl={doenetMediaUrl}
       />
     </Box>
   );

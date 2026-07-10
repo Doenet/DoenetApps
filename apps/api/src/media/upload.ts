@@ -6,14 +6,13 @@ import { fromUUID, newUUID } from "../utils/uuid";
 import { uuidSchema } from "../schemas/uuid";
 import { canUserUploadImages, createImageContent } from "./imageContent";
 import { deleteImage, headImage, presignPut } from "./s3";
-import { loadMediaConfig } from "./config";
 import {
   completeUploadImageBodySchema,
+  imageSourceFromStorageKey,
   initUploadImageBodySchema,
   PRESIGN_EXPIRES_SECONDS,
+  UPLOAD_KEY_PREFIX,
 } from "./upload.schema";
-
-const UPLOAD_KEY_PREFIX = "images/";
 
 // A fresh, unguessable storage key: `images/<short-uuid>`. The random half is a
 // short-uuid — the same 122 bits of entropy as a canonical UUID (the
@@ -153,13 +152,11 @@ export async function handleCompleteUpload(req: Request, res: Response) {
       throw dbErr;
     }
 
-    const { cdnBaseUrl } = loadMediaConfig();
-    const imageUrl = `${cdnBaseUrl}/${body.uploadKey}`;
-
     res.status(StatusCodes.CREATED).json({
       contentId: fromUUID(contentId),
       name: persistedName,
-      imageUrl,
+      // Domain-independent reference; the viewer resolves it via doenetMediaUrl.
+      imageSource: imageSourceFromStorageKey(body.uploadKey),
     });
   } catch (e) {
     handleErrors(res, e);

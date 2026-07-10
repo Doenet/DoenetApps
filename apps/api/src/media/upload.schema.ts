@@ -10,6 +10,18 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
+// S3 objects live under this prefix: the stored `storageKey` is
+// `${UPLOAD_KEY_PREFIX}<short-uuid>`. The prefix is a storage-layout detail and
+// is deliberately NOT part of the embedded reference — `imageSourceFromStorageKey`
+// strips it. The DoenetML viewer's `doenetMediaUrl` points at this same images
+// root (see `apps/app/src/utils/media.ts`), re-supplying it at render time.
+export const UPLOAD_KEY_PREFIX = "images/";
+
+// Domain-independent reference embedded in documents: `doenet:<short-uuid>`.
+export function imageSourceFromStorageKey(storageKey: string): string {
+  return `doenet:${storageKey.slice(UPLOAD_KEY_PREFIX.length)}`;
+}
+
 // Presigned PUT URLs are short-lived — the client uploads immediately after
 // receiving the URL, so a small window is plenty and limits blast radius if a
 // URL leaks.

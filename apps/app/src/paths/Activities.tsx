@@ -763,7 +763,7 @@ export function Activities() {
           leftIcon={<MdContentCopy />}
           data-test="Copy Image Tag"
           onClick={async () => {
-            const tag = `<image source="${activity.imageUrl ?? ""}" />`;
+            const tag = `<image source="${activity.imageSource ?? ""}" />`;
             try {
               await navigator.clipboard.writeText(tag);
               toast({

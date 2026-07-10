@@ -1,6 +1,7 @@
 import { ReactElement, useState } from "react";
 import { Box } from "@chakra-ui/react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
+import { doenetMediaUrl } from "../utils/media";
 import { DoenetmlVersion } from "../types";
 import { ActivitySource } from "@doenet-tools/shared";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
@@ -57,6 +58,7 @@ export default function AssignmentPreview({
           generatedVariantCallback={setVariants}
           requestedVariantIndex={variants.index}
           doenetViewerUrl={doenetViewerUrl}
+          doenetMediaUrl={doenetMediaUrl}
         />
       );
     } else {
@@ -70,6 +72,9 @@ export default function AssignmentPreview({
           source={source}
           requestedVariantIndex={1}
           doenetViewerUrl={doenetViewerUrl}
+          // TODO: pass doenetMediaUrl={doenetMediaUrl} (sibling to doenetViewerUrl)
+          // once @doenet/assignment-viewer exposes it, so doenet:<key> image
+          // sources resolve in activity previews too.
           paginate={false}
           showTitle={false}
           flags={{

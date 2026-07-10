@@ -28,6 +28,7 @@ import * as s3 from "./s3";
 import { handleCompleteUpload, handleInitUpload } from "./upload";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
+  imageSourceFromStorageKey,
   MAX_IMAGE_BYTES,
   initUploadImageBodySchema,
 } from "./upload.schema";
@@ -263,7 +264,7 @@ describe("handleCompleteUpload", () => {
     expect(vi.mocked(s3.deleteImage)).toHaveBeenCalledWith(validKey);
   });
 
-  test("happy path: inserts row with storageKey and returns imageUrl", async () => {
+  test("happy path: inserts row with storageKey and returns imageSource", async () => {
     const user = await createUploader();
     vi.mocked(s3.headImage).mockResolvedValue({
       contentType: "image/png",
@@ -283,10 +284,11 @@ describe("handleCompleteUpload", () => {
     const body = res.jsonBody as {
       contentId: string;
       name: string;
-      imageUrl: string;
+      imageSource: string;
     };
     expect(body.name).toBe("donut");
-    expect(body.imageUrl).toBe(`https://cdn.test/${validKey}`);
+    expect(body.imageSource).toBe(imageSourceFromStorageKey(validKey));
+    expect(body.imageSource).toMatch(/^doenet:[1-9A-HJ-NP-Za-km-z]{21,22}$/);
     expect(body.contentId).toMatch(/^[0-9A-Za-z_-]{22}$/);
 
     const row = await prisma.content.findUniqueOrThrow({
