@@ -2,5 +2,9 @@
   {
     "ParameterKey": "EnvironmentName",
     "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/dev3/PublicHostedZoneName"
   }
 ]
