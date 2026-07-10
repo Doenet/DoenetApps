@@ -280,12 +280,27 @@ export function Activities() {
     if (!file) return;
     setHaveContentSpinner(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      if (parentId) form.append("parentId", parentId);
-      await axios.post("/api/media/image", form, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const initRes = await axios.post<{
+        uploadKey: string;
+        uploadUrl: string;
+      }>("/api/media/image/init", {
+        mimeType: file.type,
+        sizeBytes: file.size,
       });
+      const { uploadKey, uploadUrl } = initRes.data;
+
+      await axios.put(uploadUrl, file, {
+        headers: { "Content-Type": file.type },
+      });
+
+      await axios.post("/api/media/image/complete", {
+        uploadKey,
+        parentId: parentId ?? null,
+        name: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      });
+
       revalidator.revalidate();
       toast({
         title: "Image uploaded",
@@ -748,7 +763,7 @@ export function Activities() {
           leftIcon={<MdContentCopy />}
           data-test="Copy Image Tag"
           onClick={async () => {
-            const tag = `<image source="${window.location.origin}/api/media/${activity.contentId}" />`;
+            const tag = `<image source="${activity.imageSource ?? ""}" />`;
             try {
               await navigator.clipboard.writeText(tag);
               toast({

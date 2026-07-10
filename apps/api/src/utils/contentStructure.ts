@@ -17,6 +17,7 @@ import { fromUUID, isEqualUUID } from "./uuid";
 import { DateTime } from "luxon";
 import { ActivitySource } from "@doenet-tools/shared";
 import { InvalidRequestError } from "./error";
+import { imageSourceFromStorageKey } from "../media/upload.schema";
 
 /**
  * Process a list of user info from the SharedWith table
@@ -215,6 +216,12 @@ export function returnContentSelect({
     classCode: true,
     sharedWith,
     licenseCode: true,
+    // Image content: storageKey is the S3 object key. In `processContent` it
+    // becomes the domain-independent `imageSource` (`doenet:<short-uuid>`); the
+    // DoenetML viewer resolves it against `doenetMediaUrl` at render time so the
+    // CDN domain isn't baked into users' documents. Null for anything that's not
+    // an image, or for an image whose upload hasn't completed.
+    storageKey: true,
     parent: {
       select: {
         id: true,
@@ -368,6 +375,9 @@ type PreliminaryContent = {
   // from problem bank select
   shuffle: boolean;
   paginate: boolean;
+
+  // Image content
+  storageKey?: string | null;
 };
 
 /**
@@ -437,6 +447,10 @@ export function processContent(
 
     // document inside problem set
     repeatInProblemSet,
+
+    // Image-only, pulled out and re-exposed to the client as the computed
+    // `imageSource` (`doenet:<short-uuid>`) on the image case.
+    storageKey,
 
     ...preliminaryContent2
   } = preliminaryContent;
@@ -539,8 +553,16 @@ export function processContent(
       };
     }
     case "image": {
+      // Domain-independent reference: `doenet:<short-uuid>` (the storage prefix
+      // is stripped). The DoenetML viewer prepends `doenetMediaUrl` at render
+      // time, so neither the CDN domain nor the storage layout lands in the
+      // stored document.
+      const imageSource = storageKey
+        ? imageSourceFromStorageKey(storageKey)
+        : null;
       return {
         type: "image",
+        imageSource,
         ...baseContent,
       };
     }

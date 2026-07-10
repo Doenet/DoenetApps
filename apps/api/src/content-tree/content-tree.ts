@@ -1,4 +1,4 @@
-import { Visibility } from "@prisma/client";
+import { ContentType, Visibility } from "@prisma/client";
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
 import { getNextSortIndexForParent } from "../utils/sort";
@@ -32,6 +32,7 @@ export async function prepareNewChild({
   parentId: Uint8Array | null;
 }): Promise<{
   sortIndex: Awaited<ReturnType<typeof getNextSortIndexForParent>>;
+  parentType: ContentType | null;
   isPublic: boolean;
   visibility: Visibility;
   licenseCode: string | null | undefined;
@@ -40,6 +41,7 @@ export async function prepareNewChild({
 }> {
   const sortIndex = await getNextSortIndexForParent(ownerId, parentId);
 
+  let parentType: ContentType | null = null;
   let isPublic = false;
   let visibility: Visibility = "private";
   let licenseCode: string | null | undefined = undefined;
@@ -55,6 +57,7 @@ export async function prepareNewChild({
         ownerId,
       },
       select: {
+        type: true,
         isPublic: true,
         visibility: true,
         licenseCode: true,
@@ -71,6 +74,7 @@ export async function prepareNewChild({
       );
     }
 
+    parentType = parent.type;
     courseRootId = parent.courseRootId;
 
     if (parent.visibility !== "private") {
@@ -91,6 +95,7 @@ export async function prepareNewChild({
 
   return {
     sortIndex,
+    parentType,
     isPublic,
     visibility,
     licenseCode,

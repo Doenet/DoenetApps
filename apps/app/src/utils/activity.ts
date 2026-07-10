@@ -167,7 +167,15 @@ export const contentTypeToName = {
 
 export function getAllowedParentTypes(childTypes: ContentType[]) {
   const allowedParentTypes: ContentType[] = ["folder"];
-  if (!childTypes.includes("folder") && !childTypes.includes("sequence")) {
+  // Folders, problem sets, and images can only live in a folder. Images are
+  // standalone assets — the server also rejects moving/uploading one into a
+  // problem set (`copy_move.ts`, `imageContent.ts`) — so keep them out of
+  // problem sets and question banks here too.
+  if (
+    !childTypes.includes("folder") &&
+    !childTypes.includes("sequence") &&
+    !childTypes.includes("image")
+  ) {
     allowedParentTypes.push("sequence");
     if (!childTypes.includes("select")) {
       allowedParentTypes.push("select");

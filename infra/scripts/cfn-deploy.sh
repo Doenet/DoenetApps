@@ -9,6 +9,7 @@ export PATH=$PATH:/usr/local/bin:/opt/aws/bin
 
 # Defaults
 export CHANGE_SET_ONLY=false
+export AWS_REGION="us-east-1"
 export AWS_DEFAULT_REGION="us-east-1"
 export WAIT_FOR_COMPLETION=true
 
@@ -41,6 +42,7 @@ getOptions() {
         shift
         ;;
       -r|--aws-region)
+        export AWS_REGION=$2
         export AWS_DEFAULT_REGION=$2
         shift
 	;;

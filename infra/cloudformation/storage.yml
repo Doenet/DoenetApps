@@ -6,10 +6,17 @@ Parameters:
     Type: String
     Description: The environment name (the SSM prefix path name)
 
+  PublicHostedZoneName:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: >-
+      SSM ref to the hosted zone name (e.g., /dev3/PublicHostedZoneName). The app
+      is served at https://<this>, so it is the allowed CORS origin for browser
+      uploads.
+
 Resources:
-  # User-uploaded image storage. Private — only the API reads/writes it
-  # server-side via SigV4. Not fronted by CloudFront so it can never
-  # accidentally serve private content to anonymous CloudFront traffic.
+  # User-uploaded image storage. Bucket is private; the media-cdn stack
+  # grants read-only access to the CloudFront distribution via OAC. The API
+  # still writes server-side via SigV4 using the task role.
   MediaBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -21,6 +28,19 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      # Browsers upload directly to S3 via a presigned PUT (see media/upload.ts),
+      # so the bucket must answer the CORS preflight. Only the app's own origin
+      # may PUT; reads are served through CloudFront (a different origin), so no
+      # GET/HEAD rule is needed here.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Sub "https://${PublicHostedZoneName}"
+            AllowedMethods:
+              - PUT
+            AllowedHeaders:
+              - "*"
+            MaxAge: 3000
 
   MediaBucketSSMParameter:
     Type: AWS::SSM::Parameter
