@@ -43,8 +43,9 @@ doenet:<short-uuid>` — the `images/` storage prefix is stripped, so only the
 short-uuid is embedded. Neither the CDN domain nor the storage layout is stored:
 the DoenetML viewer resolves `doenet:<short-uuid>` against its `doenetMediaUrl`
 flag at render time — `${doenetMediaUrl}/<short-uuid>` — where `doenetMediaUrl`
-is `MEDIA_CDN_BASE_URL` plus the `images/` root (see
-`apps/app/src/utils/media.ts`). So a document only ever holds `doenet:<short-uuid>`.
+is `VITE_MEDIA_CDN_BASE_URL` plus the `images/` root (see
+`apps/app/src/utils/media.ts`). The server itself never composes a read URL, so
+it needs no CDN base URL. A document only ever holds `doenet:<short-uuid>`.
 
 Reads then go through CloudFront directly. The bucket is private; CloudFront
 reaches it via Origin Access Control, and a `ResponseHeadersPolicy`

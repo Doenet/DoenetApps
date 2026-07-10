@@ -10,14 +10,12 @@ vi.mock("./s3", () => ({
   deleteImage: vi.fn(),
 }));
 
-// Skip config validation for the tests — the presign-url composition only
-// needs `cdnBaseUrl` on the complete path.
+// Skip env validation for the tests — provide a ready-made aws-mode config.
 vi.mock("./config", () => ({
   loadMediaConfig: () => ({
     mode: "aws",
     region: "us-east-1",
     bucket: "test-bucket",
-    cdnBaseUrl: "https://cdn.test",
   }),
 }));
 

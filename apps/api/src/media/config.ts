@@ -5,12 +5,11 @@
 import { getEnvVar } from "../utils/env";
 
 export type MediaConfig =
-  | { mode: "aws"; region: string; bucket: string; cdnBaseUrl: string }
+  | { mode: "aws"; region: string; bucket: string }
   | {
       mode: "local";
       region: string;
       bucket: string;
-      cdnBaseUrl: string;
       endpoint: string;
       accessKeyId: string;
       secretAccessKey: string;
@@ -30,13 +29,10 @@ export function loadMediaConfig(): MediaConfig {
 
   const region = getEnvVar("MEDIA_S3_REGION", true);
   const bucket = getEnvVar("MEDIA_S3_BUCKET", true);
-  // Public base URL where clients read image bytes (CloudFront in prod;
-  // path-style s3mock in dev). Trailing slash stripped so callers can compose
-  // with `${cdnBaseUrl}/${storageKey}`.
-  const cdnBaseUrl = getEnvVar("MEDIA_CDN_BASE_URL", true).replace(/\/+$/, "");
+  // Note that the CDN base url is not needed here. The api interacts directly with the S3 bucket.
 
   if (mode === "aws") {
-    cached = { mode, region, bucket, cdnBaseUrl };
+    cached = { mode, region, bucket };
     return cached;
   }
 
@@ -44,7 +40,6 @@ export function loadMediaConfig(): MediaConfig {
     mode,
     region,
     bucket,
-    cdnBaseUrl,
     endpoint: getEnvVar("MEDIA_S3_LOCAL_ENDPOINT", true),
     accessKeyId: getEnvVar("MEDIA_S3_LOCAL_ACCESS_KEY_ID", true),
     secretAccessKey: getEnvVar("MEDIA_S3_LOCAL_SECRET_ACCESS_KEY", true),
