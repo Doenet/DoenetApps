@@ -85,6 +85,7 @@ getOptions() {
     die "Stacks and basic settings for the target environment ${STACK_FILE}.aws"
   else
     source "${STACK_FILE}.aws"
+    declare -p STACK_REGION &>/dev/null || declare -g -A STACK_REGION=()
     export AWS_REGION TEMPLATE_BUCKET STACKS STACK_ORDER PROJECT FARGATE_CLUSTER
     export AWS_PROFILE=$SSO_ACCOUNT_NAME
     export AWS_DEFAULT_REGION=$AWS_REGION
@@ -159,10 +160,11 @@ updateStacks() {
     # sees a changed parameter and refreshes the StackSet, while the uploaded .params
     # artifact remains the stable checked-in source of truth.
     sed '/"ParameterKey": "ForceUpdateToken"/{n;s/"ParameterValue": "DUMMY"/"ParameterValue": "'"${force_update_token}"'"/;}' "${param_file}" > "$temp_param_file"
-    ./scripts/cfn-deploy.sh -s $name -t "https://${TEMPLATE_BUCKET}.s3.amazonaws.com/${STACK_FILE}-${PROJECT}/${STACKS[$name]}.yml" -r ${AWS_REGION} -p "$temp_param_file" --no-wait-for-completion --changeset-name ${name}-${STACK_FILE};
+    region="${STACK_REGION[$name]:-$AWS_REGION}"
+    ./scripts/cfn-deploy.sh -s $name -t "https://${TEMPLATE_BUCKET}.s3.amazonaws.com/${STACK_FILE}-${PROJECT}/${STACKS[$name]}.yml" -r ${region} -p "$temp_param_file" --no-wait-for-completion --changeset-name ${name}-${STACK_FILE};
     rm -f "$temp_param_file"
     trap - RETURN
-    ./scripts/cfn-wait.sh ${name} ${AWS_REGION};
+    ./scripts/cfn-wait.sh ${name} ${region};
   done
 }
 

@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/dev3/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/dev3/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "BucketName",
+    "ParameterValue": "/dev3/S3MediaBucket"
+  },
+  {
+    "ParameterKey": "Subdomain",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:568298704244:certificate/24e74424-9cd1-4fa9-b170-b565ca12a40b"
+  }
+]

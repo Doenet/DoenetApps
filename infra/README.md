@@ -45,5 +45,10 @@ done
 ```
 
 A PR deploy supersedes `main`, and the next push to `main` supersedes the PR.
-Note this reflects the _ref that was deployed_, not proof the running container
-matches it — a curl-able version endpoint (planned) is the ground-truth check.
+
+The Environments tab reflects the _ref that was deployed_, not proof the running
+container matches it. For ground truth, ask the running services what they are —
+each is stamped with its ref and commit at build time:
+
+- `https://dev3.doenet.org/api/health` → `{ status, version: { ref, sha, builtAt } }` (backend)
+- `https://dev3.doenet.org/version.json` → `{ ref, sha, builtAt }` (frontend app)

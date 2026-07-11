@@ -56,6 +56,9 @@ export function CompoundEditorViewMode() {
         requestedVariantIndex={1}
         userId={"hi"}
         doenetViewerUrl={doenetViewerUrl}
+        // TODO: pass doenetMediaUrl (sibling to doenetViewerUrl) once
+        // @doenet/assignment-viewer exposes it, so doenet:<key> image sources
+        // resolve in compound activity views too.
         paginate={paginate}
         activityLevelAttempts={activityLevelAttempts}
         itemLevelAttempts={itemLevelAttempts}

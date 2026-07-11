@@ -15,6 +15,7 @@ import {
 } from "react-router";
 import { DoenetmlVersion } from "../../types";
 import { DoenetEditor, type DoenetEditorHandle } from "@doenet/doenetml-iframe";
+import { doenetMediaUrl } from "../../utils/media";
 import axios, { AxiosError } from "axios";
 import { EditorContext } from "./EditorHeader";
 import {
@@ -348,6 +349,7 @@ function DocumentEditor({
       border="none"
       readOnly={readOnly}
       doenetViewerUrl={doenetViewerUrl}
+      doenetMediaUrl={doenetMediaUrl}
     />
   );
 }

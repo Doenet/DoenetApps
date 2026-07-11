@@ -110,6 +110,7 @@ export async function moveContent({
         isDeletedOn: null,
       },
       select: {
+        type: true,
         isPublic: true,
         licenseCode: true,
         courseRootId: true,
@@ -122,6 +123,10 @@ export async function moveContent({
       throw new InvalidRequestError(
         "Cannot move content into an assigned activity",
       );
+    }
+
+    if (content.type === "image" && parent.type === "sequence") {
+      throw new InvalidRequestError("Cannot move an image into a problem set");
     }
 
     // If the parent is shared, then we'll need to share the resulting content, as well.

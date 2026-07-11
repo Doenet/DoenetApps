@@ -1,18 +1,10 @@
 import express from "express";
-import { handleServeImage } from "./serve";
-import {
-  handleUploadError,
-  handleUploadImage,
-  uploadImageMulter,
-} from "./upload";
+import { handleCompleteUpload, handleInitUpload } from "./upload";
 
 export const mediaRouter = express.Router();
 
-mediaRouter.post(
-  "/image",
-  uploadImageMulter.single("file"),
-  handleUploadError,
-  handleUploadImage,
-);
-
-mediaRouter.get("/:contentId", handleServeImage);
+// Two-step upload: the client asks for a presigned URL, PUTs the bytes to S3
+// directly, then tells us it's done so we can record the row. Image reads
+// don't touch this API — CloudFront serves them directly.
+mediaRouter.post("/image/init", handleInitUpload);
+mediaRouter.post("/image/complete", handleCompleteUpload);

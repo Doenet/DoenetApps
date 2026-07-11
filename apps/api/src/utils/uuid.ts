@@ -1,4 +1,5 @@
 import { fromBinaryUUID, toBinaryUUID } from "./binary-uuid";
+import { randomUUID } from "crypto";
 import short from "short-uuid";
 
 const translator = short();
@@ -12,7 +13,10 @@ export function fromUUID(UUID: Uint8Array) {
 }
 
 export function newUUID() {
-  return toBinaryUUID(translator.new());
+  // `translator.new()` returns the *short* form, which `toBinaryUUID` can't
+  // parse (it expects a canonical UUID) — it silently yielded empty bytes.
+  // Generate a canonical random UUID and convert that.
+  return toBinaryUUID(randomUUID());
 }
 
 export function isEqualUUID(UUID1: Uint8Array, UUID2: Uint8Array) {

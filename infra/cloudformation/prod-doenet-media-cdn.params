@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "ServiceName",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "/prod/PublicHostedZoneName"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "/prod/PublicHostedZoneId"
+  },
+  {
+    "ParameterKey": "BucketName",
+    "ParameterValue": "/prod/S3MediaBucket"
+  },
+  {
+    "ParameterKey": "Subdomain",
+    "ParameterValue": "media"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:350646758180:certificate/cf6b6964-907f-4d2f-ba41-b38af1b253f5"
+  }
+]
