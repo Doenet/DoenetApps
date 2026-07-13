@@ -1,4 +1,5 @@
 import React from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 import {
   createBrowserRouter,
@@ -145,9 +146,10 @@ const router = createBrowserRouter([
     loader: siteLoader,
     element: (
       <>
-        <ChakraProvider theme={theme}>
+        {/* <ChakraProvider theme={theme}>
           <SiteHeader />
-        </ChakraProvider>
+        </ChakraProvider> */}
+        <SiteHeader />
       </>
     ),
     children: [
@@ -220,9 +222,10 @@ const router = createBrowserRouter([
         loader: portfolioLoader,
         action: portfolioAction,
         element: (
-          <ChakraProvider theme={theme}>
-            <Portfolio />
-          </ChakraProvider>
+          // <ChakraProvider theme={theme}>
+          //   <Portfolio />
+          // </ChakraProvider>
+          <Portfolio />
         ),
       },
       {
