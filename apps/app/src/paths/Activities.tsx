@@ -61,6 +61,7 @@ import {
   type ImageAttributionFormValues,
 } from "../popups/EditImageAttribution";
 import { buildImageTag } from "../utils/imageTag";
+import { createNameNoTag } from "../utils/names";
 
 import { getAllowedParentTypes, getIconInfo } from "../utils/activity";
 import { CreateLocalContent } from "../popups/CreateLocalContent";
@@ -394,6 +395,7 @@ export function Activities() {
           : "License this image"
       }
       submitLabel={attributionTarget.mode === "edit" ? "Save" : "Upload"}
+      defaultAuthorName={user ? createNameNoTag(user) : undefined}
       onSubmit={(values) =>
         attributionTarget.mode === "edit"
           ? saveImageAttribution(attributionTarget.image.contentId, values)
