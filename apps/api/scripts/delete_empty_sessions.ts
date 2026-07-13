@@ -15,9 +15,15 @@
 // Deletes in bounded batches so InnoDB never holds a giant transaction / long
 // lock / replication spike; sessions written during the run are untouched.
 //
-// Usage (must be run from the apps/api directory, e.g. inside the prod
-// container via infra/scripts/exec.sh):
-//   npx tsx scripts/delete_empty_sessions.ts
+// Usage:
+//   Local dev (tsx available), DATABASE_URL pointed at the target DB:
+//     npx tsx scripts/delete_empty_sessions.ts [--dry-run]
+//   Inside the prod/dev3 container (devDeps pruned, run the compiled JS from
+//   the apps/api WORKDIR; reach a shell via infra/scripts/exec.sh -s <stack>):
+//     node dist/scripts/delete_empty_sessions.js [--dry-run]
+//
+// --dry-run reports the counts it would delete/keep and exits without deleting.
+// Always run --dry-run first against a new environment (especially prod).
 
 import { PrismaClient } from "@prisma/client";
 
@@ -27,19 +33,49 @@ const prisma = new PrismaClient();
 // it is safe to inline into the raw DELETE below.
 const BATCH = 10_000;
 
+// A row is deletable iff it is expired OR was never authenticated (no passport
+// key in its serialized session data). Kept in sync with the DELETE below.
+const DELETABLE_WHERE = `expiresAt < NOW() OR data NOT LIKE '%passport%'`;
+
+async function reportCounts(label: string) {
+  const [row] = await prisma.$queryRawUnsafe<
+    { total: bigint; keep: bigint; deletable: bigint }[]
+  >(
+    `SELECT COUNT(*) AS total,
+            SUM(NOT (${DELETABLE_WHERE})) AS keep,
+            SUM(${DELETABLE_WHERE}) AS deletable
+     FROM Session`,
+  );
+  console.log(
+    `${label}: total=${row.total} keep(logged-in & unexpired)=${row.keep} deletable=${row.deletable}`,
+  );
+  return row;
+}
+
 async function main() {
+  const dryRun = process.argv.includes("--dry-run");
+
+  const before = await reportCounts("before");
+
+  if (dryRun) {
+    console.log(
+      `[dry-run] would delete ${before.deletable} rows, keep ${before.keep}. No changes made.`,
+    );
+    return;
+  }
+
   let total = 0;
   for (;;) {
     const n = await prisma.$executeRawUnsafe(
-      `DELETE FROM Session
-       WHERE (expiresAt < NOW() OR data NOT LIKE '%passport%')
-       LIMIT ${BATCH}`,
+      `DELETE FROM Session WHERE (${DELETABLE_WHERE}) LIMIT ${BATCH}`,
     );
     total += n;
     console.log(`deleted ${n} (running total ${total})`);
     if (n === 0) break;
     await new Promise((r) => setTimeout(r, 200)); // ease replication / CPU
   }
+
+  await reportCounts("after");
   console.log(`Done. Deleted ${total} empty/expired sessions.`);
 }
 
