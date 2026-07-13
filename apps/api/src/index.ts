@@ -403,8 +403,8 @@ app.use(
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year, in ms
     },
     secret: process.env.SESSION_SECRET || "",
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     store: new PrismaSessionStore(prisma, {
       checkPeriod: 2 * 60 * 1000, //ms
       dbRecordIdIsSessionId: true,
