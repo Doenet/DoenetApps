@@ -222,6 +222,16 @@ export type ImageItem = ContentBase & {
   // The DoenetML viewer resolves it against `doenetMediaUrl` at render time.
   // Null before the S3 PUT completes; otherwise populated by `processContent`.
   imageSource?: string | null;
+  // DoenetML `<image>` attribution/licensing. Uploaded images carry their own
+  // author/title/source/license here instead of the activity-level
+  // `licenseCode`. `imageLicenseCodes` is one or two space-separated DoenetML
+  // media-license codes (e.g. `CC-BY-SA` or `CC-BY-SA GFDL`).
+  imageAuthorName?: string | null;
+  imageAuthorUrl?: string | null;
+  imageTitle?: string | null;
+  imageOriginalUrl?: string | null;
+  imageLicenseCodes?: string | null;
+  imageLicenseVersion?: string | null;
 };
 
 export type Activity = Doc | QuestionBank | ProblemSet;

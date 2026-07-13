@@ -186,6 +186,9 @@ describe("handleCompleteUpload", () => {
       name: "donut",
       mimeType: "image/png",
       sizeBytes: 42,
+      // A license is required on complete; CC-BY-SA also requires an author.
+      imageLicenseCodes: "CC-BY-SA",
+      imageAuthorName: "Ada Lovelace",
     };
   }
 
@@ -293,16 +296,24 @@ describe("handleCompleteUpload", () => {
       where: { id: toUUID(body.contentId) },
       select: {
         type: true,
-        mimeType: true,
-        storageKey: true,
-        sizeBytes: true,
         ownerId: true,
+        imageData: {
+          select: {
+            mimeType: true,
+            storageKey: true,
+            sizeBytes: true,
+            licenseCodes: true,
+            authorName: true,
+          },
+        },
       },
     });
     expect(row.type).toBe("image");
-    expect(row.mimeType).toBe("image/png");
-    expect(row.storageKey).toBe(validKey);
-    expect(row.sizeBytes).toBe(42n);
+    expect(row.imageData?.mimeType).toBe("image/png");
+    expect(row.imageData?.storageKey).toBe(validKey);
+    expect(row.imageData?.sizeBytes).toBe(42n);
+    expect(row.imageData?.licenseCodes).toBe("CC-BY-SA");
+    expect(row.imageData?.authorName).toBe("Ada Lovelace");
     expect(row.ownerId).toEqual(user.userId);
   });
 

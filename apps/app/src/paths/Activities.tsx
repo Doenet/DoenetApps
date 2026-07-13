@@ -36,14 +36,31 @@ import {
   useRevalidator,
 } from "react-router";
 import axios from "axios";
-import { MdClose, MdContentCopy, MdOutlineSearch } from "react-icons/md";
+import {
+  MdClose,
+  MdContentCopy,
+  MdOutlineEdit,
+  MdOutlineSearch,
+} from "react-icons/md";
 import { FaPlus } from "react-icons/fa";
 import { LuDessert } from "react-icons/lu";
 
 import { CardContent } from "../widgets/Card";
 import CardList from "../widgets/CardList";
 import { MoveCopyContent } from "../popups/MoveCopyContent";
-import { Content, ContentType, LicenseCode, UserInfo } from "../types";
+import {
+  Content,
+  ContentType,
+  ImageItem,
+  LicenseCode,
+  UserInfo,
+} from "../types";
+import {
+  EditImageAttribution,
+  emptyImageAttribution,
+  type ImageAttributionFormValues,
+} from "../popups/EditImageAttribution";
+import { buildImageTag } from "../utils/imageTag";
 
 import { getAllowedParentTypes, getIconInfo } from "../utils/activity";
 import { CreateLocalContent } from "../popups/CreateLocalContent";
@@ -131,6 +148,14 @@ export function Activities() {
     onOpen: shareFolderOnOpen,
     onClose: shareFolderOnClose,
   } = useDisclosure();
+
+  // The image-attribution modal is shown either to collect a license for a
+  // freshly picked file before uploading it (`create`), or to edit an existing
+  // image's attribution (`edit`). A license is mandatory in both, so an
+  // unlicensed image is never created.
+  const [attributionTarget, setAttributionTarget] = useState<
+    { mode: "create"; file: File } | { mode: "edit"; image: ImageItem } | null
+  >(null);
 
   const { addTo, setAddTo, user } = useOutletContext<SiteContext>();
 
@@ -274,10 +299,23 @@ export function Activities() {
   const revalidator = useRevalidator();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+  // Picking a file doesn't upload it yet: we first open the attribution modal to
+  // require a license, then upload once the user confirms (see
+  // `uploadImageWithAttribution`). This guarantees no unlicensed image is
+  // created.
+  function handleImageFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    setAttributionTarget({ mode: "create", file });
+  }
+
+  // Runs the two-step upload with the license/attribution the user supplied.
+  // Errors propagate so the modal keeps itself open and shows the message.
+  async function uploadImageWithAttribution(
+    file: File,
+    values: ImageAttributionFormValues,
+  ) {
     setHaveContentSpinner(true);
     try {
       const initRes = await axios.post<{
@@ -299,6 +337,7 @@ export function Activities() {
         name: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
+        ...values,
       });
 
       revalidator.revalidate();
@@ -308,23 +347,60 @@ export function Activities() {
         duration: 3000,
         isClosable: true,
       });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.details ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Upload failed";
-      toast({
-        title: "Upload failed",
-        description: message,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
     } finally {
       setHaveContentSpinner(false);
     }
   }
+
+  // Persists edited attribution for an existing image.
+  async function saveImageAttribution(
+    contentId: string,
+    values: ImageAttributionFormValues,
+  ) {
+    await axios.post("/api/media/image/attribution", { contentId, ...values });
+    revalidator.revalidate();
+  }
+
+  // Maps an existing image's stored fields into the modal's form values.
+  function imageToFormValues(image: ImageItem): ImageAttributionFormValues {
+    return {
+      imageAuthorName: image.imageAuthorName ?? "",
+      imageAuthorUrl: image.imageAuthorUrl ?? "",
+      imageTitle: image.imageTitle ?? "",
+      imageOriginalUrl: image.imageOriginalUrl ?? "",
+      imageLicenseCodes: image.imageLicenseCodes ?? "",
+      imageLicenseVersion:
+        image.imageLicenseVersion ?? emptyImageAttribution.imageLicenseVersion,
+    };
+  }
+
+  const attributionModal = attributionTarget ? (
+    <EditImageAttribution
+      isOpen={true}
+      onClose={() => setAttributionTarget(null)}
+      initial={
+        attributionTarget.mode === "edit"
+          ? imageToFormValues(attributionTarget.image)
+          : emptyImageAttribution
+      }
+      imageSource={
+        attributionTarget.mode === "edit"
+          ? attributionTarget.image.imageSource
+          : null
+      }
+      headerLabel={
+        attributionTarget.mode === "edit"
+          ? "Image attribution & license"
+          : "License this image"
+      }
+      submitLabel={attributionTarget.mode === "edit" ? "Save" : "Upload"}
+      onSubmit={(values) =>
+        attributionTarget.mode === "edit"
+          ? saveImageAttribution(attributionTarget.image.contentId, values)
+          : uploadImageWithAttribution(attributionTarget.file, values)
+      }
+    />
+  ) : null;
 
   const moveCopyContentModal = (
     <MoveCopyContent
@@ -755,36 +831,49 @@ export function Activities() {
 
     const inlineActions =
       activity.type === "image" ? (
-        <Button
-          ref={getCardMenuRef}
-          size="xs"
-          variant="outline"
-          colorScheme="blue"
-          leftIcon={<MdContentCopy />}
-          data-test="Copy Image Tag"
-          onClick={async () => {
-            const tag = `<image source="${activity.imageSource ?? ""}" />`;
-            try {
-              await navigator.clipboard.writeText(tag);
-              toast({
-                title: "Image tag copied",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-              });
-            } catch {
-              toast({
-                title: "Could not copy to clipboard",
-                description: tag,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-              });
-            }
-          }}
-        >
-          Copy tag
-        </Button>
+        <HStack spacing="4px">
+          <Button
+            ref={getCardMenuRef}
+            size="xs"
+            variant="outline"
+            colorScheme="blue"
+            leftIcon={<MdContentCopy />}
+            data-test="Copy Image Tag"
+            onClick={async () => {
+              const tag = buildImageTag(activity);
+              try {
+                await navigator.clipboard.writeText(tag);
+                toast({
+                  title: "Image tag copied",
+                  status: "success",
+                  duration: 3000,
+                  isClosable: true,
+                });
+              } catch {
+                toast({
+                  title: "Could not copy to clipboard",
+                  description: tag,
+                  status: "error",
+                  duration: 5000,
+                  isClosable: true,
+                });
+              }
+            }}
+          >
+            Copy tag
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            leftIcon={<MdOutlineEdit />}
+            data-test="Edit Image Attribution"
+            onClick={() => {
+              setAttributionTarget({ mode: "edit", image: activity });
+            }}
+          >
+            Attribution
+          </Button>
+        </HStack>
       ) : undefined;
 
     return {
@@ -850,6 +939,7 @@ export function Activities() {
         {authorModeModal}
         {imageAccessModal}
         {shareFolderModal}
+        {attributionModal}
 
         {searchResultsHeading}
         {addToActionBar}

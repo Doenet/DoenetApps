@@ -19,9 +19,14 @@ async function getContent(contentId: Uint8Array) {
       visibility: true,
       licenseCode: true,
       courseRootId: true,
-      mimeType: true,
-      sizeBytes: true,
-      storageKey: true,
+      imageData: {
+        select: {
+          mimeType: true,
+          sizeBytes: true,
+          storageKey: true,
+          licenseCodes: true,
+        },
+      },
       sharedWith: { select: { userId: true } },
     },
   });
@@ -43,9 +48,10 @@ describe("createImageContent", () => {
     expect(row.ownerId).toEqual(owner.userId);
     expect(row.parentId).toBeNull();
     expect(row.name).toBe("donut.png");
-    expect(row.mimeType).toBe("image/png");
-    expect(row.sizeBytes).toBe(1024n);
-    expect(row.storageKey).toBeNull();
+    expect(row.imageData?.mimeType).toBe("image/png");
+    expect(row.imageData?.sizeBytes).toBe(1024n);
+    expect(row.imageData?.storageKey).toBeNull();
+    expect(row.imageData?.licenseCodes).toBe("CC-BY-SA");
     expect(row.isPublic).toBe(false);
     expect(row.visibility).toBe("unlisted");
     expect(row.courseRootId).toBeNull();
@@ -276,7 +282,7 @@ describe("createImageContent with storageKey", () => {
     });
 
     const row = await getContent(contentId);
-    expect(row.storageKey).toBe("images/abc.png");
+    expect(row.imageData?.storageKey).toBe("images/abc.png");
   });
 });
 

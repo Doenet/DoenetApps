@@ -216,12 +216,23 @@ export function returnContentSelect({
     classCode: true,
     sharedWith,
     licenseCode: true,
-    // Image content: storageKey is the S3 object key. In `processContent` it
-    // becomes the domain-independent `imageSource` (`doenet:<short-uuid>`); the
-    // DoenetML viewer resolves it against `doenetMediaUrl` at render time so the
-    // CDN domain isn't baked into users' documents. Null for anything that's not
-    // an image, or for an image whose upload hasn't completed.
-    storageKey: true,
+    // Image content lives in a 1:1 `imageContent` row. `storageKey` becomes the
+    // domain-independent `imageSource` (`doenet:<short-uuid>`) in
+    // `processContent` — the DoenetML viewer resolves it against `doenetMediaUrl`
+    // at render time so the CDN domain isn't baked into users' documents — and
+    // the attribution fields are surfaced on the image case. Null/absent for
+    // anything that's not an image.
+    imageData: {
+      select: {
+        storageKey: true,
+        authorName: true,
+        authorUrl: true,
+        title: true,
+        originalUrl: true,
+        licenseCodes: true,
+        licenseVersion: true,
+      },
+    },
     parent: {
       select: {
         id: true,
@@ -376,8 +387,16 @@ type PreliminaryContent = {
   shuffle: boolean;
   paginate: boolean;
 
-  // Image content
-  storageKey?: string | null;
+  // Image content (from the 1:1 `imageContent` relation; null for non-images).
+  imageData?: {
+    storageKey: string | null;
+    authorName: string | null;
+    authorUrl: string | null;
+    title: string | null;
+    originalUrl: string | null;
+    licenseCodes: string;
+    licenseVersion: string | null;
+  } | null;
 };
 
 /**
@@ -448,9 +467,9 @@ export function processContent(
     // document inside problem set
     repeatInProblemSet,
 
-    // Image-only, pulled out and re-exposed to the client as the computed
-    // `imageSource` (`doenet:<short-uuid>`) on the image case.
-    storageKey,
+    // Image-only 1:1 data, re-exposed (as `imageSource` + attribution) on the
+    // image case below and kept off every other content type.
+    imageData,
 
     ...preliminaryContent2
   } = preliminaryContent;
@@ -557,12 +576,18 @@ export function processContent(
       // is stripped). The DoenetML viewer prepends `doenetMediaUrl` at render
       // time, so neither the CDN domain nor the storage layout lands in the
       // stored document.
-      const imageSource = storageKey
-        ? imageSourceFromStorageKey(storageKey)
+      const imageSource = imageData?.storageKey
+        ? imageSourceFromStorageKey(imageData.storageKey)
         : null;
       return {
         type: "image",
         imageSource,
+        imageAuthorName: imageData?.authorName ?? null,
+        imageAuthorUrl: imageData?.authorUrl ?? null,
+        imageTitle: imageData?.title ?? null,
+        imageOriginalUrl: imageData?.originalUrl ?? null,
+        imageLicenseCodes: imageData?.licenseCodes ?? null,
+        imageLicenseVersion: imageData?.licenseVersion ?? null,
         ...baseContent,
       };
     }
