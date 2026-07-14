@@ -152,11 +152,6 @@ export const mediaLicenses: MediaLicenseInfo[] = [
 const mediaLicensesByCode: Record<string, MediaLicenseInfo> =
   Object.fromEntries(mediaLicenses.map((info) => [info.code, info]));
 
-/** The recognized codes as a plain string array (for zod enums, etc.). */
-export const mediaLicenseCodes: MediaLicenseCode[] = mediaLicenses.map(
-  (info) => info.code,
-);
-
 /** True when `code` is a media-license code DoenetML recognizes. */
 export function isMediaLicenseCode(code: unknown): code is MediaLicenseCode {
   return typeof code === "string" && code in mediaLicensesByCode;
@@ -187,6 +182,20 @@ export function licenseRequiresAttribution(codes: string): boolean {
     // An unrecognized code is treated as attribution-requiring (conservative).
     return !info || info.kind !== "public-domain";
   });
+}
+
+/**
+ * Whether a `licenseVersion` is meaningful for a set of license codes — true
+ * when at least one code is a (versioned) Creative Commons license. Non-CC
+ * licenses (GFDL, MIT, public-domain markers, …) are unversioned, so a supplied
+ * version should be dropped rather than emitted onto the `<image>` tag.
+ */
+export function licenseVersionApplies(codes: string): boolean {
+  const list = codes.trim().split(/\s+/).filter(Boolean);
+  return list.some(
+    (code) =>
+      mediaLicensesByCode[code.toUpperCase()]?.kind === "creative-commons",
+  );
 }
 
 /**

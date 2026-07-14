@@ -3,6 +3,7 @@ import {
   isCreativeCommonsVersion,
   isMediaLicenseCode,
   licenseRequiresAttribution,
+  licenseVersionApplies,
 } from "@doenet-tools/shared";
 import { uuidOrNullSchema, uuidSchema } from "../schemas/uuid";
 
@@ -53,6 +54,37 @@ function optionalAttributionText(max: number) {
     .transform((v) => {
       const t = (v ?? "").trim();
       return t.length === 0 ? null : t;
+    });
+}
+
+// An attribution URL: same normalization as `optionalAttributionText`, but
+// additionally restricted to `http`/`https`. The credit that DoenetML renders
+// links these URLs, so a stored `javascript:`/`data:` URL would be a stored-XSS
+// vector; rejecting non-web schemes here keeps that out. Blank/omitted → null.
+function optionalAttributionUrl(max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v, ctx) => {
+      const t = (v ?? "").trim();
+      if (t.length === 0) return null;
+      let parsed: URL;
+      try {
+        parsed = new URL(t);
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Must be a valid URL" });
+        return z.NEVER;
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        ctx.addIssue({
+          code: "custom",
+          message: "URL must start with http:// or https://",
+        });
+        return z.NEVER;
+      }
+      return t;
     });
 }
 
@@ -118,9 +150,9 @@ const imageLicenseVersionSchema = z
 // the rest are optional free text.
 const imageAttributionShape = {
   imageAuthorName: optionalAttributionText(255),
-  imageAuthorUrl: optionalAttributionText(2048),
+  imageAuthorUrl: optionalAttributionUrl(2048),
   imageTitle: optionalAttributionText(255),
-  imageOriginalUrl: optionalAttributionText(2048),
+  imageOriginalUrl: optionalAttributionUrl(2048),
   imageLicenseCodes: requiredImageLicenseCodesSchema,
   imageLicenseVersion: imageLicenseVersionSchema,
 };
@@ -144,6 +176,22 @@ function requireAuthorForAttribution(
   }
 }
 
+// A `licenseVersion` is only meaningful for a (versioned) Creative Commons
+// license. Drop one supplied alongside a non-CC license (e.g. GFDL) so it can't
+// ride onto the emitted `<image>` tag — the UI already blanks it, but the API is
+// the real enforcement boundary for direct callers.
+function clearInapplicableVersion<
+  T extends { imageLicenseCodes: string; imageLicenseVersion: string | null },
+>(data: T): T {
+  if (
+    data.imageLicenseVersion &&
+    !licenseVersionApplies(data.imageLicenseCodes)
+  ) {
+    return { ...data, imageLicenseVersion: null };
+  }
+  return data;
+}
+
 export const completeUploadImageBodySchema = z
   .object({
     uploadKey: z.string().min(1).max(255),
@@ -153,7 +201,8 @@ export const completeUploadImageBodySchema = z
     sizeBytes: z.number().int().positive().max(MAX_IMAGE_BYTES),
     ...imageAttributionShape,
   })
-  .superRefine(requireAuthorForAttribution);
+  .superRefine(requireAuthorForAttribution)
+  .transform(clearInapplicableVersion);
 
 export type CompleteUploadImageBody = z.infer<
   typeof completeUploadImageBodySchema
@@ -165,6 +214,7 @@ export const setImageAttributionSchema = z
     contentId: uuidSchema,
     ...imageAttributionShape,
   })
-  .superRefine(requireAuthorForAttribution);
+  .superRefine(requireAuthorForAttribution)
+  .transform(clearInapplicableVersion);
 
 export type SetImageAttributionBody = z.infer<typeof setImageAttributionSchema>;

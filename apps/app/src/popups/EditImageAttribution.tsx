@@ -98,6 +98,20 @@ function isCreativeCommons(code: string): boolean {
   );
 }
 
+// Whether a URL field is acceptable: empty, or an `http(s)` URL. Mirrors the
+// server's `optionalAttributionUrl` check so bad schemes surface inline rather
+// than only as a submit error. Blank is fine — URL fields are optional.
+function isValidAttributionUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return true;
+  try {
+    const { protocol } = new URL(trimmed);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 // A selectable license card (common license or the "Other…" escape hatch).
 function LicenseCard({
   selected,
@@ -272,7 +286,14 @@ export function EditImageAttribution({
   const licenseIsOther = license1 !== "" && !COMMON_CODES.includes(license1);
   const authorRequired = hasLicense && licenseRequiresAttribution(licenseCodes);
   const authorMissing = authorRequired && authorName.trim().length === 0;
-  const canSave = hasLicense && !authorMissing && !submitting;
+  const authorUrlInvalid = !isValidAttributionUrl(authorUrl);
+  const originalUrlInvalid = !isValidAttributionUrl(originalUrl);
+  const canSave =
+    hasLicense &&
+    !authorMissing &&
+    !authorUrlInvalid &&
+    !originalUrlInvalid &&
+    !submitting;
 
   const values: ImageAttributionFormValues = {
     imageAuthorName: authorName,
@@ -416,7 +437,7 @@ export function EditImageAttribution({
             </FormControl>
 
             {/* The rest of the TASL credit — optional, always shown. */}
-            <FormControl>
+            <FormControl isInvalid={authorUrlInvalid}>
               <FormLabel>Author URL</FormLabel>
               <Input
                 data-test="Image Author Url Input"
@@ -425,6 +446,9 @@ export function EditImageAttribution({
                 placeholder="https://…"
                 onChange={(e) => setAuthorUrl(e.target.value)}
               />
+              <FormErrorMessage>
+                Enter a URL starting with http:// or https://
+              </FormErrorMessage>
             </FormControl>
             <FormControl>
               <FormLabel>Image title</FormLabel>
@@ -436,7 +460,7 @@ export function EditImageAttribution({
                 onChange={(e) => setTitle(e.target.value)}
               />
             </FormControl>
-            <FormControl>
+            <FormControl isInvalid={originalUrlInvalid}>
               <FormLabel>Original source URL</FormLabel>
               <Input
                 data-test="Image Original Url Input"
@@ -445,6 +469,9 @@ export function EditImageAttribution({
                 placeholder="https://…"
                 onChange={(e) => setOriginalUrl(e.target.value)}
               />
+              <FormErrorMessage>
+                Enter a URL starting with http:// or https://
+              </FormErrorMessage>
             </FormControl>
 
             {/* Advanced licensing: dual licensing + Creative Commons version. */}

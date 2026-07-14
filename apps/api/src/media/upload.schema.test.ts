@@ -74,4 +74,41 @@ describe("setImageAttributionSchema", () => {
   test("rejects an unrecognized license version", () => {
     expect(() => parse({ imageLicenseVersion: "9.9" })).toThrow();
   });
+
+  test("drops a license version that doesn't apply to a non-CC license", () => {
+    // GFDL is unversioned, so a supplied CC version must not ride onto the tag.
+    const result = parse({
+      imageLicenseCodes: "GFDL",
+      imageLicenseVersion: "4.0",
+    });
+    expect(result.imageLicenseVersion).toBeNull();
+  });
+
+  test("keeps the version when dual-licensing includes a CC license", () => {
+    const result = parse({
+      imageLicenseCodes: "CC-BY-SA GFDL",
+      imageLicenseVersion: "3.0",
+    });
+    expect(result.imageLicenseVersion).toBe("3.0");
+  });
+
+  test("accepts http(s) attribution URLs", () => {
+    const result = parse({
+      imageAuthorUrl: "https://example.com/jane",
+      imageOriginalUrl: "http://example.com/img",
+    });
+    expect(result.imageAuthorUrl).toBe("https://example.com/jane");
+    expect(result.imageOriginalUrl).toBe("http://example.com/img");
+  });
+
+  test("rejects a non-web URL scheme (javascript:)", () => {
+    expect(() => parse({ imageAuthorUrl: "javascript:alert(1)" })).toThrow();
+    expect(() =>
+      parse({ imageOriginalUrl: "data:text/html,<script>" }),
+    ).toThrow();
+  });
+
+  test("rejects a malformed URL", () => {
+    expect(() => parse({ imageAuthorUrl: "not a url" })).toThrow();
+  });
 });

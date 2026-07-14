@@ -81,6 +81,23 @@ describe("EditImageAttribution", { tags: ["@group2"] }, () => {
     );
   });
 
+  it("blocks saving on a non-web author URL and clears once fixed", () => {
+    mountModal();
+    cy.get('[data-test="License Card CC-BY"]').click();
+    cy.get('[data-test="Image Author Name Input"]').type("Ada Lovelace");
+    // A valid license + author would normally enable Save…
+    cy.get(SAVE).should("be.enabled");
+
+    // …but a `javascript:` URL (rejected server-side too) blocks it inline.
+    cy.get('[data-test="Image Author Url Input"]').type("javascript:alert(1)");
+    cy.get(SAVE).should("be.disabled");
+
+    cy.get('[data-test="Image Author Url Input"]')
+      .clear()
+      .type("https://example.com/ada");
+    cy.get(SAVE).should("be.enabled");
+  });
+
   it("reveals the full license list via 'More…' and accepts an uncommon code", () => {
     mountModal();
     // The full dropdown is hidden until "More…" is chosen.

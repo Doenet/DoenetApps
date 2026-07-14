@@ -1,5 +1,3 @@
-import { ImageItem } from "../types";
-
 // Escape a value for use inside a double-quoted XML/DoenetML attribute.
 function escapeAttr(value: string): string {
   return value
@@ -42,5 +40,3 @@ export function buildImageTag(image: {
     ` />`
   );
 }
-
-export type ImageTagInput = ImageItem;

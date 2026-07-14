@@ -216,8 +216,6 @@ export type Folder = ContentBase & {
 
 export type ImageItem = ContentBase & {
   type: "image";
-  mimeType?: string;
-  sizeBytes?: number;
   // Domain-independent reference to the image bytes: `doenet:<short-uuid>`.
   // The DoenetML viewer resolves it against `doenetMediaUrl` at render time.
   // Null before the S3 PUT completes; otherwise populated by `processContent`.
