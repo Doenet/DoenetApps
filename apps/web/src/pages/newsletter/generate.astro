@@ -1,0 +1,762 @@
+---
+import { getCollection, render } from "astro:content";
+import { newsletterStyles } from "../../utils/newsletterStyles";
+import { newsletterConfig } from "../../utils/newsletter-config";
+import fs from "node:fs";
+import path from "node:path";
+import { Marked } from "marked";
+
+// Note: Helper functions (escapeRegExp, extractUntilMarker, cleanForEmail, applyEmailStyles)
+// are inlined directly in the client-side script to avoid eval and CSP issues.
+
+// ============================================================================
+// Newsletter configuration is sourced from environment variables.
+// See blog/.env.example for the available keys.
+// ============================================================================
+
+// ============================================================================
+// DATA FETCHING AND PROCESSING
+// ============================================================================
+
+// Fetch all blog posts
+const allPosts = await getCollection("blog");
+
+// Filter and sort posts by ordered slug list
+const manualOrder = newsletterConfig.manualOrder;
+const manualIndex = new Map<string, number>(
+  manualOrder.map((slug, index) => [slug, index]),
+);
+const recentPosts = allPosts
+  .filter((post) => manualIndex.has(post.id.replace(/\.(md|mdx)$/, "")))
+  .sort((a, b) => {
+    const slugA = a.id.replace(/\.(md|mdx)$/, "");
+    const slugB = b.id.replace(/\.(md|mdx)$/, "");
+    const indexA = manualIndex.get(slugA) ?? 0;
+    const indexB = manualIndex.get(slugB) ?? 0;
+    return indexA - indexB;
+  });
+
+// Render posts and extract excerpts
+const postsWithExcerpts = await Promise.all(
+  recentPosts.map(async (post) => {
+    const { Content } = await render(post);
+    // Use post.id as the slug (filename without extension)
+    const slug = post.id.replace(/\.(md|mdx)$/, "");
+    const config = { untilMarker: newsletterConfig.excerptMarker };
+
+    return {
+      post,
+      slug,
+      Content,
+      config,
+    };
+  }),
+);
+
+const siteUrl = "https://beta.doenet.org".replace(/\/$/, "");
+const blogBasePath = "/blog";
+
+// For newsletter images, always use the production URL so they work in emails
+const productionUrl = "https://beta.doenet.org";
+const logoUrl = `${productionUrl}/Doenet_Logo_Frontpage_color_text.png`;
+
+const issueDateFormatted = newsletterConfig.issueDate.toLocaleDateString(
+  "en-US",
+  {
+    year: "numeric",
+    month: "short",
+  },
+);
+
+// Load events content from newsletter-events.md if it exists
+let eventsContent = "";
+let eventsUrl = "";
+try {
+  const eventsFilePath = path.join(process.cwd(), "newsletter-events.md");
+  if (fs.existsSync(eventsFilePath)) {
+    const eventsMarkdown = fs.readFileSync(eventsFilePath, "utf-8");
+    const marked = new Marked();
+    eventsContent = marked.parse(eventsMarkdown) as string;
+  }
+  eventsUrl =
+    newsletterConfig.eventsUrl ||
+    `${siteUrl}${blogBasePath}`.replace(/\/$/, "");
+} catch (error) {
+  console.warn("Could not load newsletter-events.md:", error);
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doenet {issueDateFormatted} Newsletter</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      .controls {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .controls h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+      }
+      .controls p {
+        margin: 0 0 1rem 0;
+        color: #666;
+      }
+      .button {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background 0.2s;
+      }
+      .button:hover {
+        background: #0052a3;
+      }
+      .stats {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f0f7ff;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+      #newsletter-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .hidden-content {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Controls Section -->
+    <div class="controls">
+      <h1>📧 Newsletter Generator</h1>
+      <p>
+        This page generates an email-friendly HTML newsletter from the posts
+        listed in the configuration.
+      </p>
+
+      <button class="button" id="download-btn">
+        ⬇️ Download Newsletter HTML
+      </button>
+      <button
+        class="button"
+        id="copy-btn"
+        style="background: #28a745; margin-left: 0.5rem;"
+      >
+        📋 Copy HTML to Clipboard
+      </button>
+    </div>
+
+    <!-- Newsletter Content (this is what gets downloaded/copied) -->
+    <div id="newsletter-content">
+      <!-- Email-friendly container -->
+      <table role="presentation" style={newsletterStyles.newsletterTable}>
+        <!-- Header -->
+        <tr>
+          <td style={newsletterStyles.newsletterHeaderCell}>
+            <table
+              role="presentation"
+              style={newsletterStyles.newsletterHeaderTable}
+            >
+              <tr>
+                <td style={newsletterStyles.newsletterHeaderLeftCell}>
+                  <span>
+                    {issueDateFormatted} Newsletter
+                  </span>
+                </td>
+                <td style={newsletterStyles.newsletterHeaderRightCell}>
+                    <a href={siteUrl} aria-label="Visit Doenet">
+                      <img
+                        src={logoUrl}
+                        alt="Doenet"
+                        style={newsletterStyles.newsletterLogoImage}
+                      />
+                    </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr>
+          <td style={newsletterStyles.newsletterSpacerCell}></td>
+        </tr>
+      </table>
+
+      <!-- Posts -->
+      {
+        postsWithExcerpts.map(({ post, slug, Content, config }, index) => {
+          return (
+            <>
+              {/* Render the full content in a hidden div so we can extract from it */}
+              <div
+                class="hidden-content"
+                data-post-slug={slug}
+                data-config={JSON.stringify(config)}
+              >
+                <Content />
+              </div>
+
+              {/* This div will be populated with the excerpt via client-side script */}
+              <div
+                id={`post-${slug}`}
+                data-post-slug={slug}
+                data-title={post.data.title}
+                data-description={post.data.description}
+                data-author={post.data.author}
+                data-organization={post.data.organization || ""}
+                data-date={post.data.pubDate.toISOString()}
+                data-hero-image={post.data.heroImage || ""}
+              />
+
+              {/* Events Section after first post */}
+              {index === 0 && eventsContent && (
+                <div
+                  id="events-section"
+                  data-events-content={eventsContent}
+                  data-events-url={eventsUrl}
+                />
+              )}
+            </>
+          );
+        })
+      }
+
+      <!-- Footer -->
+      <table role="presentation" style={newsletterStyles.newsletterFooterTable}>
+        <tr>
+          <td style={newsletterStyles.newsletterFooterCell}>
+            <p style={newsletterStyles.newsletterFooterText}>
+              Visit the <a
+                href={`${siteUrl}${blogBasePath}`.replace(/\/$/, "")}
+                style={newsletterStyles.newsletterFooterLink}>Doenet Blog</a
+              > for more updates. Licensed under
+              <a
+                href="https://creativecommons.org/licenses/by/4.0/"
+                style={newsletterStyles.newsletterFooterLink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                CC BY 4.0
+              </a>. Reply to unsubscribe.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Client-side script to extract excerpts and populate posts -->
+    <script
+      is:inline
+      define:vars={{
+        siteUrl,
+        blogBasePath,
+        productionUrl,
+        newsletterStylesJSON: JSON.stringify(newsletterStyles),
+      }}
+    >
+      // Escape a string so it can be safely used inside a RegExp as a literal.
+      function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      // Extract content up to a marker comment/element (HTML, MDX, or data-excerpt)
+      // HTML: <!-- more -->
+      // MDX:  {/* more */}
+      // Element: <span data-excerpt style="display:none"></span>
+      function extractUntilMarker(html, marker = "more") {
+        const escapedMarker = escapeRegExp(marker);
+        const htmlComment = `<!--\\s*${escapedMarker}\\s*-->`;
+        const mdxComment = `\\{\\/\\*\\s*${escapedMarker}\\s*\\*\\/\\}`;
+        const dataMarker = `<[^>]*\\sdata-excerpt(?:\\s|=|>|/)[^>]*>`;
+        const markerPattern = new RegExp(
+          `${htmlComment}|${mdxComment}|${dataMarker}`,
+          "i",
+        );
+        const match = html.match(markerPattern);
+
+        if (match && match.index !== undefined) {
+          return html.substring(0, match.index).trim();
+        }
+
+        return html;
+      }
+
+      // Clean HTML for email compatibility and security
+      // - Remove script tags and style tags
+      // - Remove dangerous/interactive elements (button, form, iframe, object, embed, etc.)
+      // - Strip all event handler attributes (on*, data-*, dangerous protocols)
+      // - Sanitize href/src attributes to prevent javascript: and data: URLs
+      function cleanForEmail(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // Elements to completely remove (dangerous or non-email-compatible)
+        const dangerousTags = [
+          "script",
+          "style",
+          "button",
+          "input",
+          "textarea",
+          "select",
+          "form",
+          "iframe",
+          "object",
+          "embed",
+          "applet",
+          "base",
+          "link",
+          "meta",
+        ];
+
+        dangerousTags.forEach((tag) => {
+          doc.querySelectorAll(tag).forEach((el) => el.remove());
+        });
+
+        // Strip dangerous attributes from all elements
+        doc.querySelectorAll("*").forEach((el) => {
+          // Remove all event handler attributes (on*, data-*)
+          Array.from(el.attributes).forEach((attr) => {
+            if (
+              attr.name.startsWith("on") || // onclick, onerror, onload, etc.
+              attr.name.startsWith("data-") // Remove data attributes for safety
+            ) {
+              el.removeAttribute(attr.name);
+            }
+          });
+
+          // Sanitize href and src attributes
+          const href = el.getAttribute("href");
+          const src = el.getAttribute("src");
+
+          if (
+            href &&
+            (href.startsWith("javascript:") || href.startsWith("data:"))
+          ) {
+            el.removeAttribute("href");
+          }
+
+          if (
+            src &&
+            (src.startsWith("javascript:") || src.startsWith("data:"))
+          ) {
+            el.removeAttribute("src");
+          }
+
+          // Remove aria-* attributes that might execute code in some email clients
+          Array.from(el.attributes).forEach((attr) => {
+            if (
+              attr.name.startsWith("aria-") &&
+              attr.value.includes("javascript")
+            ) {
+              el.removeAttribute(attr.name);
+            }
+          });
+        });
+
+        return doc.body.innerHTML;
+      }
+
+      // Parse styles from JSON
+      const styleSheet = JSON.parse(newsletterStylesJSON);
+
+      // Process events section if present
+      const eventsSection = document.getElementById("events-section");
+      if (eventsSection) {
+        const eventsContentRaw = eventsSection.getAttribute(
+          "data-events-content",
+        );
+        const eventsUrl = eventsSection.getAttribute("data-events-url");
+
+        if (eventsContentRaw) {
+          // We'll process events after applyEmailStyles is defined
+          // Store for later processing
+          window._eventsToProcess = {
+            section: eventsSection,
+            content: eventsContentRaw,
+            url: eventsUrl,
+          };
+        }
+      }
+
+      // Apply inline styles for email compatibility
+      function applyEmailStyles(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // Style paragraphs
+        doc.querySelectorAll("p").forEach((p) => {
+          p.setAttribute("style", styleSheet.paragraph);
+        });
+
+        // Style headings
+        doc.querySelectorAll("h1").forEach((h) => {
+          h.setAttribute("style", styleSheet.heading1);
+        });
+
+        doc.querySelectorAll("h2").forEach((h) => {
+          h.setAttribute("style", styleSheet.heading2);
+        });
+
+        doc.querySelectorAll("h3").forEach((h) => {
+          h.setAttribute("style", styleSheet.heading3);
+        });
+
+        doc.querySelectorAll("h4, h5, h6").forEach((h) => {
+          h.setAttribute("style", styleSheet.heading4);
+        });
+
+        // Style links
+        doc.querySelectorAll("a").forEach((a) => {
+          a.setAttribute("style", styleSheet.link);
+        });
+
+        // Style lists
+        doc.querySelectorAll("ul, ol").forEach((list) => {
+          list.setAttribute("style", styleSheet.list);
+        });
+
+        doc.querySelectorAll("li").forEach((li) => {
+          li.setAttribute("style", styleSheet.listItem);
+        });
+
+        // Style code blocks
+        doc.querySelectorAll("pre").forEach((pre) => {
+          pre.setAttribute("style", styleSheet.codeBlock);
+        });
+
+        doc.querySelectorAll("code").forEach((code) => {
+          if (code.parentElement?.tagName !== "PRE") {
+            code.setAttribute("style", styleSheet.codeInline);
+          }
+        });
+
+        // Style blockquotes
+        doc.querySelectorAll("blockquote").forEach((bq) => {
+          bq.setAttribute("style", styleSheet.blockquote);
+        });
+
+        // Style images
+        doc.querySelectorAll("img").forEach((img) => {
+          img.setAttribute("style", styleSheet.image);
+        });
+
+        return doc.body.innerHTML;
+      }
+
+      // Escape HTML special characters to prevent injection
+      function escapeHtml(text) {
+        if (!text) return text;
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+        return text.replace(/[&<>"']/g, (char) => map[char]);
+      }
+
+      function absolutizeUrl(rawUrl) {
+        if (!rawUrl) return rawUrl;
+        const url = rawUrl.trim();
+        if (!url) return url;
+
+        if (/^(https?:|mailto:|tel:|data:|#)/i.test(url)) {
+          return url;
+        }
+
+        if (url.startsWith("//")) {
+          return `https:${url}`;
+        }
+
+        // Use production URL for all absolute and relative paths
+        if (url.startsWith("/")) {
+          return `${productionUrl}${url}`;
+        }
+
+        // For relative URLs, construct full URL with production base
+        const base = `${productionUrl}${blogBasePath}`.replace(/\/$/, "");
+        const relative = url.replace(/^\.\//, "");
+        return `${base}/${relative}`;
+      }
+
+      function rewriteUrls(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        doc.querySelectorAll("img").forEach((img) => {
+          const src = img.getAttribute("src");
+          if (src) {
+            const absoluteUrl = absolutizeUrl(src);
+            img.setAttribute("src", absoluteUrl);
+          }
+
+          const srcset = img.getAttribute("srcset");
+          if (srcset) {
+            const updated = srcset
+              .split(",")
+              .map((part) => {
+                const trimmed = part.trim();
+                if (!trimmed) return trimmed;
+                const [urlPart, sizePart] = trimmed.split(/\s+/, 2);
+                const absUrl = absolutizeUrl(urlPart);
+                return sizePart ? `${absUrl} ${sizePart}` : absUrl;
+              })
+              .join(", ");
+            img.setAttribute("srcset", updated);
+          }
+        });
+
+        doc.querySelectorAll("a").forEach((a) => {
+          const href = a.getAttribute("href");
+          if (href) {
+            a.setAttribute("href", absolutizeUrl(href));
+          }
+        });
+
+        return doc.body.innerHTML;
+      }
+
+      // Process each post
+      document.addEventListener("DOMContentLoaded", () => {
+        const hiddenContents = document.querySelectorAll(".hidden-content");
+
+        hiddenContents.forEach((hiddenDiv) => {
+          const slug = hiddenDiv.getAttribute("data-post-slug");
+          const config = JSON.parse(hiddenDiv.getAttribute("data-config"));
+          const targetDiv = document.getElementById(`post-${slug}`);
+
+          if (!targetDiv) return;
+
+          // Get the rendered HTML from the hidden div
+          let html = hiddenDiv.innerHTML;
+
+          // Extract excerpt based on config
+          const excerpt = extractUntilMarker(html, config.untilMarker);
+
+          // Clean and style for email
+          let processedExcerpt = cleanForEmail(excerpt);
+          processedExcerpt = applyEmailStyles(processedExcerpt);
+          processedExcerpt = rewriteUrls(processedExcerpt);
+
+          // Get post metadata
+          const title = targetDiv.getAttribute("data-title");
+          const description = targetDiv.getAttribute("data-description");
+          const author = targetDiv.getAttribute("data-author");
+          const organization = targetDiv.getAttribute("data-organization");
+          const heroImage = targetDiv.getAttribute("data-hero-image");
+
+          // Escape HTML in metadata to prevent injection
+          const escapedTitle = escapeHtml(title);
+          const escapedAuthor = escapeHtml(author);
+          const escapedOrganization = escapeHtml(organization);
+          const escapedDescription = escapeHtml(description);
+
+          // Build the post HTML
+          const blogBaseUrl = `${siteUrl}${blogBasePath}`.replace(/\/$/, "");
+          const postUrl = `${blogBaseUrl}/${slug}`;
+
+          // Build hero image HTML if enabled for this post
+          const heroImageCell = heroImage
+            ? `<td style="${styleSheet.headerImageCell}"><img src="${absolutizeUrl(heroImage)}" alt="${escapedTitle}" style="${styleSheet.heroImage}" /></td>`
+            : "";
+
+          const postHtml = `
+            <table role="presentation" style="${styleSheet.table}">
+              <tr>
+                <td style="${styleSheet.headerCell}">
+                  <table role="presentation" style="${styleSheet.headerInnerTable}">
+                    <tr>
+                      ${heroImageCell}
+                      <td style="${styleSheet.headerContentCell}">
+                        <h2 style="${styleSheet.title}">
+                          <a href="${postUrl}" style="${styleSheet.titleLink}" target="_blank" rel="noopener noreferrer">
+                            ${escapedTitle}
+                          </a>
+                        </h2>
+                        <p style="${styleSheet.meta}">
+                          By ${escapedAuthor}${escapedOrganization ? ` (${escapedOrganization})` : ""}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="${styleSheet.cell}">
+                  <div style="${styleSheet.body}">
+                    ${processedExcerpt}
+                  </div>
+                  <p style="${styleSheet.buttonWrap}">
+                    <a href="${postUrl}" style="${styleSheet.button}" target="_blank" rel="noopener noreferrer">
+                      Read Full Post →
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          `;
+
+          targetDiv.innerHTML = postHtml;
+        });
+
+        // Process events section if stored earlier
+        if (window._eventsToProcess) {
+          const { section, content, url } = window._eventsToProcess;
+
+          let processedEvents = cleanForEmail(content);
+          processedEvents = applyEmailStyles(processedEvents);
+          processedEvents = rewriteUrls(processedEvents);
+
+          const eventsHtml = `
+            <table role="presentation" style="${styleSheet.eventsSection}">
+              <tr>
+                <td style="${styleSheet.eventsHeader}">
+                  <h2 style="${styleSheet.eventsTitle}">Events</h2>
+                </td>
+              </tr>
+              <tr>
+                <td style="${styleSheet.eventsContent}">
+                  <div style="${styleSheet.eventsBody}">
+                    ${processedEvents}
+                  </div>
+                  <p style="${styleSheet.buttonWrap}">
+                    <a href="${url}" style="${styleSheet.button}" target="_blank" rel="noopener noreferrer">
+                      See All Events →
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          `;
+
+          section.innerHTML = eventsHtml;
+          delete window._eventsToProcess;
+        }
+
+        // Remove hidden content divs from the newsletter content
+        hiddenContents.forEach((div) => div.remove());
+
+        // Attach event listeners to buttons
+        const downloadBtn = document.getElementById("download-btn");
+        const copyBtn = document.getElementById("copy-btn");
+
+        if (downloadBtn) {
+          downloadBtn.addEventListener("click", downloadNewsletter);
+        }
+        if (copyBtn) {
+          copyBtn.addEventListener("click", copyToClipboard);
+        }
+      });
+
+      // Download newsletter as HTML file
+      function downloadNewsletter() {
+        const content = document.getElementById("newsletter-content");
+        const html = `<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(document.title)}</title>
+</head>
+<body style="${styleSheet.wrapperBody}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${styleSheet.wrapperOuterTable}">
+    <tr>
+      <td align="center" style="${styleSheet.wrapperOuterCell}">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="${styleSheet.wrapperInnerTable}">
+          <tr>
+            <td>
+${content.innerHTML}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `doenet-newsletter-${new Date().toISOString().split("T")[0]}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // Copy newsletter HTML to clipboard
+      function copyToClipboard() {
+        const content = document.getElementById("newsletter-content");
+        const html = `<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(document.title)}</title>
+</head>
+<body style="${styleSheet.wrapperBody}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${styleSheet.wrapperOuterTable}">
+    <tr>
+      <td align="center" style="${styleSheet.wrapperOuterCell}">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="${styleSheet.wrapperInnerTable}">
+          <tr>
+            <td>
+${content.innerHTML}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+        navigator.clipboard
+          .writeText(html)
+          .then(() => {
+            alert("Newsletter HTML copied to clipboard!");
+          })
+          .catch((err) => {
+            console.error("Failed to copy:", err);
+            alert(
+              "Failed to copy to clipboard. Please try the download option.",
+            );
+          });
+      }
+    </script>
+
+  </body>
+</html>
