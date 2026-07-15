@@ -45,8 +45,9 @@ describe("Image upload", { tags: ["@group3"] }, function () {
       const writeText = stub as unknown as sinon.SinonStub;
       expect(writeText.callCount).to.equal(1);
       const arg = writeText.firstCall.args[0] as string;
+      // The image was licensed CC0 above, so the tag carries licenseCodes.
       expect(arg).to.match(
-        /^<image source="doenet:[1-9A-HJ-NP-Za-km-z]{21,22}" \/>$/,
+        /^<image source="doenet:[1-9A-HJ-NP-Za-km-z]{21,22}" licenseCodes="CC0" \/>$/,
       );
     });
   });
