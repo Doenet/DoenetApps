@@ -48,6 +48,12 @@ describe("setImageAttributionSchema", () => {
     expect(() => parse({ imageLicenseCodes: "CC-BY CC-BY-SA GFDL" })).toThrow();
   });
 
+  test("rejects dual licensing with two identical codes", () => {
+    expect(() => parse({ imageLicenseCodes: "CC-BY-SA CC-BY-SA" })).toThrow();
+    // Case-insensitively too, since codes are upper-cased before comparison.
+    expect(() => parse({ imageLicenseCodes: "cc-by CC-BY" })).toThrow();
+  });
+
   test("requires a license", () => {
     expect(() => parse({ imageLicenseCodes: "" })).toThrow();
     expect(() => parse({ imageLicenseCodes: undefined })).toThrow();

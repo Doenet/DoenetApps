@@ -308,6 +308,9 @@ export function Activities() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    // No card anchor for the upload flow; clear any stale one so focus restores
+    // to the element that had it (rather than an unrelated card's menu button).
+    finalFocusRef.current = null;
     setAttributionTarget({ mode: "create", file });
   }
 
@@ -396,6 +399,7 @@ export function Activities() {
       }
       submitLabel={attributionTarget.mode === "edit" ? "Save" : "Upload"}
       defaultAuthorName={user ? createNameNoTag(user) : undefined}
+      finalFocusRef={finalFocusRef}
       onSubmit={(values) =>
         attributionTarget.mode === "edit"
           ? saveImageAttribution(attributionTarget.image.contentId, values)
@@ -869,7 +873,9 @@ export function Activities() {
             variant="outline"
             leftIcon={<MdOutlineEdit />}
             data-test="Edit Image Attribution"
-            onClick={() => {
+            onClick={(e) => {
+              // Return focus to this button when the modal closes.
+              finalFocusRef.current = e.currentTarget;
               setAttributionTarget({ mode: "edit", image: activity });
             }}
           >

@@ -111,6 +111,13 @@ function parseLicenseCodes(
       return z.NEVER;
     }
   }
+  if (codes.length === 2 && codes[0] === codes[1]) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Dual licensing requires two different license codes",
+    });
+    return z.NEVER;
+  }
   return codes.join(" ");
 }
 
