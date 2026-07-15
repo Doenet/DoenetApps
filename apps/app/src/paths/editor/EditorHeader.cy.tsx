@@ -53,6 +53,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     parentVisibility: string;
     canSharePublicly: boolean;
     publicShareIssues: string[];
+    publicShareBlockers: unknown[];
     sharedWith: unknown[];
     parentSharedWith: unknown[];
   }) {
@@ -121,6 +122,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       parentVisibility: "private",
       canSharePublicly: false,
       publicShareIssues: ["missingRequiredCategories"],
+      publicShareBlockers: [],
       sharedWith: [],
       parentSharedWith: [],
     });
@@ -144,6 +146,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       parentVisibility: "private",
       canSharePublicly: true,
       publicShareIssues: [],
+      publicShareBlockers: [],
       sharedWith: [],
       parentSharedWith: [],
     });
