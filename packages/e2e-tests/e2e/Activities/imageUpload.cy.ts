@@ -24,6 +24,11 @@ describe("Image upload", { tags: ["@group3"] }, function () {
       );
     });
 
+    // Picking a file opens the license modal; the image isn't uploaded until a
+    // license is chosen and confirmed. CC0 is public domain, so no author needed.
+    cy.get('[data-test="License Card CC0"]').click();
+    cy.get('[data-test="Save Image Attribution"]').click();
+
     cy.get('[data-test="Content Card"]', { timeout: 10000 })
       .should("have.length", 1)
       .and("contain.text", "tiny.png");
