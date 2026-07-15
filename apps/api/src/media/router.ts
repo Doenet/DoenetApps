@@ -14,4 +14,4 @@ mediaRouter.post("/image/init", handleInitUpload);
 mediaRouter.post("/image/complete", handleCompleteUpload);
 
 // Edit the DoenetML `<image>` attribution/licensing on an owned image item.
-mediaRouter.post("/image/attribution", handleSetAttribution);
+mediaRouter.patch("/image/attribution", handleSetAttribution);

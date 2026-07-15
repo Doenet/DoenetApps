@@ -358,7 +358,7 @@ export function Activities() {
     contentId: string,
     values: ImageAttributionFormValues,
   ) {
-    await axios.post("/api/media/image/attribution", { contentId, ...values });
+    await axios.patch("/api/media/image/attribution", { contentId, ...values });
     revalidator.revalidate();
   }
 
