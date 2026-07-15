@@ -601,6 +601,7 @@ export function Activities() {
       },
       onDelete: () => {
         setSettingsContentId(cardSelections.ids.values().next().value ?? null);
+        cardSelections.clear();
         deleteContentOnOpen();
       },
     });

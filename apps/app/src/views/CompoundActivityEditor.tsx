@@ -446,6 +446,7 @@ export function CompoundActivityEditor({
           (c) => c.contentId === cardSelections.ids.values().next().value,
         );
         if (selectedContent) {
+          cardSelections.clear();
           setContentToDelete(selectedContent);
           deleteContentOnOpen();
         }
