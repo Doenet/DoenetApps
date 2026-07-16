@@ -233,7 +233,7 @@ export function AssignmentResponseStudent() {
       const targetAbsoluteTop = iframeTop + offset;
 
       scrollingContainer.current.scrollTo({
-        top: targetAbsoluteTop - 0,
+        top: targetAbsoluteTop - 90,
         behavior: "smooth",
       });
     }
@@ -259,6 +259,7 @@ export function AssignmentResponseStudent() {
         doenetML={data.doenetML}
         doenetmlVersion={data.doenetmlVersion}
         requestScrollTo={requestScrollTo}
+        viewerContainerRef={viewerContainer}
       />
     );
   } else {
@@ -348,9 +349,7 @@ export function AssignmentResponseStudent() {
             </GridItem>
           </Grid>
         </GridItem>
-        <GridItem area="centerContent" ref={viewerContainer}>
-          {mainPanel}
-        </GridItem>
+        <GridItem area="centerContent">{mainPanel}</GridItem>
       </Grid>
     </>
   );
