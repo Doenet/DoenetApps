@@ -87,6 +87,44 @@ map entries with a HEAD request before skipping them.
 short ids (kind: user / folder / activity / page / image), for back-links and
 user support.
 
+## Running inside the deployed container (dev3 / prod)
+
+The deployed image contains the compiled stages at `dist/scripts/legacy-migration/`,
+and the task environment already provides `DATABASE_URL` and `MEDIA_S3_*`. Only
+stages 02–04 run there; extract (00–01) runs on a workstation and its
+`model.json` is portable.
+
+1. Locally: upload `model.json` and `media.tgz` to a **private** S3 bucket and
+   mint presigned GET URLs (e.g. `aws s3 presign s3://<bucket>/<key> --expires-in 3600`).
+2. `infra/scripts/exec.sh -s dev3` (or `-s prod`) from the repo root; pick the
+   api service/task.
+3. Inside the container:
+
+```bash
+mkdir -p /tmp/legacy-migration/build && cd /tmp/legacy-migration
+curl -fo media.tgz '<presigned media.tgz url>' && tar -xzf media.tgz
+curl -fo build/model.json '<presigned model.json url>'
+export LEGACY_MEDIA_DIR=/tmp/legacy-migration/media
+export LEGACY_BUILD_DIR=/tmp/legacy-migration/build
+cd /DoenetTools/apps/api
+node dist/prisma/seed.js                                    # 0.6 -> 0.6.15 etc.
+node dist/scripts/legacy-migration/02-upload-images.js
+node dist/scripts/legacy-migration/03-import.js --dry-run
+node dist/scripts/legacy-migration/03-import.js --user=<email> --yes-target=<db-host>
+node dist/scripts/legacy-migration/03-import.js --yes-target=<db-host>
+node dist/scripts/legacy-migration/04-verify.js
+```
+
+(`03-import` prints `Target database: <host>...` and refuses until the same
+host is passed via `--yes-target`.)
+
+4. Immediately copy `build/id-map.tsv` and the reports off the container —
+   `/tmp` is ephemeral and a redeploy or scale-to-zero wipes it, and the
+   id-map is both the resume journal and the mapping deliverable. Presign a
+   PUT URL locally (boto3 `generate_presigned_url("put_object", ...)`) and
+   `curl -X PUT --upload-file build/id-map.tsv '<url>'` from the container.
+5. Delete the uploaded inputs from S3 afterwards (they contain user data).
+
 ## Refreshing the legacy data
 
 ```bash
