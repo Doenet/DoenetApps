@@ -1,5 +1,6 @@
 import { prisma } from "../model";
 import { prepareNewChild } from "../content-tree";
+import { getContent } from "../query/activity_edit_view";
 import { InvalidRequestError } from "../utils/error";
 
 /**
@@ -111,6 +112,33 @@ export async function createImageContent({
     name: content.name,
     contentType: content.type,
   };
+}
+
+/**
+ * Fetches a single image content item's row (name + attribution + resolvable
+ * source) for the image details page. This serves metadata only — the image
+ * bytes come straight from the CDN, never through the API. Uses the shared
+ * {@link getContent} so the same view-permission rules apply — an image is
+ * `unlisted` (not private), so it's reachable by anyone with the link, the same
+ * reachability the CDN-served bytes already have. Unlike `getActivityViewerData`,
+ * this deliberately skips remix/library lookups, which don't apply to images
+ * (and throw when asked to compile an image as an activity). Throws if
+ * `contentId` isn't an image.
+ */
+export async function getImageDetails({
+  contentId,
+  loggedInUserId = new Uint8Array(16),
+}: {
+  contentId: Uint8Array;
+  loggedInUserId?: Uint8Array;
+}) {
+  const content = await getContent({ contentId, loggedInUserId });
+
+  if (content.type !== "image") {
+    throw new InvalidRequestError("Content is not an image");
+  }
+
+  return { image: content };
 }
 
 export async function deleteImageContent({

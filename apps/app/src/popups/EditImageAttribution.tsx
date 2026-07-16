@@ -40,6 +40,7 @@ import {
   type MediaLicenseCode,
 } from "@doenet-tools/shared";
 import { buildImageTag } from "../utils/imageTag";
+import { ImageItem } from "../types";
 
 // The editable attribution fields, as plain form strings ("" when empty). The
 // license is required; the other fields are optional (author is required only
@@ -61,6 +62,22 @@ export const emptyImageAttribution: ImageAttributionFormValues = {
   imageLicenseCodes: "",
   imageLicenseVersion: defaultCreativeCommonsVersion,
 };
+
+// Maps an existing image's stored fields (nullable) into the modal's form
+// values ("" for absent fields), for editing an already-uploaded image.
+export function imageToFormValues(
+  image: ImageItem,
+): ImageAttributionFormValues {
+  return {
+    imageAuthorName: image.imageAuthorName ?? "",
+    imageAuthorUrl: image.imageAuthorUrl ?? "",
+    imageTitle: image.imageTitle ?? "",
+    imageOriginalUrl: image.imageOriginalUrl ?? "",
+    imageLicenseCodes: image.imageLicenseCodes ?? "",
+    imageLicenseVersion:
+      image.imageLicenseVersion ?? emptyImageAttribution.imageLicenseVersion,
+  };
+}
 
 // The handful of licenses most image uploads use, surfaced as one-click cards
 // with plain-language labels and Creative Commons badges. Everything else stays

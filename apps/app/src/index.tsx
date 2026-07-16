@@ -125,6 +125,10 @@ import { editorUrl } from "./utils/url";
 import { ScratchPad, loader as scratchPadLoader } from "./paths/ScratchPad";
 import { About } from "./paths/About";
 import { RawViewer, loader as rawViewerLoader } from "./paths/RawViewer";
+import {
+  ImageDetails,
+  loader as imageDetailsLoader,
+} from "./paths/ImageDetails";
 import { GetInvolved } from "./paths/GetInvolved";
 import { Events } from "./paths/Events";
 import { QuickLinks } from "./paths/QuickLinks";
@@ -247,6 +251,12 @@ const router = createBrowserRouter([
         action: genericAction,
         errorElement: <ErrorPage />,
         element: <ActivityViewer />,
+      },
+      {
+        path: "imageDetails/:contentId",
+        loader: imageDetailsLoader,
+        errorElement: <ErrorPage />,
+        element: <ImageDetails />,
       },
       {
         path: "documentEditor/:contentId",

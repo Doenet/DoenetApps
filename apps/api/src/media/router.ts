@@ -1,9 +1,12 @@
 import express from "express";
+import { queryOptionalLoggedIn } from "../middleware/queryMiddleware";
+import { contentIdSchema } from "../schemas/contentSchema";
 import {
   handleCompleteUpload,
   handleInitUpload,
   handleSetAttribution,
 } from "./upload";
+import { getImageDetails } from "./imageContent";
 
 export const mediaRouter = express.Router();
 
@@ -15,3 +18,11 @@ mediaRouter.post("/image/complete", handleCompleteUpload);
 
 // Edit the DoenetML `<image>` attribution/licensing on an owned image item.
 mediaRouter.patch("/image/attribution", handleSetAttribution);
+
+// Metadata for the image details page (name + attribution + resolvable source).
+// The `/details` suffix makes clear this returns the row, not the image bytes —
+// the bytes come straight from the CDN, never through this API.
+mediaRouter.get(
+  "/image/:contentId/details",
+  queryOptionalLoggedIn(getImageDetails, contentIdSchema),
+);

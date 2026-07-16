@@ -36,25 +36,14 @@ import {
   useRevalidator,
 } from "react-router";
 import axios from "axios";
-import {
-  MdClose,
-  MdContentCopy,
-  MdOutlineEdit,
-  MdOutlineSearch,
-} from "react-icons/md";
+import { MdClose, MdContentCopy, MdOutlineSearch } from "react-icons/md";
 import { FaPlus } from "react-icons/fa";
 import { LuDessert } from "react-icons/lu";
 
 import { CardContent } from "../widgets/Card";
 import CardList from "../widgets/CardList";
 import { MoveCopyContent } from "../popups/MoveCopyContent";
-import {
-  Content,
-  ContentType,
-  ImageItem,
-  LicenseCode,
-  UserInfo,
-} from "../types";
+import { Content, ContentType, LicenseCode, UserInfo } from "../types";
 import {
   EditImageAttribution,
   emptyImageAttribution,
@@ -154,9 +143,9 @@ export function Activities() {
   // freshly picked file before uploading it (`create`), or to edit an existing
   // image's attribution (`edit`). A license is mandatory in both, so an
   // unlicensed image is never created.
-  const [attributionTarget, setAttributionTarget] = useState<
-    { mode: "create"; file: File } | { mode: "edit"; image: ImageItem } | null
-  >(null);
+  // The image file awaiting a license before its upload completes. Editing the
+  // attribution of an already-uploaded image now lives on the image viewer page.
+  const [uploadTarget, setUploadTarget] = useState<{ file: File } | null>(null);
 
   const { addTo, setAddTo, user } = useOutletContext<SiteContext>();
 
@@ -311,7 +300,7 @@ export function Activities() {
     // No card anchor for the upload flow; clear any stale one so focus restores
     // to the element that had it (rather than an unrelated card's menu button).
     finalFocusRef.current = null;
-    setAttributionTarget({ mode: "create", file });
+    setUploadTarget({ file });
   }
 
   // Runs the two-step upload with the license/attribution the user supplied.
@@ -356,54 +345,21 @@ export function Activities() {
     }
   }
 
-  // Persists edited attribution for an existing image.
-  async function saveImageAttribution(
-    contentId: string,
-    values: ImageAttributionFormValues,
-  ) {
-    await axios.patch("/api/media/image/attribution", { contentId, ...values });
-    revalidator.revalidate();
-  }
-
-  // Maps an existing image's stored fields into the modal's form values.
-  function imageToFormValues(image: ImageItem): ImageAttributionFormValues {
-    return {
-      imageAuthorName: image.imageAuthorName ?? "",
-      imageAuthorUrl: image.imageAuthorUrl ?? "",
-      imageTitle: image.imageTitle ?? "",
-      imageOriginalUrl: image.imageOriginalUrl ?? "",
-      imageLicenseCodes: image.imageLicenseCodes ?? "",
-      imageLicenseVersion:
-        image.imageLicenseVersion ?? emptyImageAttribution.imageLicenseVersion,
-    };
-  }
-
-  const attributionModal = attributionTarget ? (
+  // Shown when the user picks an image to upload: they must license it before
+  // the upload completes. Editing an existing image's attribution happens on the
+  // image viewer page instead.
+  const attributionModal = uploadTarget ? (
     <EditImageAttribution
       isOpen={true}
-      onClose={() => setAttributionTarget(null)}
-      initial={
-        attributionTarget.mode === "edit"
-          ? imageToFormValues(attributionTarget.image)
-          : emptyImageAttribution
-      }
-      imageSource={
-        attributionTarget.mode === "edit"
-          ? attributionTarget.image.imageSource
-          : null
-      }
-      headerLabel={
-        attributionTarget.mode === "edit"
-          ? "Image attribution & license"
-          : "License this image"
-      }
-      submitLabel={attributionTarget.mode === "edit" ? "Save" : "Upload"}
+      onClose={() => setUploadTarget(null)}
+      initial={emptyImageAttribution}
+      imageSource={null}
+      headerLabel="License this image"
+      submitLabel="Upload"
       defaultAuthorName={user ? createNameNoTag(user) : undefined}
       finalFocusRef={finalFocusRef}
       onSubmit={(values) =>
-        attributionTarget.mode === "edit"
-          ? saveImageAttribution(attributionTarget.image.contentId, values)
-          : uploadImageWithAttribution(attributionTarget.file, values)
+        uploadImageWithAttribution(uploadTarget.file, values)
       }
     />
   ) : null;
@@ -826,7 +782,7 @@ export function Activities() {
 
     let cardLink: string | undefined;
     if (activity.type === "image") {
-      cardLink = undefined;
+      cardLink = `/imageDetails/${activity.contentId}`;
     } else if (activity.type === "folder") {
       cardLink = `/activities/${activity.ownerId}/${activity.contentId}`;
     } else if (activity.assignmentInfo) {
@@ -867,19 +823,6 @@ export function Activities() {
             }}
           >
             Copy tag
-          </Button>
-          <Button
-            size="xs"
-            variant="outline"
-            leftIcon={<MdOutlineEdit />}
-            data-test="Edit Image Attribution"
-            onClick={(e) => {
-              // Return focus to this button when the modal closes.
-              finalFocusRef.current = e.currentTarget;
-              setAttributionTarget({ mode: "edit", image: activity });
-            }}
-          >
-            Attribution
           </Button>
         </HStack>
       ) : undefined;

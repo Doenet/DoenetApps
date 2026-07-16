@@ -5,7 +5,11 @@ import { setContentLicense } from "../query/license";
 import { setContentIsPublic, shareContentWithEmail } from "../query/share";
 import { createTestUser } from "../test/utils";
 import { InvalidRequestError } from "../utils/error";
-import { createImageContent, deleteImageContent } from "./imageContent";
+import {
+  createImageContent,
+  deleteImageContent,
+  getImageDetails,
+} from "./imageContent";
 
 async function getContent(contentId: Uint8Array) {
   return prisma.content.findUniqueOrThrow({
@@ -283,6 +287,76 @@ describe("createImageContent with storageKey", () => {
 
     const row = await getContent(contentId);
     expect(row.imageData?.storageKey).toBe("images/abc.png");
+  });
+});
+
+describe("getImageDetails", () => {
+  test("returns the image with its source and attribution for the owner", async () => {
+    const owner = await createTestUser();
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: null,
+      name: "donut.png",
+      mimeType: "image/png",
+      sizeBytes: 1024,
+      storageKey: "images/abc123",
+      attribution: {
+        imageAuthorName: "Ada",
+        imageAuthorUrl: "https://example.com/ada",
+        imageTitle: "A Donut",
+        imageOriginalUrl: "https://example.com/donut",
+        imageLicenseCodes: "CC-BY-SA",
+        imageLicenseVersion: "4.0",
+      },
+    });
+
+    const { image } = await getImageDetails({
+      contentId,
+      loggedInUserId: owner.userId,
+    });
+
+    expect(image.type).toBe("image");
+    expect(image.name).toBe("donut.png");
+    if (image.type !== "image") throw new Error("expected an image");
+    expect(image.imageSource).toBe("doenet:abc123");
+    expect(image.imageAuthorName).toBe("Ada");
+    expect(image.imageTitle).toBe("A Donut");
+    expect(image.imageLicenseCodes).toBe("CC-BY-SA");
+    expect(image.imageLicenseVersion).toBe("4.0");
+  });
+
+  test("is reachable by a stranger — images are unlisted, not private", async () => {
+    const owner = await createTestUser();
+    const stranger = await createTestUser();
+    const { contentId } = await createImageContent({
+      loggedInUserId: owner.userId,
+      parentId: null,
+      name: "public-ish.png",
+      mimeType: "image/png",
+      sizeBytes: 1,
+      storageKey: "images/def456",
+    });
+
+    const { image } = await getImageDetails({
+      contentId,
+      loggedInUserId: stranger.userId,
+    });
+
+    expect(image.type).toBe("image");
+    expect(image.name).toBe("public-ish.png");
+  });
+
+  test("throws when the content is not an image", async () => {
+    const owner = await createTestUser();
+    const { contentId: docId } = await createContent({
+      loggedInUserId: owner.userId,
+      contentType: "singleDoc",
+      parentId: null,
+    });
+
+    await expect(
+      getImageDetails({ contentId: docId, loggedInUserId: owner.userId }),
+    ).rejects.toThrow("Content is not an image");
   });
 });
 
