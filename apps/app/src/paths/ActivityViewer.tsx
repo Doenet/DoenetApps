@@ -69,6 +69,7 @@ import {
 import { ActivitySource, isActivitySource } from "@doenet-tools/shared";
 import { DoenetEditor, DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
+import { legacyRefLinkProps } from "../utils/legacyLinks";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
 import { processRemixes } from "../utils/processRemixes";
 import ContributorsMenu from "../dropdowns/ContributorsMenu";
@@ -368,6 +369,7 @@ export function ActivityViewer() {
             readOnly={true}
             doenetViewerUrl={doenetViewerUrl}
             doenetImagesUrl={doenetImagesUrl}
+            {...legacyRefLinkProps}
           />
         </>
       );
@@ -394,6 +396,7 @@ export function ActivityViewer() {
                 attemptNumber={1}
                 doenetViewerUrl={doenetViewerUrl}
                 doenetImagesUrl={doenetImagesUrl}
+                {...legacyRefLinkProps}
                 includeVariantSelector={true}
                 requestScrollTo={requestScrollTo}
               />

@@ -16,6 +16,7 @@ import {
 import { DoenetmlVersion } from "../../types";
 import { DoenetEditor, type DoenetEditorHandle } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../../utils/media";
+import { legacyRefLinkProps } from "../../utils/legacyLinks";
 import axios, { AxiosError } from "axios";
 import { EditorContext } from "./EditorHeader";
 import {
@@ -350,6 +351,7 @@ function DocumentEditor({
       readOnly={readOnly}
       doenetViewerUrl={doenetViewerUrl}
       doenetImagesUrl={doenetImagesUrl}
+      {...legacyRefLinkProps}
     />
   );
 }

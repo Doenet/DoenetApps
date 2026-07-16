@@ -1,6 +1,7 @@
 import { ReactElement, useEffect, useMemo, useState } from "react";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../../utils/media";
+import { legacyRefLinkProps } from "../../utils/legacyLinks";
 import { PanelPair } from "../../widgets/PanelPair";
 import { ContentRevision, DoenetmlVersion } from "../../types";
 import {
@@ -246,6 +247,7 @@ export function DocEditorHistoryModeComponent({
         showFormatter={false}
         doenetViewerUrl={doenetViewerUrl}
         doenetImagesUrl={doenetImagesUrl}
+        {...legacyRefLinkProps}
       />
     </Box>
   );
@@ -334,6 +336,7 @@ export function DocEditorHistoryModeComponent({
             showFormatter={false}
             doenetViewerUrl={doenetViewerUrl}
             doenetImagesUrl={doenetImagesUrl}
+            {...legacyRefLinkProps}
           />
         </>
       ) : (

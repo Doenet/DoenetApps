@@ -1,5 +1,6 @@
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
+import { legacyRefLinkProps } from "../utils/legacyLinks";
 import axios from "axios";
 import { useLoaderData } from "react-router";
 import { ActivitySource, isActivitySource } from "@doenet-tools/shared";
@@ -173,6 +174,7 @@ export function RawViewer() {
         attemptNumber={1}
         doenetViewerUrl={doenetViewerUrl}
         doenetImagesUrl={doenetImagesUrl}
+        {...legacyRefLinkProps}
         includeVariantSelector={true}
         addVirtualKeyboard={false}
       />

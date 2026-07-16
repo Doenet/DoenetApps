@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
+import { legacyRefLinkProps } from "../utils/legacyLinks";
 
 import {
   Box,
@@ -176,6 +177,7 @@ export function AssignmentItemResponseStudent({
       forceUnsuppressCheckwork={true}
       doenetViewerUrl={doenetViewerUrl}
       doenetImagesUrl={doenetImagesUrl}
+      {...legacyRefLinkProps}
       showAnswerResponseButton={true}
       answerResponseCounts={responseCounts}
       requestScrollTo={requestScrollTo}
