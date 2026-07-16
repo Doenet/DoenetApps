@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "SourceHostedZoneName",
+    "ParameterValue": "beta.beta.doenet.org"
+  },
+  {
+    "ParameterKey": "SourceHostedZoneId",
+    "ParameterValue": "Z0126382ZHTT46RB59N8"
+  },
+  {
+    "ParameterKey": "TargetDomainName",
+    "ParameterValue": "beta.doenet.org"
+  }
+]
