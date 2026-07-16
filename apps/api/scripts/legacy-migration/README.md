@@ -55,9 +55,20 @@ npx tsx scripts/legacy-migration/03-import.ts --user=someone@example.com
 # 5. full import (journals to build/id-map.tsv; re-run to resume)
 npx tsx scripts/legacy-migration/03-import.ts
 
-# 6. verify
+# 6. rewrite cross-activity <ref> links to the migrated copies' ids
+#    (requires the completed journal; in-place UPDATE, idempotent)
+npx tsx scripts/legacy-migration/03b-rewrite-refs.ts
+
+# 7. verify
 npx tsx scripts/legacy-migration/04-verify.ts
 ```
+
+For the rewritten links to work in the app, the viewer must pass
+`linkSettings` (see `apps/app/src/utils/legacyLinks.ts`) — the 0.6 engine
+otherwise builds legacy-site URLs. Problem sets rendered through
+`@doenet/assignment-viewer` need that package to expose `linkSettings` before
+refs work there. `<copy uri="doenet:...">` transclusions are not migrated
+(counted in build/ref-rewrite-report.md).
 
 Writing to a non-local database additionally requires
 `--yes-target=<db-host>` on 03-import.
@@ -114,6 +125,7 @@ node dist/scripts/legacy-migration/02-upload-images.js
 node dist/scripts/legacy-migration/03-import.js --dry-run
 node dist/scripts/legacy-migration/03-import.js --user=<email> --yes-target=<db-host>
 node dist/scripts/legacy-migration/03-import.js --yes-target=<db-host>
+node dist/scripts/legacy-migration/03b-rewrite-refs.js --yes-target=<db-host>
 node dist/scripts/legacy-migration/04-verify.js
 ```
 
