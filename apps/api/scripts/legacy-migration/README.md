@@ -63,12 +63,12 @@ npx tsx scripts/legacy-migration/03b-rewrite-refs.ts
 npx tsx scripts/legacy-migration/04-verify.ts
 ```
 
-For the rewritten links to work in the app, the viewer must pass
-`linkSettings` (see `apps/app/src/utils/legacyLinks.ts`) — the 0.6 engine
-otherwise builds legacy-site URLs. Problem sets rendered through
-`@doenet/assignment-viewer` need that package to expose `linkSettings` before
-refs work there. `<copy uri="doenet:...">` transclusions are not migrated
-(counted in build/ref-rewrite-report.md).
+The rewritten links rely on `@doenet/standalone` >= 0.6.16, whose default
+`linkSettings` targets this site's routes (/activityViewer, /documentEditor;
+DoenetML#1501) — that default reaches every render path uniformly, including
+problem sets via `@doenet/assignment-viewer`, so the app passes no
+`linkSettings` itself. `<copy uri="doenet:...">` transclusions are not
+migrated (counted in build/ref-rewrite-report.md).
 
 Writing to a non-local database additionally requires
 `--yes-target=<db-host>` on 03-import.

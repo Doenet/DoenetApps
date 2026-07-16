@@ -13,7 +13,6 @@ import {
 } from "../types";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
-import { legacyRefLinkProps } from "../utils/legacyLinks";
 import axios from "axios";
 import defaultSource from "../assets/scratchPadDefault.doenet?raw";
 import multipleChoice from "../assets/multipleChoiceExamples.doenet?raw";
@@ -470,7 +469,6 @@ function DocumentEditor({
       border="none"
       doenetViewerUrl={doenetViewerUrl}
       doenetImagesUrl={doenetImagesUrl}
-      {...legacyRefLinkProps}
     />
   );
 }

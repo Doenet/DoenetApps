@@ -1,6 +1,5 @@
 import { DoenetEditor } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
-import { legacyRefLinkProps } from "../utils/legacyLinks";
 import { PanelPair } from "../widgets/PanelPair";
 import {
   Box,
@@ -163,7 +162,6 @@ export function DoenetMLComparison() {
         showResponses={false}
         doenetViewerUrl={doenetViewerUrl}
         doenetImagesUrl={doenetImagesUrl}
-        {...legacyRefLinkProps}
       />
     </Box>
   );
@@ -210,7 +208,6 @@ export function DoenetMLComparison() {
         showResponses={false}
         doenetViewerUrl={doenetViewerUrl}
         doenetImagesUrl={doenetImagesUrl}
-        {...legacyRefLinkProps}
       />
     </Box>
   );

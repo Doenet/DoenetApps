@@ -3,7 +3,6 @@ import { useLoaderData, useOutletContext } from "react-router";
 import { DoenetmlVersion } from "../../types";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../../utils/media";
-import { legacyRefLinkProps } from "../../utils/legacyLinks";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import axios from "axios";
 import { Box } from "@chakra-ui/react";
@@ -77,7 +76,6 @@ export function DocEditorViewMode() {
             attemptNumber={1}
             doenetViewerUrl={doenetViewerUrl}
             doenetImagesUrl={doenetImagesUrl}
-            {...legacyRefLinkProps}
             includeVariantSelector={true}
             requestScrollTo={requestScrollTo}
           />
