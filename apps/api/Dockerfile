@@ -40,7 +40,9 @@ FROM node:lts-trixie-slim AS runtime
 WORKDIR /DoenetTools
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# ca-certificates: curl's TLS is unusable without a CA store (the health check
+# is plain HTTP so it never notices), and admin/exec sessions need https.
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 # Preserve the monorepo layout so npm workspace resolution still works
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
