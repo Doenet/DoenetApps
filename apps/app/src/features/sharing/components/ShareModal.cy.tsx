@@ -20,6 +20,7 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     parentVisibility: "private",
     canSharePublicly: true,
     publicShareIssues: [],
+    publicShareBlockers: [],
     sharedWith: [mockUser],
     parentSharedWith: [],
   };
@@ -335,10 +336,10 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     cy.get('[data-test="Share Publicly Button"]').should("not.be.disabled");
     cy.get('[data-test="Share Publicly Button"]').click();
     cy.contains(
-      "2 requirements remaining before this document can be listed publicly",
+      "2 requirements remaining before this problem set can be listed publicly",
     ).should(
       "contain.text",
-      "2 requirements remaining before this document can be listed publicly",
+      "2 requirements remaining before this problem set can be listed publicly",
     );
     cy.get('[data-test="Public Criteria Categories"]').should(
       "contain.text",
@@ -549,6 +550,111 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
     cy.contains("Open categories")
       .should("have.attr", "href")
       .and("equal", `/documentEditor/${contentId}/settings?showRequired`);
+  });
+
+  it("lists the specific blocking documents for a problem set and links each to its diagnostics", () => {
+    const firstDocId = "doc-aaa";
+    const secondDocId = "doc-bbb";
+    const thirdDocId = "doc-ccc";
+    const mountOptions = setupMocks({
+      shareStatus: {
+        ...shareStatusData,
+        canSharePublicly: false,
+        publicShareIssues: [
+          "errorsCheck",
+          "accessibilityCheck",
+          "missingRequiredCategories",
+        ],
+        publicShareBlockers: [
+          {
+            contentId: firstDocId,
+            name: "Intro to Fractions",
+            contentType: "singleDoc",
+            issues: ["errorsCheck"],
+          },
+          {
+            contentId: secondDocId,
+            name: "Word Problems",
+            contentType: "singleDoc",
+            issues: ["errorsCheck"],
+          },
+          {
+            contentId: thirdDocId,
+            name: "Chapter 3 Quiz",
+            contentType: "singleDoc",
+            issues: ["accessibilityCheck"],
+          },
+          {
+            contentId,
+            name: "My Problem Set",
+            contentType: "sequence",
+            issues: ["missingRequiredCategories"],
+          },
+        ],
+      },
+    });
+
+    cy.mount(
+      <ShareModal
+        contentId={contentId}
+        contentType={contentType}
+        modalIsOpen={true}
+        closeModal={cy.spy().as("onClose")}
+      />,
+      mountOptions,
+    );
+
+    cy.get('[data-test="Share Publicly Button"]').click();
+
+    // Syntax errors: two blocking documents, each deep-linked to its own editor.
+    cy.get('[data-test="Public Criteria Errors"]').should(
+      "contain.text",
+      "2 documents have syntax errors",
+    );
+    cy.get('[data-test="Public Criteria Errors Document"]').should(
+      "have.length",
+      2,
+    );
+    cy.get('[data-test="Public Criteria Errors"]')
+      .contains("Intro to Fractions")
+      .parent()
+      .contains("Open")
+      .should("have.attr", "href")
+      .and("equal", `/documentEditor/${firstDocId}/edit?diagnostics=errors`);
+    cy.get('[data-test="Public Criteria Errors"]')
+      .contains("Word Problems")
+      .parent()
+      .contains("Open")
+      .should("have.attr", "href")
+      .and("equal", `/documentEditor/${secondDocId}/edit?diagnostics=errors`);
+
+    // Accessibility: one blocking document.
+    cy.get('[data-test="Public Criteria Accessibility"]').should(
+      "contain.text",
+      "1 document has accessibility violations",
+    );
+    cy.get('[data-test="Public Criteria Accessibility Document"]').should(
+      "have.length",
+      1,
+    );
+    cy.get('[data-test="Public Criteria Accessibility"]')
+      .contains("Chapter 3 Quiz")
+      .parent()
+      .contains("Open")
+      .should("have.attr", "href")
+      .and(
+        "equal",
+        `/documentEditor/${thirdDocId}/edit?diagnostics=accessibility`,
+      );
+
+    // Categories remain a single link to the problem set's own settings.
+    cy.get('[data-test="Public Criteria Categories"]').should(
+      "contain.text",
+      "Categories need to be added",
+    );
+    cy.contains("Open categories")
+      .should("have.attr", "href")
+      .and("equal", `/compoundEditor/${contentId}/settings?showRequired`);
   });
 
   const nonDocCases = [

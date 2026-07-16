@@ -46,10 +46,15 @@ import {
   contentViewerUrl,
   editorDiagnosticsUrl,
   editorUrl,
+  type EditorDiagnosticsTab,
 } from "../../../utils/url";
 import type { ShareController } from "../hooks/useShareController";
 import { loadShareStatus } from "../loaders";
-import type { PublicShareIssue, SharingData } from "../types";
+import type {
+  PublicShareBlocker,
+  PublicShareIssue,
+  SharingData,
+} from "../types";
 
 type ShareModalProps = Pick<ShareController, "modalIsOpen" | "closeModal"> &
   Partial<Pick<ShareController, "groundTruth" | "refetchGroundTruth">> & {
@@ -218,6 +223,7 @@ function ShareModalBody({
         parentVisibility={shareStatus.parentVisibility}
         canSharePublicly={shareStatus.canSharePublicly}
         publicShareIssues={shareStatus.publicShareIssues}
+        publicShareBlockers={shareStatus.publicShareBlockers}
         contentId={contentId}
         contentType={contentType}
         ownerId={shareStatus.ownerId}
@@ -346,6 +352,7 @@ function SharePublicly({
   parentVisibility,
   canSharePublicly,
   publicShareIssues,
+  publicShareBlockers,
   contentId,
   contentType,
   ownerId,
@@ -358,6 +365,7 @@ function SharePublicly({
   parentVisibility: Visibility;
   canSharePublicly: boolean;
   publicShareIssues: PublicShareIssue[];
+  publicShareBlockers: PublicShareBlocker[];
   contentId: string;
   contentType: ContentType;
   ownerId: string;
@@ -449,6 +457,10 @@ function SharePublicly({
     dataTest: string;
     actionLabel: string;
     actionTo: string;
+    // Audit criteria live in individual documents; a compound item lists the
+    // specific blocking documents and deep-links each to this diagnostics tab.
+    diagnosticsTab?: EditorDiagnosticsTab;
+    failedNoun?: string;
   }> = [
     {
       issue: "errorsCheck",
@@ -459,6 +471,8 @@ function SharePublicly({
       dataTest: "Public Criteria Errors",
       actionLabel: "Open syntax errors",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "errors"),
+      diagnosticsTab: "errors",
+      failedNoun: "syntax errors",
     },
     {
       issue: "missingRequiredCategories",
@@ -480,6 +494,8 @@ function SharePublicly({
       dataTest: "Public Criteria Accessibility",
       actionLabel: "Open accessibility violations",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "accessibility"),
+      diagnosticsTab: "accessibility",
+      failedNoun: "accessibility violations",
     },
   ];
   const completedRequirements = publicCriteria.filter(
@@ -674,7 +690,7 @@ function SharePublicly({
                         ? "All requirements complete"
                         : `${remainingRequirements} requirement${
                             remainingRequirements === 1 ? "" : "s"
-                          } remaining before this document can be listed publicly`}
+                          } remaining before this ${contentTypeLabel} can be listed publicly`}
                   </Text>
 
                   <VStack align="stretch" spacing="0.6rem">
@@ -685,6 +701,39 @@ function SharePublicly({
                       const passed =
                         !publicShareIssues.includes(criterion.issue) &&
                         !isPending;
+
+                      // For compound content (problem sets, question banks) the
+                      // audit failures live in descendant documents. List each
+                      // blocking document with a deep link into its own
+                      // diagnostics, mirroring the single-document experience.
+                      // Only confirmed failures are listed; a still-pending
+                      // check has nothing actionable yet, so it keeps the
+                      // aggregate "check needs to complete" status line.
+                      const blockingDocuments =
+                        criterion.diagnosticsTab !== undefined
+                          ? publicShareBlockers.filter((blocker) =>
+                              blocker.issues.includes(criterion.issue),
+                            )
+                          : [];
+                      if (
+                        contentType !== "singleDoc" &&
+                        criterion.diagnosticsTab !== undefined &&
+                        blockingDocuments.length > 0
+                      ) {
+                        return (
+                          <PublicCriterionDocuments
+                            key={criterion.issue}
+                            dataTest={criterion.dataTest}
+                            failedNoun={
+                              criterion.failedNoun ?? criterion.failedLabel
+                            }
+                            diagnosticsTab={criterion.diagnosticsTab}
+                            documents={blockingDocuments}
+                            closeModal={closeModal}
+                          />
+                        );
+                      }
+
                       const label = passed
                         ? criterion.label
                         : isPending
@@ -952,6 +1001,72 @@ function PublicCriterion({
         </Button>
       ) : null}
     </Flex>
+  );
+}
+
+/**
+ * A failing audit criterion for a compound item (problem set / question bank),
+ * listing each descendant document that is blocking public sharing with a link
+ * into that document's own diagnostics.
+ */
+function PublicCriterionDocuments({
+  dataTest,
+  failedNoun,
+  diagnosticsTab,
+  documents,
+  closeModal,
+}: {
+  dataTest: string;
+  failedNoun: string;
+  diagnosticsTab: EditorDiagnosticsTab;
+  documents: PublicShareBlocker[];
+  closeModal: () => void;
+}) {
+  const count = documents.length;
+  return (
+    <Box data-test={dataTest}>
+      <HStack align="center" spacing="0.65rem" py="0.15rem">
+        <Icon as={FiXCircle} color="red.500" boxSize="1rem" />
+        <Text color="red.700">
+          {`${count} document${count === 1 ? "" : "s"} ${
+            count === 1 ? "has" : "have"
+          } ${failedNoun}`}
+        </Text>
+      </HStack>
+      <VStack align="stretch" spacing="0.3rem" pl="1.65rem" mt="0.25rem">
+        {documents.map((doc) => (
+          <Flex
+            key={doc.contentId}
+            data-test={`${dataTest} Document`}
+            align="center"
+            justify="space-between"
+            gap="0.75rem"
+            wrap="nowrap"
+          >
+            <Text color="gray.800" noOfLines={1} flex="1" minWidth={0}>
+              {doc.name || "Untitled"}
+            </Text>
+            <Button
+              as={ReactRouterLink}
+              to={editorDiagnosticsUrl(
+                doc.contentId,
+                doc.contentType,
+                diagnosticsTab,
+              )}
+              aria-label={`Open ${doc.name || "Untitled"}`}
+              variant="link"
+              size="sm"
+              colorScheme="blue"
+              rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
+              onClick={closeModal}
+              flexShrink={0}
+            >
+              Open
+            </Button>
+          </Flex>
+        ))}
+      </VStack>
+    </Box>
   );
 }
 
