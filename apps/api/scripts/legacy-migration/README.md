@@ -96,8 +96,10 @@ stages 02–04 run there; extract (00–01) runs on a workstation and its
 
 1. Locally: upload `model.json` and `media.tgz` to a **private** S3 bucket and
    mint presigned GET URLs (e.g. `aws s3 presign s3://<bucket>/<key> --expires-in 3600`).
-2. `infra/scripts/exec.sh -s dev3` (or `-s prod`) from the repo root; pick the
-   api service/task.
+2. From the `infra/` directory (the script resolves `dev3.aws` and
+   `scripts/login.sh` against the current directory): `scripts/exec.sh -s dev3`
+   (or `-s prod`); pick the api service (doenet-FARGATE). Requires jq and
+   session-manager-plugin locally.
 3. Inside the container:
 
 ```bash
