@@ -374,7 +374,7 @@ export function ScratchPadComponent({
       {saveDocumentDialog}
       <HStack
         position="fixed"
-        top="40px"
+        top="calc(40px + var(--maintenance-offset, 0px))"
         height="40px"
         background="orange.100"
         width="100%"
@@ -390,7 +390,7 @@ export function ScratchPadComponent({
       </HStack>
       <Box
         position="absolute"
-        top={"80px"}
+        top="calc(80px + var(--maintenance-offset, 0px))"
         left="0"
         right="0"
         bottom="0"

@@ -695,7 +695,7 @@ export function EditorHeader() {
 
       <Box
         position="fixed"
-        top="40px"
+        top="calc(40px + var(--maintenance-offset, 0px))"
         height={editorHeaderHeight}
         background="doenet.canvas"
         width="100%"
@@ -718,7 +718,7 @@ export function EditorHeader() {
 
       <Box
         position="absolute"
-        top={totalHeaderHeight}
+        top={`calc(${totalHeaderHeight} + var(--maintenance-offset, 0px))`}
         left="0"
         right="0"
         bottom="0"
