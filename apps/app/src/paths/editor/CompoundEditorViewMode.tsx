@@ -1,6 +1,7 @@
 import { useLoaderData, useOutletContext } from "react-router";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import axios from "axios";
+import { doenetImagesUrl } from "../../utils/media";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
 import { ActivitySource } from "@doenet-tools/shared";
 import { EditorContext } from "./EditorHeader";
@@ -56,9 +57,7 @@ export function CompoundEditorViewMode() {
         requestedVariantIndex={1}
         userId={"hi"}
         doenetViewerUrl={doenetViewerUrl}
-        // TODO: pass doenetMediaUrl (sibling to doenetViewerUrl) once
-        // @doenet/assignment-viewer exposes it, so doenet:<key> image sources
-        // resolve in compound activity views too.
+        doenetImagesUrl={doenetImagesUrl}
         paginate={paginate}
         activityLevelAttempts={activityLevelAttempts}
         itemLevelAttempts={itemLevelAttempts}

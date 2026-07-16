@@ -4,13 +4,18 @@ import { handleErrors } from "../errors/routeErrorHandler";
 import { InvalidRequestError } from "../utils/error";
 import { fromUUID, newUUID } from "../utils/uuid";
 import { uuidSchema } from "../schemas/uuid";
-import { canUserUploadImages, createImageContent } from "./imageContent";
+import {
+  canUserUploadImages,
+  createImageContent,
+  setImageAttribution,
+} from "./imageContent";
 import { deleteImage, headImage, presignPut } from "./s3";
 import {
   completeUploadImageBodySchema,
   imageSourceFromStorageKey,
   initUploadImageBodySchema,
   PRESIGN_EXPIRES_SECONDS,
+  setImageAttributionSchema,
   UPLOAD_KEY_PREFIX,
 } from "./upload.schema";
 
@@ -143,6 +148,14 @@ export async function handleCompleteUpload(req: Request, res: Response) {
         mimeType: body.mimeType,
         sizeBytes: body.sizeBytes,
         storageKey: body.uploadKey,
+        attribution: {
+          imageAuthorName: body.imageAuthorName,
+          imageAuthorUrl: body.imageAuthorUrl,
+          imageTitle: body.imageTitle,
+          imageOriginalUrl: body.imageOriginalUrl,
+          imageLicenseCodes: body.imageLicenseCodes,
+          imageLicenseVersion: body.imageLicenseVersion,
+        },
       });
       contentId = created.contentId;
       persistedName = created.name;
@@ -155,9 +168,36 @@ export async function handleCompleteUpload(req: Request, res: Response) {
     res.status(StatusCodes.CREATED).json({
       contentId: fromUUID(contentId),
       name: persistedName,
-      // Domain-independent reference; the viewer resolves it via doenetMediaUrl.
+      // Domain-independent reference; the viewer resolves it via doenetImagesUrl.
       imageSource: imageSourceFromStorageKey(body.uploadKey),
     });
+  } catch (e) {
+    handleErrors(res, e);
+  }
+}
+
+// Set the DoenetML `<image>` attribution/licensing on an image content item the
+// caller owns. Requires login (but not the upload gate — editing metadata on an
+// image you already own is always allowed). The zod schema validates and
+// normalizes the license codes/version; the owner check lives in the query.
+export async function handleSetAttribution(req: Request, res: Response) {
+  try {
+    if (!requireLoggedIn(req, res)) return;
+
+    const body = setImageAttributionSchema.parse(req.body);
+
+    await setImageAttribution({
+      contentId: body.contentId,
+      ownerId: req.user!.userId,
+      imageAuthorName: body.imageAuthorName,
+      imageAuthorUrl: body.imageAuthorUrl,
+      imageTitle: body.imageTitle,
+      imageOriginalUrl: body.imageOriginalUrl,
+      imageLicenseCodes: body.imageLicenseCodes,
+      imageLicenseVersion: body.imageLicenseVersion,
+    });
+
+    res.status(StatusCodes.OK).json({ success: true });
   } catch (e) {
     handleErrors(res, e);
   }

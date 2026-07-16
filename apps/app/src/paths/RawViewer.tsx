@@ -1,5 +1,5 @@
 import { DoenetViewer } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../utils/media";
+import { doenetImagesUrl } from "../utils/media";
 import axios from "axios";
 import { useLoaderData } from "react-router";
 import { ActivitySource, isActivitySource } from "@doenet-tools/shared";
@@ -172,7 +172,7 @@ export function RawViewer() {
         doenetmlVersion={data.doenetmlVersion.fullVersion}
         attemptNumber={1}
         doenetViewerUrl={doenetViewerUrl}
-        doenetMediaUrl={doenetMediaUrl}
+        doenetImagesUrl={doenetImagesUrl}
         includeVariantSelector={true}
         addVirtualKeyboard={false}
       />
@@ -188,9 +188,7 @@ export function RawViewer() {
         }
         showTitle={false}
         doenetViewerUrl={doenetViewerUrl}
-        // TODO: pass doenetMediaUrl={doenetMediaUrl} (sibling to doenetViewerUrl)
-        // once @doenet/assignment-viewer exposes it, so doenet:<key> image
-        // sources resolve in activity views too.
+        doenetImagesUrl={doenetImagesUrl}
         flags={{
           allowLoadState: true,
           allowSaveState: true,

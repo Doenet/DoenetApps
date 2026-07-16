@@ -24,6 +24,11 @@ describe("Image upload", { tags: ["@group3"] }, function () {
       );
     });
 
+    // Picking a file opens the license modal; the image isn't uploaded until a
+    // license is chosen and confirmed. CC0 is public domain, so no author needed.
+    cy.get('[data-test="License Card CC0"]').click();
+    cy.get('[data-test="Save Image Attribution"]').click();
+
     cy.get('[data-test="Content Card"]', { timeout: 10000 })
       .should("have.length", 1)
       .and("contain.text", "tiny.png");
@@ -40,8 +45,9 @@ describe("Image upload", { tags: ["@group3"] }, function () {
       const writeText = stub as unknown as sinon.SinonStub;
       expect(writeText.callCount).to.equal(1);
       const arg = writeText.firstCall.args[0] as string;
+      // The image was licensed CC0 above, so the tag carries licenseCodes.
       expect(arg).to.match(
-        /^<image source="doenet:[1-9A-HJ-NP-Za-km-z]{21,22}" \/>$/,
+        /^<image source="doenet:[1-9A-HJ-NP-Za-km-z]{21,22}" licenseCodes="CC0" \/>$/,
       );
     });
   });
