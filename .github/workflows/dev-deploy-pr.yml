@@ -67,8 +67,11 @@ jobs:
           # Exact match on the first line, and the command takes no arguments, so
           # ordinary comments that merely mention it (e.g. "/deploy-dev worked
           # great") don't deploy, and collisions like "/deploy-development" are
-          # rejected.
-          line="${BODY%%$'\n'*}"
+          # rejected. Cut at the first CR as well as LF: GitHub submits comment
+          # bodies with \r\n line endings, and a stray "\r" left on the first
+          # line made the exact match fail silently for any comment with a
+          # trailing newline.
+          line="${BODY%%[$'\r\n']*}"
           read -r cmd extra <<<"$line"
           if [[ "$cmd" != "/deploy-dev" ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
