@@ -425,7 +425,7 @@ async function importActivity(
     let source = "";
     if (page.sourceFile && page.bytes > 0) {
       source = fs.readFileSync(
-        path.join(ctx.model.legacyMediaDir, page.sourceFile),
+        path.join(ctx.config.legacyMediaDir, page.sourceFile),
         "utf8",
       );
       const rewritten = rewriteImageSources(source, (cid) => {

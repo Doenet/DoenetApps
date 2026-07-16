@@ -69,6 +69,9 @@ export interface SupportFileInfo {
 
 export interface Model {
   generatedAt: string;
+  /** Media dir the model was extracted from — informational only; later
+   * stages resolve files against config.legacyMediaDir so model.json stays
+   * portable across machines. */
   legacyMediaDir: string;
   users: UserModel[];
   /** Courses keyed by legacyCourseId; a multi-owner course appears once. */
