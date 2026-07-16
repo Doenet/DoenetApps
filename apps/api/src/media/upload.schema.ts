@@ -19,7 +19,7 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 // S3 objects live under this prefix: the stored `storageKey` is
 // `${UPLOAD_KEY_PREFIX}<short-uuid>`. The prefix is a storage-layout detail and
 // is deliberately NOT part of the embedded reference — `imageSourceFromStorageKey`
-// strips it. The DoenetML viewer's `doenetMediaUrl` points at this same images
+// strips it. The DoenetML viewer's `doenetImagesUrl` points at this same images
 // root (see `apps/app/src/utils/media.ts`), re-supplying it at render time.
 export const UPLOAD_KEY_PREFIX = "images/";
 

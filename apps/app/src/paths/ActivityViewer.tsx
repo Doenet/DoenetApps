@@ -68,7 +68,7 @@ import {
 } from "../utils/activity";
 import { ActivitySource, isActivitySource } from "@doenet-tools/shared";
 import { DoenetEditor, DoenetViewer } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../utils/media";
+import { doenetImagesUrl } from "../utils/media";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
 import { processRemixes } from "../utils/processRemixes";
 import ContributorsMenu from "../dropdowns/ContributorsMenu";
@@ -367,7 +367,7 @@ export function ActivityViewer() {
             border="none"
             readOnly={true}
             doenetViewerUrl={doenetViewerUrl}
-            doenetMediaUrl={doenetMediaUrl}
+            doenetImagesUrl={doenetImagesUrl}
           />
         </>
       );
@@ -393,7 +393,7 @@ export function ActivityViewer() {
                 }}
                 attemptNumber={1}
                 doenetViewerUrl={doenetViewerUrl}
-                doenetMediaUrl={doenetMediaUrl}
+                doenetImagesUrl={doenetImagesUrl}
                 includeVariantSelector={true}
                 requestScrollTo={requestScrollTo}
               />
@@ -438,9 +438,7 @@ export function ActivityViewer() {
               maxAttemptsAllowed={activityData.assignmentInfo?.maxAttempts}
               showTitle={false}
               doenetViewerUrl={doenetViewerUrl}
-              // TODO: pass doenetMediaUrl={doenetMediaUrl} (sibling to
-              // doenetViewerUrl) once @doenet/assignment-viewer exposes it, so
-              // doenet:<key> image sources resolve in activity views too.
+              doenetImagesUrl={doenetImagesUrl}
             />
           </BlueBanner>
         </>

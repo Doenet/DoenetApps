@@ -7,7 +7,7 @@ import {
 } from "react-router";
 
 import { DoenetViewer } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../utils/media";
+import { doenetImagesUrl } from "../utils/media";
 
 import { Box, Button, Grid, GridItem, Text, Tooltip } from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
@@ -611,7 +611,7 @@ export function AssignmentViewer() {
           }}
           attemptNumber={attemptNumber}
           doenetViewerUrl={doenetViewerUrl}
-          doenetMediaUrl={doenetMediaUrl}
+          doenetImagesUrl={doenetImagesUrl}
           requestScrollTo={requestScrollTo}
         />
       </Box>
@@ -626,9 +626,7 @@ export function AssignmentViewer() {
           requestedVariantIndex={initialVariant}
           userId={user.userId}
           doenetViewerUrl={doenetViewerUrl}
-          // TODO: pass doenetMediaUrl={doenetMediaUrl} (sibling to doenetViewerUrl)
-          // once @doenet/assignment-viewer exposes it, so doenet:<key> image
-          // sources resolve in activity assignments too.
+          doenetImagesUrl={doenetImagesUrl}
           paginate={
             assignment.type === "sequence" ? assignment.paginate : false
           }

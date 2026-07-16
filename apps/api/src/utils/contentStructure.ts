@@ -218,7 +218,7 @@ export function returnContentSelect({
     licenseCode: true,
     // Image content lives in a 1:1 `imageContent` row. `storageKey` becomes the
     // domain-independent `imageSource` (`doenet:<short-uuid>`) in
-    // `processContent` — the DoenetML viewer resolves it against `doenetMediaUrl`
+    // `processContent` — the DoenetML viewer resolves it against `doenetImagesUrl`
     // at render time so the CDN domain isn't baked into users' documents — and
     // the attribution fields are surfaced on the image case. Null/absent for
     // anything that's not an image.
@@ -573,7 +573,7 @@ export function processContent(
     }
     case "image": {
       // Domain-independent reference: `doenet:<short-uuid>` (the storage prefix
-      // is stripped). The DoenetML viewer prepends `doenetMediaUrl` at render
+      // is stripped). The DoenetML viewer prepends `doenetImagesUrl` at render
       // time, so neither the CDN domain nor the storage layout lands in the
       // stored document.
       const imageSource = imageData?.storageKey

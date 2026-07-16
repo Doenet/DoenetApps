@@ -168,7 +168,7 @@ export async function handleCompleteUpload(req: Request, res: Response) {
     res.status(StatusCodes.CREATED).json({
       contentId: fromUUID(contentId),
       name: persistedName,
-      // Domain-independent reference; the viewer resolves it via doenetMediaUrl.
+      // Domain-independent reference; the viewer resolves it via doenetImagesUrl.
       imageSource: imageSourceFromStorageKey(body.uploadKey),
     });
   } catch (e) {

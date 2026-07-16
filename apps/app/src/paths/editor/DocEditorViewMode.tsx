@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useLoaderData, useOutletContext } from "react-router";
 import { DoenetmlVersion } from "../../types";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../../utils/media";
+import { doenetImagesUrl } from "../../utils/media";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import axios from "axios";
 import { Box } from "@chakra-ui/react";
@@ -75,7 +75,7 @@ export function DocEditorViewMode() {
             }}
             attemptNumber={1}
             doenetViewerUrl={doenetViewerUrl}
-            doenetMediaUrl={doenetMediaUrl}
+            doenetImagesUrl={doenetImagesUrl}
             includeVariantSelector={true}
             requestScrollTo={requestScrollTo}
           />

@@ -12,7 +12,7 @@ import {
   UserInfoWithEmail,
 } from "../types";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../utils/media";
+import { doenetImagesUrl } from "../utils/media";
 import axios from "axios";
 import defaultSource from "../assets/scratchPadDefault.doenet?raw";
 import multipleChoice from "../assets/multipleChoiceExamples.doenet?raw";
@@ -468,7 +468,7 @@ function DocumentEditor({
       doenetmlVersion={doenetmlVersion.fullVersion}
       border="none"
       doenetViewerUrl={doenetViewerUrl}
-      doenetMediaUrl={doenetMediaUrl}
+      doenetImagesUrl={doenetImagesUrl}
     />
   );
 }

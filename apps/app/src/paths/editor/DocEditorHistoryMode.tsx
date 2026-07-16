@@ -1,6 +1,6 @@
 import { ReactElement, useEffect, useMemo, useState } from "react";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../../utils/media";
+import { doenetImagesUrl } from "../../utils/media";
 import { PanelPair } from "../../widgets/PanelPair";
 import { ContentRevision, DoenetmlVersion } from "../../types";
 import {
@@ -245,7 +245,7 @@ export function DocEditorHistoryModeComponent({
         showResponses={false}
         showFormatter={false}
         doenetViewerUrl={doenetViewerUrl}
-        doenetMediaUrl={doenetMediaUrl}
+        doenetImagesUrl={doenetImagesUrl}
       />
     </Box>
   );
@@ -333,7 +333,7 @@ export function DocEditorHistoryModeComponent({
             readOnly={true}
             showFormatter={false}
             doenetViewerUrl={doenetViewerUrl}
-            doenetMediaUrl={doenetMediaUrl}
+            doenetImagesUrl={doenetImagesUrl}
           />
         </>
       ) : (
