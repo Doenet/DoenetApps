@@ -574,6 +574,10 @@ async function copySingleContent({
       },
       classifications: true,
       categories: true,
+      // The 1:1 image row (present only for `type = 'image'`). Copied into a
+      // fresh row below so the copy is independently licensed; the `storageKey`
+      // is shared, not duplicated, so both rows reference the same S3 object.
+      imageData: true,
       children: {
         where: { isDeletedOn: null },
         select: { id: true, type: true },
@@ -630,6 +634,7 @@ async function copySingleContent({
       children,
       categories,
       classifications,
+      imageData,
       licenseCode: originalLicenseCode,
       owner,
       ...originalFieldsToCopy
@@ -660,11 +665,36 @@ async function copySingleContent({
         sharedWith: {
           create: desiredParentShares.map((u) => ({ userId: u })),
         },
+        // Duplicate the image's attribution/licensing into its own row. The
+        // `storageKey` is copied verbatim so the copy points at the same S3
+        // object (the image bytes are never duplicated); `licenseCodes` is
+        // required, so an image copy is always licensed too.
+        ...(imageData
+          ? {
+              imageData: {
+                create: {
+                  mimeType: imageData.mimeType,
+                  sizeBytes: imageData.sizeBytes,
+                  storageKey: imageData.storageKey,
+                  authorName: imageData.authorName,
+                  authorUrl: imageData.authorUrl,
+                  title: imageData.title,
+                  originalUrl: imageData.originalUrl,
+                  licenseCodes: imageData.licenseCodes,
+                  licenseVersion: imageData.licenseVersion,
+                },
+              },
+            }
+          : {}),
         ...originalFieldsToCopy,
       },
     });
 
-    if (originalContent.type !== "folder") {
+    // Folders and images aren't remixable activities: they have no compilable
+    // source, so they get no contributor history / content revision (a revision
+    // would try to compile the content and fail). An image's attribution is
+    // copied onto its own row above instead.
+    if (originalContent.type !== "folder" && originalContent.type !== "image") {
       await createContributorHistory({
         originContentId: contentId,
         remixContentId: newContent.id,

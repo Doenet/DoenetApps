@@ -41,8 +41,8 @@ There is **no serve endpoint**. `contentStructure.ts` exposes the row's
 `storageKey` to the client as a minimal, domain-independent `imageSource =
 doenet:<short-uuid>` — the `images/` storage prefix is stripped, so only the
 short-uuid is embedded. Neither the CDN domain nor the storage layout is stored:
-the DoenetML viewer resolves `doenet:<short-uuid>` against its `doenetMediaUrl`
-flag at render time — `${doenetMediaUrl}/<short-uuid>` — where `doenetMediaUrl`
+the DoenetML viewer resolves `doenet:<short-uuid>` against its `doenetImagesUrl`
+flag at render time — `${doenetImagesUrl}/<short-uuid>` — where `doenetImagesUrl`
 is `VITE_MEDIA_CDN_BASE_URL` plus the `images/` root (see
 `apps/app/src/utils/media.ts`). The server itself never composes a read URL, so
 it needs no CDN base URL. A document only ever holds `doenet:<short-uuid>`.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
-import { doenetMediaUrl } from "../utils/media";
+import { doenetImagesUrl } from "../utils/media";
 
 import {
   Box,
@@ -175,7 +175,7 @@ export function AssignmentItemResponseStudent({
       forceShowSolution={true}
       forceUnsuppressCheckwork={true}
       doenetViewerUrl={doenetViewerUrl}
-      doenetMediaUrl={doenetMediaUrl}
+      doenetImagesUrl={doenetImagesUrl}
       showAnswerResponseButton={true}
       answerResponseCounts={responseCounts}
       requestScrollTo={requestScrollTo}

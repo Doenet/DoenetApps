@@ -900,6 +900,63 @@ test("cannot move an image into a problem set", async () => {
   ).rejects.toThrow("Cannot move an image into a problem set");
 });
 
+test("copying an image copies its attribution and shares the stored object", async () => {
+  const { userId: ownerId } = await createTestUser();
+
+  const { contentId: imageId } = await createImageContent({
+    loggedInUserId: ownerId,
+    parentId: null,
+    name: "img.png",
+    mimeType: "image/png",
+    sizeBytes: 1,
+    storageKey: "images/original.png",
+    attribution: {
+      imageAuthorName: "Ada Lovelace",
+      imageAuthorUrl: null,
+      imageTitle: "A portrait",
+      imageOriginalUrl: null,
+      imageLicenseCodes: "CC-BY",
+      imageLicenseVersion: null,
+    },
+  });
+
+  const { contentId: destFolderId } = await createContent({
+    loggedInUserId: ownerId,
+    contentType: "folder",
+    parentId: null,
+  });
+
+  const result = await copyContent({
+    contentIds: [imageId],
+    loggedInUserId: ownerId,
+    parentId: destFolderId,
+  });
+  expect(result.newContentIds.length).eq(1);
+
+  const folderResults = await getMyContent({
+    parentId: destFolderId,
+    ownerId,
+    loggedInUserId: ownerId,
+  });
+  if (folderResults.notMe) {
+    throw Error("shouldn't happen");
+  }
+  expect(folderResults.content.length).eq(1);
+  const copy = folderResults.content[0];
+  if (copy.type !== "image") {
+    throw Error("expected an image");
+  }
+  // The copy is its own content item, not the original.
+  expect(isEqualUUID(copy.contentId, imageId)).eq(false);
+  // It references the same stored object (the `storageKey`, and thus the derived
+  // `imageSource`, is copied verbatim — the image bytes are never duplicated).
+  expect(copy.imageSource).toBeTruthy();
+  // And it carries the original's required license + attribution.
+  expect(copy.imageLicenseCodes).eq("CC-BY");
+  expect(copy.imageAuthorName).eq("Ada Lovelace");
+  expect(copy.imageTitle).eq("A portrait");
+});
+
 test("cannot copy into assigned problem set", async () => {
   const { userId: ownerId } = await createTestUser();
   const [problemSetId, doc1Id] = await setupTestContent(ownerId, {

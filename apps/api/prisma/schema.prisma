@@ -60,9 +60,12 @@ model content {
   selectByVariant        Boolean                  @default(false)
   //
   // ====== Images =========
-  mimeType               String?                  @db.VarChar(64)
-  sizeBytes              BigInt?
-  storageKey             String?                  @db.VarChar(255)
+  // Image-specific data (stored-object metadata + DoenetML `<image>`
+  // attribution/licensing) lives in a dedicated 1:1 `imageContent` row, present
+  // only for `type = 'image'` content. Keeping it in its own table lets the
+  // license be a genuinely required (NOT NULL) column, modeled in Prisma, so an
+  // image can never exist unlicensed.
+  imageData              imageContent?
   //
   // ===== Code ==========
   // Course or assignment code
@@ -119,6 +122,26 @@ model content {
   @@index([parentId, type])
   @@fulltext([name])
   @@fulltext([source])
+}
+
+// Per-image data: one row per `type = 'image'` content, created together with
+// it. Holds the stored-object metadata and the DoenetML `<image>` attribution.
+// `licenseCodes` is required (NOT NULL, no default) — one or two space-separated
+// DoenetML media-license codes (e.g. `CC-BY-SA` or `CC-BY-SA GFDL`) — so an
+// image is never stored unlicensed. The fields are emitted onto the generated
+// `<image>` tag, where the DoenetML worker renders the credit.
+model imageContent {
+  contentId      Bytes   @id @db.Binary(16)
+  content        content @relation(fields: [contentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mimeType       String? @db.VarChar(64)
+  sizeBytes      BigInt?
+  storageKey     String? @db.VarChar(255)
+  authorName     String? @db.VarChar(255)
+  authorUrl      String? @db.Text
+  title          String? @db.VarChar(255)
+  originalUrl    String? @db.Text
+  licenseCodes   String  @db.VarChar(64)
+  licenseVersion String? @db.VarChar(16)
 }
 
 enum ContentType {

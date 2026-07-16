@@ -1,5 +1,9 @@
 import express from "express";
-import { handleCompleteUpload, handleInitUpload } from "./upload";
+import {
+  handleCompleteUpload,
+  handleInitUpload,
+  handleSetAttribution,
+} from "./upload";
 
 export const mediaRouter = express.Router();
 
@@ -8,3 +12,6 @@ export const mediaRouter = express.Router();
 // don't touch this API — CloudFront serves them directly.
 mediaRouter.post("/image/init", handleInitUpload);
 mediaRouter.post("/image/complete", handleCompleteUpload);
+
+// Edit the DoenetML `<image>` attribution/licensing on an owned image item.
+mediaRouter.patch("/image/attribution", handleSetAttribution);

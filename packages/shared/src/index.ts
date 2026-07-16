@@ -5,3 +5,4 @@ export * from "./utils/test.js";
 export * from "./apiTypes.js";
 export * from "./logic/browsable.js";
 export * from "./logic/categoryRules.js";
+export * from "./logic/mediaLicense.js";
