@@ -127,6 +127,18 @@ test("New activity starts out private, then delete it", async () => {
       "accessibilityCheckPending",
       "missingRequiredCategories",
     ],
+    publicShareBlockers: [
+      {
+        contentId: fromUUID(contentId),
+        name: "Untitled Document",
+        contentType: "singleDoc",
+        issues: [
+          "errorsCheckPending",
+          "accessibilityCheckPending",
+          "missingRequiredCategories",
+        ],
+      },
+    ],
     sharedWith: [],
     parentIsPublic: false,
     parentVisibility: "private",

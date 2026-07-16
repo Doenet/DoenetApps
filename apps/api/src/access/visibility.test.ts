@@ -6,6 +6,7 @@ import { createTestUser } from "../test/utils";
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
 import { StatusCodes } from "http-status-codes";
+import { fromUUID } from "../utils/uuid";
 import { updateVisibility } from "./visibility";
 
 async function expectInvalidRequest(promise: Promise<unknown>) {
@@ -104,6 +105,54 @@ describe("updateVisibility", () => {
     expect(content.visibility).toBe("public");
     expect(content.isPublic).toBe(true);
     expect(content.publiclySharedAt).toBeInstanceOf(Date);
+  });
+
+  test("makes a problem set with multiple passing documents public and cascades to its documents", async () => {
+    const user = await createTestUser();
+    const { contentId: sequenceId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "sequence",
+      parentId: null,
+    });
+
+    // Category requirements are only checked on the top-level content.
+    await connectRequiredCategories(sequenceId);
+
+    const { contentId: firstDocId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: sequenceId,
+    });
+    const { contentId: secondDocId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: sequenceId,
+    });
+
+    // Every document in the problem set must pass its audits.
+    await makeDocumentPubliclyShareable({
+      contentId: firstDocId,
+      userId: user.userId,
+    });
+    await makeDocumentPubliclyShareable({
+      contentId: secondDocId,
+      userId: user.userId,
+    });
+
+    const result = await updateVisibility({
+      loggedInUserId: user.userId,
+      contentId: sequenceId,
+      visibility: "public",
+    });
+
+    expect(result).toEqual({ visibility: "public" });
+
+    for (const contentId of [sequenceId, firstDocId, secondDocId]) {
+      const content = await getVisibilityState(contentId);
+      expect(content.visibility).toBe("public");
+      expect(content.isPublic).toBe(true);
+      expect(content.publiclySharedAt).toBeInstanceOf(Date);
+    }
   });
 
   test("blocks public sharing until categories and diagnostics are satisfied", async () => {
@@ -219,6 +268,47 @@ describe("updateVisibility", () => {
     expect(error.message).toContain(
       "documents have no level 1 accessibility violations",
     );
+  });
+
+  test("reports which descendant document blocks public sharing of a problem set", async () => {
+    const user = await createTestUser();
+    const { contentId: sequenceId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "sequence",
+      parentId: null,
+    });
+    const { contentId: docId } = await createContent({
+      loggedInUserId: user.userId,
+      contentType: "singleDoc",
+      parentId: sequenceId,
+    });
+
+    // Satisfy the sequence's own requirement so only the descendant document
+    // remains as a blocker.
+    await connectRequiredCategories(sequenceId);
+
+    const status = await getEditorShareStatus({
+      contentId: sequenceId,
+      loggedInUserId: user.userId,
+    });
+
+    expect(status.canSharePublicly).toBe(false);
+
+    const blocker = status.publicShareBlockers.find(
+      (candidate) => candidate.contentId === fromUUID(docId),
+    );
+    expect(blocker).toBeDefined();
+    expect(blocker?.contentType).toBe("singleDoc");
+    expect(blocker?.issues).toContain("errorsCheckPending");
+    expect(blocker?.issues).toContain("accessibilityCheckPending");
+
+    // The problem set itself has its category requirement satisfied, so it is
+    // not listed as a blocker.
+    expect(
+      status.publicShareBlockers.some(
+        (candidate) => candidate.contentId === fromUUID(sequenceId),
+      ),
+    ).toBe(false);
   });
 
   test("rejects publicly sharing folders", async () => {

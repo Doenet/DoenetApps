@@ -313,7 +313,10 @@ export function CompoundActivityEditor({
     <CardList
       showOwnerName={false}
       showBlurb={false}
-      showPublicStatus={true}
+      // A problem set defines the access of its documents, so per-document
+      // visibility pills would be misleading here. Question banks still show
+      // them.
+      showPublicStatus={activity.type !== "sequence"}
       showActivityCategories={true}
       showAddButton={!readOnlyStructure}
       emptyMessage={`${contentTypeName} is empty. Add documents here to begin.`}

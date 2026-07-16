@@ -428,6 +428,16 @@ export async function getEditorShareStatus({
     ...new Set(publicShareViolations.flatMap((violation) => violation.issues)),
   ]);
 
+  // Per-content breakdown so the sharing UI can point at the specific
+  // document(s) blocking a compound item (problem set / question bank) rather
+  // than just reporting an aggregate issue.
+  const publicShareBlockers = publicShareViolations.map((violation) => ({
+    contentId: fromUUID(violation.contentId),
+    name: violation.name,
+    contentType: violation.type,
+    issues: sortPublicShareIssues(violation.issues),
+  }));
+
   return {
     isPublic: results.isPublic,
     ownerId: fromUUID(results.ownerId),
@@ -437,6 +447,7 @@ export async function getEditorShareStatus({
     canSharePublicly:
       results.type !== "folder" && publicShareViolations.length === 0,
     publicShareIssues,
+    publicShareBlockers,
     sharedWith,
     parentSharedWith,
   };
