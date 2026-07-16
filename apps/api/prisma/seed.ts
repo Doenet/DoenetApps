@@ -23,9 +23,9 @@ async function seedDoenetMLVersions() {
 
   await updateOrCreateDoenetMLVersion({
     displayedVersion: "0.6",
-    fullVersion: "0.6.7",
+    fullVersion: "0.6.15",
     deprecated: true,
-    deprecationMessage: "It will be removed after June 2026.",
+    deprecationMessage: "It will be removed after June 2027.",
   });
   await updateOrCreateDoenetMLVersion({
     displayedVersion: "0.7",
