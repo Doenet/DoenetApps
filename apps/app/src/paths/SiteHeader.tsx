@@ -9,6 +9,7 @@ import {
   UserInfoWithEmail,
 } from "../types";
 import { Navbar } from "../features/navbar";
+import { MaintenanceBanner } from "../widgets/MaintenanceBanner";
 
 const navBarHeight = "40px";
 
@@ -69,12 +70,16 @@ export function SiteHeader() {
     <>
       <SkipNavLink zIndex="2000">Skip to content</SkipNavLink>
       <Grid
-        templateAreas={`"siteHeader"
+        templateAreas={`"maintenanceBanner"
+        "siteHeader"
         "main"`}
-        gridTemplateRows={`${navBarHeight} auto`}
+        gridTemplateRows={`auto ${navBarHeight} 1fr`}
         width="100vw"
         height="100vh"
       >
+        <GridItem area="maintenanceBanner" width="100vw" m="0">
+          <MaintenanceBanner />
+        </GridItem>
         <GridItem
           as="header"
           area="siteHeader"
