@@ -1,4 +1,31 @@
-import { extendTheme, defineStyleConfig } from "@chakra-ui/react";
+import {
+  extendTheme,
+  defineStyleConfig,
+  type StyleFunctionProps,
+} from "@chakra-ui/react";
+
+// Chakra's default `subtle` Alert keeps a light status-colored background while
+// the inherited text goes light in dark mode, leaving warnings/infos as light
+// text on a light background. Pin readable bg/text/icon per color scheme in both
+// modes. Applies to every <Alert> (warning, info, error, success).
+const Alert = {
+  variants: {
+    subtle: (props: StyleFunctionProps) => {
+      const { colorScheme: c } = props;
+      return {
+        container: {
+          bg: `${c}.100`,
+          color: `${c}.900`,
+          _dark: { bg: `${c}.900`, color: `${c}.100` },
+        },
+        icon: {
+          color: `${c}.500`,
+          _dark: { color: `${c}.200` },
+        },
+      };
+    },
+  },
+};
 
 const Button = defineStyleConfig({
   variants: {
@@ -41,6 +68,7 @@ const theme = extendTheme({
   components: {
     Button,
     IconButton: Button,
+    Alert,
     FormError: {
       baseStyle: {
         text: {
