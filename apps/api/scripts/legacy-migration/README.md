@@ -16,8 +16,10 @@ What each user gets:
 - Everything is private, licensed CCDUAL, DoenetML version 0.6.
 - Referenced images are uploaded to the media bucket, created as image
   content (license CC-BY) in the same folder as the referencing activity,
-  and `doenet:cid=<cid>` references in document sources are rewritten to the
-  new `doenet:<id>` form (requires @doenet/standalone >= 0.6.15 for 0.6 docs).
+  and `<image>` tags in document sources are rewritten to the new form with
+  attribution matching the image row, e.g.
+  `<image source="doenet:<id>" imageName="..." authorName="..." licenseCodes="CC-BY" />`
+  (requires @doenet/standalone >= 0.6.15 for 0.6 docs).
 
 ## Prerequisites
 

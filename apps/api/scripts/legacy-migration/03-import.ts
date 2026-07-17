@@ -430,7 +430,18 @@ async function importActivity(
       );
       const rewritten = rewriteImageSources(source, (cid) => {
         const entry = ctx.imageMap[imageMapKey(args.folderKey, cid)];
-        return entry ? imageSourceFromStorageKey(entry.storageKey) : null;
+        if (!entry) return null;
+        // Attribution mirrors the imageContent row created below for this
+        // image, so the rendered credit matches the stored license.
+        const info = ctx.model.supportFiles[cid];
+        return {
+          ref: imageSourceFromStorageKey(entry.storageKey),
+          imageName: trimName(
+            info?.description || info?.asFileName || "Migrated image",
+          ),
+          authorName: info?.uploaderName ?? null,
+          licenseCodes: IMAGE_LICENSE_CODES,
+        };
       });
       source = rewritten.source;
       bump(ctx, "imageRefsRewritten", rewritten.rewritten.length);

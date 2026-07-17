@@ -114,16 +114,57 @@ describe("scanImageCids", () => {
 });
 
 describe("rewriteImageSources", () => {
-  it("replaces resolvable references and reports them", () => {
+  const resolveA = (cid: string) =>
+    cid === "bafkreiaaa"
+      ? {
+          ref: "doenet:NewId123",
+          imageName: "A giant anteater",
+          authorName: "Duane Nykamp",
+          licenseCodes: "CC-BY",
+        }
+      : null;
+
+  it("rewrites the reference and adds attribution attributes", () => {
     const source = `<image source='doenet:cid=bafkreiaaa' width='50px' />`;
-    const result = rewriteImageSources(source, (cid) =>
-      cid === "bafkreiaaa" ? "doenet:NewId123" : null,
-    );
+    const result = rewriteImageSources(source, resolveA);
     expect(result.source).toBe(
-      `<image source='doenet:NewId123' width='50px' />`,
+      `<image source='doenet:NewId123' width='50px'` +
+        ` imageName="A giant anteater" authorName="Duane Nykamp" licenseCodes="CC-BY" />`,
     );
     expect(result.rewritten).toEqual(["bafkreiaaa"]);
     expect(result.unresolved).toEqual([]);
+  });
+
+  it("handles non-self-closing image tags", () => {
+    const source = `<image source="doenet:cid=bafkreiaaa"></image>`;
+    const result = rewriteImageSources(source, resolveA);
+    expect(result.source).toBe(
+      `<image source="doenet:NewId123"` +
+        ` imageName="A giant anteater" authorName="Duane Nykamp" licenseCodes="CC-BY"></image>`,
+    );
+  });
+
+  it("does not clobber attributes already on the tag", () => {
+    const source = `<image source='doenet:cid=bafkreiaaa' imageName='mine' />`;
+    const result = rewriteImageSources(source, resolveA);
+    expect(result.source).toBe(
+      `<image source='doenet:NewId123' imageName='mine'` +
+        ` authorName="Duane Nykamp" licenseCodes="CC-BY" />`,
+    );
+  });
+
+  it("escapes attribute values", () => {
+    const source = `<image source='doenet:cid=bafkreiaaa' />`;
+    const result = rewriteImageSources(source, () => ({
+      ref: "doenet:NewId123",
+      imageName: `Say "cheese" & <smile>`,
+      authorName: null,
+      licenseCodes: null,
+    }));
+    expect(result.source).toBe(
+      `<image source='doenet:NewId123'` +
+        ` imageName="Say &quot;cheese&quot; &amp; &lt;smile>" />`,
+    );
   });
 
   it("leaves unresolvable references untouched", () => {
@@ -133,13 +174,26 @@ describe("rewriteImageSources", () => {
     expect(result.unresolved).toEqual(["bafkreiccc"]);
   });
 
-  it("rewrites multiple references in one source", () => {
+  it("rewrites references outside image tags without attributes", () => {
     const source = `a doenet:cid=bafkreiaaa b doenet:cid=bafkreibbb c doenet:cid=bafkreiaaa`;
-    const result = rewriteImageSources(
-      source,
-      (cid) => `doenet:X${cid.slice(-3)}`,
-    );
+    const result = rewriteImageSources(source, (cid) => ({
+      ref: `doenet:X${cid.slice(-3)}`,
+      imageName: "unused",
+      authorName: null,
+      licenseCodes: null,
+    }));
     expect(result.source).toBe(`a doenet:Xaaa b doenet:Xbbb c doenet:Xaaa`);
     expect(result.rewritten.sort()).toEqual(["bafkreiaaa", "bafkreibbb"]);
+  });
+
+  it("rewrites multiple image tags independently", () => {
+    const source =
+      `<image source="doenet:cid=bafkreiaaa" />` +
+      `<image source="doenet:cid=bafkreiddd" />`;
+    const result = rewriteImageSources(source, resolveA);
+    expect(result.source).toContain(`doenet:NewId123`);
+    expect(result.source).toContain(`authorName="Duane Nykamp"`);
+    expect(result.source).toContain(`<image source="doenet:cid=bafkreiddd" />`);
+    expect(result.unresolved).toEqual(["bafkreiddd"]);
   });
 });
