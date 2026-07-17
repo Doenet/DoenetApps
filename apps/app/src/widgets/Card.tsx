@@ -202,7 +202,7 @@ export default function Card({
             <Flex alignItems="center">
               <Icon
                 as={categoryIcon}
-                color="#666699"
+                color="iconAccent"
                 width={categoryIconSize}
                 height={categoryIconSize}
               />
@@ -305,7 +305,7 @@ export default function Card({
         <Flex alignItems="center" width={variantsBadgeWidth}>
           <Icon
             as={IoDiceOutline}
-            color="#666699"
+            color="iconAccent"
             width={variantsIconHeight}
             height={variantsIconHeight}
           />

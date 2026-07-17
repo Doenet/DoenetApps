@@ -436,7 +436,7 @@ export function LibraryActivities() {
   const searchResultsHeading = haveQuery ? (
     <Flex
       width="100%"
-      background="lightgray"
+      background="surfaceMuted"
       fontSize="large"
       alignItems="center"
       padding="5px"
@@ -448,7 +448,7 @@ export function LibraryActivities() {
         <Tooltip label="Close search results" placement="bottom-end">
           <IconButton
             icon={<MdClose />}
-            background="lightgray"
+            background="surfaceMuted"
             aria-label="Close search results"
             type="submit"
             onClick={() => {

@@ -313,7 +313,7 @@ export function FilterPanel({
                         <Icon
                           paddingLeft="5px"
                           as={activityCategoryIcons[categoryCode]}
-                          color="#666699"
+                          color="iconAccent"
                           boxSize={5}
                           verticalAlign="middle"
                         />

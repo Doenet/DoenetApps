@@ -105,6 +105,8 @@ const theme = extendTheme({
       text: { default: "#1F1F1F", _dark: "#e8e8e8" },
       // Secondary/de-emphasized text (was gray.600 / gray.700 / gray.800).
       textMuted: { default: "#4a5568", _dark: "#a8a8a8" },
+      // Slate-purple category/label icon accent (was #666699); lightened for dark.
+      iconAccent: { default: "#666699", _dark: "#a9abe5" },
       accent: { default: "#8cebff", _dark: "#1c5a72" },
       doenet: {
         canvas: { default: "#ffffff", _dark: "#121212" },

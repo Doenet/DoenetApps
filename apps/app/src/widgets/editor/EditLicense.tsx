@@ -57,7 +57,7 @@ export function EditLicense({
   return (
     <>
       <FormControl>
-        <FormLabel color={fetcher.state === "idle" ? "black" : "gray"}>
+        <FormLabel color={fetcher.state === "idle" ? "text" : "textMuted"}>
           This document {isPublic || isShared ? "is" : "will be"} shared under
           the following license(s)
         </FormLabel>
