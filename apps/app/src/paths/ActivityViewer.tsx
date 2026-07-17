@@ -304,6 +304,7 @@ export function ActivityViewer() {
         borderTop="1px solid"
         borderBottom="1px solid"
         borderColor="orange.300"
+        _dark={{ backgroundColor: "orange.900", borderColor: "orange.700" }}
         justifyContent="center"
       >
         <HStack

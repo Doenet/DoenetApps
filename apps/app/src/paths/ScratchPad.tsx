@@ -378,6 +378,7 @@ export function ScratchPadComponent({
         top="calc(40px + var(--maintenance-offset, 0px))"
         height="40px"
         background="orange.100"
+        _dark={{ background: "orange.900" }}
         width="100%"
         pr="10px"
         zIndex="300"
