@@ -296,33 +296,47 @@ export function Home() {
         Events
       </Heading>
       <Stack direction={{ base: "column", md: "row" }}>
-        <Card>
+        <Card width="70%">
           <CardHeader>
             <Heading size="sm">
-              July Doenet Virtual Workshop
-              <br /> July 14-17, 3–6pm Eastern, noon–3pm Pacific
+              MathFest Minicourse
+              <br />
+              Upgrading Online Assignments: Building Scaffolded Activities for
+              Conceptual Understanding
+              <br />
+              August 6 and 7, 2026
             </Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={"18px"} fontWeight="500">
-              In this 4-day virtual workshop held on Zoom, participants will
-              learn how to create accessible, dynamic and interactive activities
-              in Doenet. The workshop will also provide guidance on using the
-              available resources to learn more about Doenet, including how to
-              connect with the supportive Doenet community of developers and
-              experienced instructors.
+              Do your students get perfect scores on autograded homework only to
+              demonstrate poor learning on in-class assessments? What if, rather
+              than just seeing the correctness of their single answer, students
+              received feedback throughout the process, helping them discover
+              the solution and develop conceptual understanding? In this
+              minicourse, you will learn how to create interactive online
+              mathematics activities that guide students to discover how to
+              solve a problem. (See more details in the{" "}
+              <ChakraLink
+                href="https://maa.org/events/mathfest-program/minicourses/"
+                isExternal
+                textDecoration="underline"
+              >
+                MathFest program
+              </ChakraLink>
+              .)
             </Text>
-
-            <Button
-              as="a"
-              href="https://scholarlattice.org/collections/2ed44057-3e32-43de-90af-ad1e3806175e"
-              colorScheme="blue"
-              target="_blank"
-              rel="noopener noreferrer"
-              mt="1em"
-            >
-              Details and registration at ScholarLattice
-            </Button>
+            <Text fontSize={"18px"} fontWeight="500" mt="1em">
+              Register for the minicourse as part of your{" "}
+              <ChakraLink
+                href="https://web.cvent.com/event/ad822b5c-1850-4215-a691-11fd7c371828/summary"
+                isExternal
+                textDecoration="underline"
+              >
+                MathFest registration
+              </ChakraLink>
+              .
+            </Text>
           </CardBody>
         </Card>
         <Card>
