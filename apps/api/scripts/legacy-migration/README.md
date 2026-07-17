@@ -116,13 +116,18 @@ stages 02–04 run there; extract (00–01) runs on a workstation and its
 3. Inside the container:
 
 ```bash
+# The runtime image has no CA store, so curl's TLS fails (error 77) until
+# ca-certificates is installed. The exec session runs as root; the install is
+# ephemeral (redo it after any task restart).
+apt-get update && apt-get install -y ca-certificates
+
 mkdir -p /tmp/legacy-migration/build && cd /tmp/legacy-migration
 curl -fo media.tgz '<presigned media.tgz url>' && tar -xzf media.tgz
 curl -fo build/model.json '<presigned model.json url>'
 export LEGACY_MEDIA_DIR=/tmp/legacy-migration/media
 export LEGACY_BUILD_DIR=/tmp/legacy-migration/build
 cd /DoenetTools/apps/api
-node dist/prisma/seed.js                                    # 0.6 -> 0.6.15 etc.
+node dist/prisma/seed.js                # seeds versions (0.6 -> 0.6.17), licenses
 node dist/scripts/legacy-migration/02-upload-images.js
 node dist/scripts/legacy-migration/03-import.js --dry-run
 node dist/scripts/legacy-migration/03-import.js --user=<email> --yes-target=<db-host>
