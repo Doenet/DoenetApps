@@ -9,11 +9,11 @@
   },
   {
     "ParameterKey": "PublicHostedZoneName",
-    "ParameterValue": "beta.doenet.org"
+    "ParameterValue": "doenet.org"
   },
   {
     "ParameterKey": "PublicHostedZoneId",
-    "ParameterValue": "Z0126382ZHTT46RB59N8"
+    "ParameterValue": "Z08210421B0UEN4PYID0X"
   },
   {
     "ParameterKey": "Subdomain",

@@ -2,7 +2,7 @@ Environment:
   - Name: PORT
     Value: 3000
   - Name: APP_URL
-    Value: "https://beta.doenet.org"
+    Value: "https://doenet.org"
   - Name: DATABASE_PORT
     Value: 3306
   - Name: DATABASE_NAME

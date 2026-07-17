@@ -1,0 +1,150 @@
+// Stage 02: upload every referenced legacy image to the media S3 bucket.
+//
+// Each (owner, destination folder, cid) triple gets its own S3 object under
+// images/<short-uuid> — matching how a fresh upload would behave, and keeping
+// per-user copies independent (deleting one user's image cannot break
+// another's). Results go to build/image-map.json, consumed by 03-import.
+// Idempotent: existing map entries are verified with a HEAD and kept.
+//
+//   npx tsx scripts/legacy-migration/02-upload-images.ts [--dry-run]
+import fs from "node:fs";
+import path from "node:path";
+import {
+  PutObjectCommand,
+  S3Client,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
+import { loadConfig } from "./config";
+import { loadMediaConfig } from "../../src/media/config";
+import { UPLOAD_KEY_PREFIX } from "../../src/media/upload.schema";
+import { fromUUID, newUUID } from "../../src/utils/uuid";
+import { Model } from "./model";
+import { planUser } from "./plan";
+
+export interface ImageMapEntry {
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  cid: string;
+  folderKey: string;
+  ownerEmail: string;
+}
+
+/** image-map.json: `${folderKey} ${cid}` -> entry */
+export type ImageMap = Record<string, ImageMapEntry>;
+
+export function imageMapKey(folderKey: string, cid: string): string {
+  return `${folderKey} ${cid}`;
+}
+
+async function main() {
+  const config = loadConfig();
+  const model: Model = JSON.parse(
+    fs.readFileSync(path.join(config.buildDir, "model.json"), "utf8"),
+  );
+
+  const mapPath = path.join(config.buildDir, "image-map.json");
+  const imageMap: ImageMap = fs.existsSync(mapPath)
+    ? JSON.parse(fs.readFileSync(mapPath, "utf8"))
+    : {};
+
+  // planned (folder, cid) pairs across all users
+  const needed: { folderKey: string; cid: string; ownerEmail: string }[] = [];
+  for (const user of model.users) {
+    if (config.onlyUser && user.email.toLowerCase() !== config.onlyUser) {
+      continue;
+    }
+    const plan = planUser(user, model);
+    for (const [folderKey, cids] of plan.imagesByFolder) {
+      for (const cid of cids) {
+        needed.push({ folderKey, cid, ownerEmail: user.email });
+      }
+    }
+  }
+  console.log(`${needed.length} (folder, image) pairs planned`);
+
+  const media = loadMediaConfig();
+  const client =
+    media.mode === "aws"
+      ? new S3Client({ region: media.region })
+      : new S3Client({
+          region: media.region,
+          endpoint: media.endpoint,
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: media.accessKeyId,
+            secretAccessKey: media.secretAccessKey,
+          },
+        });
+
+  let uploaded = 0;
+  let kept = 0;
+  let skipped = 0;
+  for (const { folderKey, cid, ownerEmail } of needed) {
+    const key = imageMapKey(folderKey, cid);
+    const info = model.supportFiles[cid];
+    if (!info?.file) {
+      skipped++;
+      continue;
+    }
+    const existing = imageMap[key];
+    if (existing) {
+      // verify the object is really there before trusting the map
+      try {
+        await client.send(
+          new HeadObjectCommand({
+            Bucket: media.bucket,
+            Key: existing.storageKey,
+          }),
+        );
+        kept++;
+        continue;
+      } catch {
+        console.warn(`Re-uploading ${existing.storageKey} (HEAD failed)`);
+      }
+    }
+    if (config.dryRun) {
+      uploaded++;
+      continue;
+    }
+    const body = fs.readFileSync(path.join(config.legacyMediaDir, info.file));
+    const storageKey = `${UPLOAD_KEY_PREFIX}${fromUUID(newUUID())}`;
+    await client.send(
+      new PutObjectCommand({
+        Bucket: media.bucket,
+        Key: storageKey,
+        Body: body,
+        ContentType: info.mimeType,
+      }),
+    );
+    imageMap[key] = {
+      storageKey,
+      mimeType: info.mimeType,
+      sizeBytes: body.length,
+      cid,
+      folderKey,
+      ownerEmail,
+    };
+    // flush after every upload so an interrupted run never loses S3 objects
+    fs.writeFileSync(mapPath, JSON.stringify(imageMap, null, 1));
+    uploaded++;
+  }
+
+  console.log(
+    `${config.dryRun ? "[dry-run] would upload" : "uploaded"} ${uploaded}, ` +
+      `kept ${kept} existing, skipped ${skipped} without files`,
+  );
+  if (!config.dryRun) {
+    console.log(`Wrote ${mapPath}`);
+  }
+}
+
+// Only run when executed directly (this module is imported by 03-import for
+// its types). Match .ts (tsx) and .js (compiled dist/ run inside the deployed
+// container).
+if (process.argv[1] && /02-upload-images\.(ts|js)$/.test(process.argv[1])) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
