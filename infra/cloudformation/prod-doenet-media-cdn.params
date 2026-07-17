@@ -25,6 +25,6 @@
   },
   {
     "ParameterKey": "CertificateArn",
-    "ParameterValue": "arn:aws:acm:us-east-1:350646758180:certificate/cf6b6964-907f-4d2f-ba41-b38af1b253f5"
+    "ParameterValue": "arn:aws:acm:us-east-1:350646758180:certificate/ebeeb24e-51fc-4966-8f82-c1c36908b2af"
   }
 ]
