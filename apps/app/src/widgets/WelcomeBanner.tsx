@@ -24,14 +24,21 @@ export function WelcomeBanner() {
     >
       <InfoOutlineIcon color="doenet.mainBlue" flexShrink={0} />
       <Text fontSize="sm" textAlign="center">
-        Welcome to the new Doenet! Looking for the previous version?{" "}
+        Welcome to the new Doenet! The old site can still be found at{" "}
         <ChakraLink
           href="https://legacy.doenet.org"
           color="doenet.mainBlue"
-          fontWeight="bold"
           textDecoration="underline"
         >
-          Visit legacy.doenet.org
+          legacy.doenet.org
+        </ChakraLink>
+        . For details, see{" "}
+        <ChakraLink
+          href="https://community.doenet.org/t/the-new-doenet-org/254"
+          color="doenet.mainBlue"
+          textDecoration="underline"
+        >
+          this post
         </ChakraLink>
         .
       </Text>
