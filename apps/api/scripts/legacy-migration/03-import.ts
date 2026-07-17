@@ -479,35 +479,42 @@ async function importActivity(
   if (node.shape === "sequence") {
     // one transaction per activity: the problem set and its documents appear
     // together or not at all
-    const { activityId, pageIds } = await prisma.$transaction(async (tx) => {
-      const sequence = await tx.content.create({
-        data: {
-          type: "sequence",
-          ownerId: args.ownerId!,
-          parentId: args.parentId,
-          name,
-          sortIndex: args.sortIndex,
-          isPublic: false,
-          visibility: "private",
-          licenseCode: "CCDUAL",
-        },
-      });
-      const pageIds: string[] = [];
-      for (let i = 0; i < pageSources.length; i++) {
-        const page = pageSources[i];
-        const doc = await tx.content.create({
+    const { activityId, pageIds } = await prisma.$transaction(
+      async (tx) => {
+        const sequence = await tx.content.create({
           data: {
-            ...docData(page.source, {
-              parentId: sequence.id,
-              sortIndex: sortIndexFor(i),
-            }),
-            name: trimName(page.label),
+            type: "sequence",
+            ownerId: args.ownerId!,
+            parentId: args.parentId,
+            name,
+            sortIndex: args.sortIndex,
+            isPublic: false,
+            visibility: "private",
+            licenseCode: "CCDUAL",
           },
         });
-        pageIds.push(shortId(doc.id));
-      }
-      return { activityId: shortId(sequence.id), pageIds };
-    });
+        const pageIds: string[] = [];
+        for (let i = 0; i < pageSources.length; i++) {
+          const page = pageSources[i];
+          const doc = await tx.content.create({
+            data: {
+              ...docData(page.source, {
+                parentId: sequence.id,
+                sortIndex: sortIndexFor(i),
+              }),
+              name: trimName(page.label),
+            },
+          });
+          pageIds.push(shortId(doc.id));
+        }
+        return { activityId: shortId(sequence.id), pageIds };
+        // Generous limits: over a remote database (e.g. the dev3/prod Fargate
+        // MySQL) every create pays network latency, and a large problem set's
+        // transaction was observed to need >22s — far beyond Prisma's 5s
+        // default interactive-transaction timeout.
+      },
+      { maxWait: 60_000, timeout: 600_000 },
+    );
     journalActivity(ctx, user, node, activityId, pageIds, notes);
     bump(ctx, "problemSetsCreated");
     bump(ctx, "docsCreated", pageSources.length);
