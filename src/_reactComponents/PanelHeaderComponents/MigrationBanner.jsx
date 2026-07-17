@@ -1,9 +1,8 @@
 import React from "react";
 
-// Informational banner announcing the migration to the new Doenet website.
-// Edit NOTICE_DATE / the message text here in one place; it is used by both
+// Informational banner announcing the new Doenet website.
+// Edit the message text here in one place; it is used by both
 // the wide variant (home page) and the thin variant (every other page).
-const NOTICE_DATE = "July 1, 2026";
 
 const wrapperBase = {
   backgroundColor: "#fff3cd",
@@ -40,27 +39,17 @@ export default function MigrationBanner({ variant = "thin" }) {
           lineHeight: 1.5,
         }}
         role="region"
-        aria-label="Site migration notice"
+        aria-label="New Doenet website notice"
       >
-        <strong>On July 17, this site will move to legacy.doenet.org.</strong>{" "}
-        The new{" "}
-        <ExternalLink href="https://beta.doenet.org">
-          beta.doenet.org
+        <strong>
+          The new Doenet website is now live at{" "}
+          <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
+        </strong>{" "}
+        This is the legacy site. See{" "}
+        <ExternalLink href="https://community.doenet.org/t/the-new-doenet-org/254">
+          the announcement
         </ExternalLink>{" "}
-        will become{" "}
-        <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
-        See the{" "}
-        <ExternalLink href="https://community.doenet.org/t/transition-to-new-doenet-web-site/209">
-          full announcement
-        </ExternalLink>{" "}
-        for details. Questions? Post to{" "}
-        <ExternalLink href="https://community.doenet.org">
-          community.doenet.org
-        </ExternalLink>
-        .
-        <div style={{ fontSize: "0.8rem", marginTop: "6px", opacity: 0.8 }}>
-          Posted {NOTICE_DATE}
-        </div>
+        to learn more.
       </div>
     );
   }
@@ -75,22 +64,17 @@ export default function MigrationBanner({ variant = "thin" }) {
         lineHeight: 1.3,
       }}
       role="region"
-      aria-label="Site migration notice"
+      aria-label="New Doenet website notice"
     >
-      <strong>On July 17, this site will move to legacy.doenet.org.</strong>{" "}
-      The new{" "}
-      <ExternalLink href="https://beta.doenet.org">beta.doenet.org</ExternalLink>{" "}
-      will become{" "}
-      <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
-      See the{" "}
-      <ExternalLink href="https://community.doenet.org/t/transition-to-new-doenet-web-site/209">
-        full announcement
+      <strong>
+        The new Doenet website is now live at{" "}
+        <ExternalLink href="https://doenet.org">doenet.org</ExternalLink>.
+      </strong>{" "}
+      This is the legacy site. See{" "}
+      <ExternalLink href="https://community.doenet.org/t/the-new-doenet-org/254">
+        the announcement
       </ExternalLink>{" "}
-      for details. Questions? Post to{" "}
-      <ExternalLink href="https://community.doenet.org">
-        community.doenet.org
-      </ExternalLink>
-      .
+      to learn more.
     </div>
   );
 }

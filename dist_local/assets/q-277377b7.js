@@ -1,0 +1,1 @@
+import{ao as s,bn as t,a as o,F as d,j as i}from"./index-ff2008c3.js";const c=s.memo(function(e){let{name:l,id:n,SVs:a,children:r}=t(e);return a.hidden?null:o(d,{children:[i("a",{name:n}),"“",r,"”"]})});export{c as default};

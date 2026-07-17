@@ -1,1 +1,0 @@
-import{v as o,a as r,j as t,_ as n,B as s,w as a}from"./index-5795133f.js";function i(e){const l=o();return r("div",{style:e.style,children:[t("div",{children:"Enter Enrollment code"}),t(n,{vertical:!0,children:t(s,{onClick:()=>l("Stub Enrolled in Course!",a.SUCCESS),value:"Enroll",children:"Enroll"})})]})}export{i as default};
