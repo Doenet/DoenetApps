@@ -12,6 +12,7 @@ import {
   UserInfoWithEmail,
 } from "../types";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 import { doenetImagesUrl } from "../utils/media";
 import axios from "axios";
 import defaultSource from "../assets/scratchPadDefault.doenet?raw";
@@ -419,6 +420,7 @@ function DocumentEditor({
   doenetmlVersion,
   sourceChangedCallback,
 }: DocumentEditorProps) {
+  const { themeSetting } = useThemeSettingContext();
   // See DocEditorEditMode.tsx for why we capture the initial source separately
   // from the live ref used for saves. Remove once @doenet/doenetml-iframe ships
   // its srcDoc-stability fix in a release.
@@ -466,6 +468,7 @@ function DocumentEditor({
         sourceChangedCallback?.(newDoenetML);
       }}
       doenetmlVersion={doenetmlVersion.fullVersion}
+      darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
       border="none"
       doenetViewerUrl={doenetViewerUrl}
       doenetImagesUrl={doenetImagesUrl}

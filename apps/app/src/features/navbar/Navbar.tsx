@@ -1,5 +1,6 @@
 import { Hide, Show } from "@chakra-ui/react";
 import { UserInfoWithEmail } from "../../types";
+import { ThemeSetting } from "../../utils/theme";
 import { getDiscourseUrl } from "../../utils/discourse";
 import { NavbarDesktop } from "./NavbarDesktop";
 import {
@@ -12,7 +13,17 @@ import {
 import { NavSection } from "./navbar.types";
 import { NavbarMobile } from "./NavbarMobile";
 
-export function Navbar({ user }: { user?: UserInfoWithEmail }) {
+export function Navbar({
+  user,
+  themeSetting = "system",
+  setThemeSetting = () => {},
+}: {
+  user?: UserInfoWithEmail;
+  // Optional so component tests can mount <Navbar/> without theme plumbing;
+  // SiteHeader always supplies the real values from useThemeSetting.
+  themeSetting?: ThemeSetting;
+  setThemeSetting?: (_: ThemeSetting) => void;
+}) {
   const discussionsLink = getDiscourseUrl(user);
 
   const main = mainSections({ discussionsLink });
@@ -35,10 +46,17 @@ export function Navbar({ user }: { user?: UserInfoWithEmail }) {
           mainSections={main}
           accountSection={account}
           user={user}
+          themeSetting={themeSetting}
+          setThemeSetting={setThemeSetting}
         />
       </Hide>
       <Show below="lg">
-        <NavbarMobile sections={[...main, account]} user={user} />
+        <NavbarMobile
+          sections={[...main, account]}
+          user={user}
+          themeSetting={themeSetting}
+          setThemeSetting={setThemeSetting}
+        />
       </Show>
     </>
   );

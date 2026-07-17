@@ -26,7 +26,7 @@ export default function Searchbar({
     <>
       <InputGroup borderLeftRadius={5} size="sm">
         <InputLeftElement pointerEvents="none">
-          <Icon as={IoSearchSharp} color="gray.600" />
+          <Icon as={IoSearchSharp} color="textMuted" />
         </InputLeftElement>
         <Input
           type="search"

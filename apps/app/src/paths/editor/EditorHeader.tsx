@@ -368,7 +368,7 @@ export function EditorHeader() {
     <Icon
       as={FaRegFolder}
       aria-label="Go to containing folder"
-      color="gray.500"
+      color="textMuted"
       fontSize="1.1rem"
     />
   );
@@ -412,7 +412,7 @@ export function EditorHeader() {
         ml={{ base: "0rem", xl: "0.5rem" }}
         mr={{ base: "0rem", xl: "0.5rem" }}
       >
-        <FaChevronRight color="gray.500" fontSize="0.7rem" />
+        <FaChevronRight color="textMuted" fontSize="0.7rem" />
       </Box>
     </Hide>
   );
@@ -458,7 +458,7 @@ export function EditorHeader() {
         ml={{ base: "0rem", xl: "0.5rem" }}
         mr={{ base: "0rem", xl: "0.5rem" }}
       >
-        <FaChevronRight color="gray.500" fontSize="0.7rem" />
+        <FaChevronRight color="textMuted" fontSize="0.7rem" />
       </Box>
     </Hide>
   );

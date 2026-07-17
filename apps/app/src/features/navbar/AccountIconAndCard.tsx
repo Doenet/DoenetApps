@@ -6,11 +6,15 @@ import {
   Box,
   Checkbox,
   MenuItem,
+  MenuDivider,
+  MenuOptionGroup,
+  MenuItemOption,
   Text,
   Link as ChakraLink,
   Tooltip,
 } from "@chakra-ui/react";
 import { UserInfoWithEmail } from "../../types";
+import { ThemeSetting } from "../../utils/theme";
 import { createNameNoTag } from "../../utils/names";
 import { AccessibleAvatar } from "../../widgets/AccessibleAvatar";
 import { useFetcher, useLocation } from "react-router";
@@ -21,7 +25,15 @@ import { useFetcher, useLocation } from "react-router";
  * settings (author mode toggle), and sign out option. Shows different options
  * for anonymous vs authenticated users.
  */
-export function AccountIconAndCard({ user }: { user: UserInfoWithEmail }) {
+export function AccountIconAndCard({
+  user,
+  themeSetting,
+  setThemeSetting,
+}: {
+  user: UserInfoWithEmail;
+  themeSetting: ThemeSetting;
+  setThemeSetting: (_: ThemeSetting) => void;
+}) {
   const currentPath = useLocation().pathname;
   const fetcher = useFetcher();
 
@@ -82,6 +94,17 @@ export function AccountIconAndCard({ user }: { user: UserInfoWithEmail }) {
             </Box>
           ) : null}
         </VStack>
+        <MenuOptionGroup
+          title="Theme"
+          type="radio"
+          value={themeSetting}
+          onChange={(value) => setThemeSetting(value as ThemeSetting)}
+        >
+          <MenuItemOption value="system">System</MenuItemOption>
+          <MenuItemOption value="light">Light</MenuItemOption>
+          <MenuItemOption value="dark">Dark</MenuItemOption>
+        </MenuOptionGroup>
+        <MenuDivider />
         {!user.isAnonymous && (
           <MenuItem
             as={ChakraLink}

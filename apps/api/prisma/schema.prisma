@@ -385,6 +385,8 @@ model users {
   isLibrary          Boolean                @default(false)
   isEditor           Boolean                @default(false)
   isAuthor           Boolean                @default(false)
+  // Site theme preference: "system", "light", or "dark".
+  theme              String                 @default("system")
   // Early-access flag for the experimental image-upload feature. Flip with
   // `apps/api/scripts/enable-image-upload.ts`.
   canUploadImages    Boolean                @default(false)

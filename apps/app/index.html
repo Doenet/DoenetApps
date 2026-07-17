@@ -1,6 +1,29 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!--
+      Apply the user's theme before first paint to avoid a flash of the wrong
+      theme. Source of truth is `doenet-theme-setting` (system|light|dark); we
+      resolve it to light|dark and pre-seed Chakra's own key so Chakra hydrates
+      already-correct. Chakra v2 also reads `html[data-theme]`, which activates
+      the [data-theme="dark"] CSS-variable block below. Keep this first in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("doenet-theme-setting") || "system";
+          var dark =
+            pref === "dark" ||
+            (pref === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var resolved = dark ? "dark" : "light";
+          var d = document.documentElement;
+          d.dataset.theme = resolved;
+          d.style.colorScheme = resolved;
+          localStorage.setItem("chakra-ui-color-mode", resolved);
+        } catch (e) {}
+      })();
+    </script>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -88,6 +111,9 @@
       }
       html {
         font-family: "Open Sans" !important;
+        /* Follows --canvas so the page background is correct before Chakra
+           hydrates, preventing a white flash in dark mode. */
+        background: var(--canvas);
         --menuWidth: 220px;
         --mainBlue: #1a5a99;
         --lightBlue: hsl(209, 54%, 82%);

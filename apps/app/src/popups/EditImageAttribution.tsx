@@ -200,7 +200,7 @@ function DisclosureToggle({
       variant="link"
       size="sm"
       alignSelf="flex-start"
-      color="gray.600"
+      color="textMuted"
       fontWeight="medium"
       data-test={dataTest}
       leftIcon={isOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}

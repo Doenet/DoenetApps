@@ -355,7 +355,7 @@ export function Explore() {
 
     return (
       <Box
-        background={"white"}
+        background="surface"
         paddingTop="16px"
         paddingBottom="16px"
         marginLeft={["0.1rem", "1rem"]}
@@ -770,7 +770,7 @@ export function Explore() {
             width="100%"
             alignContent="center"
             hidden={!cardSelections.areActive && addTo === null}
-            backgroundColor="gray.100"
+            backgroundColor="surfaceMuted"
             justifyContent="center"
           >
             {addTo !== null ? (
@@ -890,7 +890,7 @@ export function Explore() {
                 paddingLeft="10px"
                 paddingTop="10px"
                 paddingBottom="10px"
-                backgroundColor="gray.100"
+                backgroundColor="surfaceMuted"
               >
                 Trending
               </Heading>
@@ -904,7 +904,7 @@ export function Explore() {
                 paddingLeft="10px"
                 paddingTop="10px"
                 paddingBottom="10px"
-                backgroundColor="gray.100"
+                backgroundColor="surfaceMuted"
               >
                 Recent
               </Heading>

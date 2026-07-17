@@ -469,8 +469,8 @@ export function CompoundActivityEditor({
 
   const heading = (
     <Flex
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height={cardListHeaderHieght}
       width="100%"
       textAlign="center"

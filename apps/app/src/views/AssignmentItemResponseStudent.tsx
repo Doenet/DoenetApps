@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 
 import {
   Box,
@@ -78,6 +79,7 @@ export function AssignmentItemResponseStudent({
 
   const { search } = useLocation();
   const navigate = useNavigate();
+  const { themeSetting } = useThemeSettingContext();
 
   const [responseAnswerId, setResponseAnswerId] = useState<string | null>(null);
 
@@ -157,6 +159,7 @@ export function AssignmentItemResponseStudent({
       doenetML={doenetML}
       key={`${user.userId}|${itemAttemptState.itemNumber ?? ""}|${attemptNumber}`}
       doenetmlVersion={doenetmlVersion.fullVersion}
+      darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
       requestedVariantIndex={itemAttemptState.variant}
       flags={{
         showCorrectness: true,

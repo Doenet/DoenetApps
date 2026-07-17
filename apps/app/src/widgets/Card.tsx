@@ -518,9 +518,9 @@ function getVisibilityPillConfig(
       return {
         icon: FiLock,
         label: "Private",
-        borderColor: "gray.300",
-        bg: "white",
-        color: "gray.700",
+        borderColor: "border",
+        bg: "surface",
+        color: "textMuted",
       };
     case "unlisted":
       return {

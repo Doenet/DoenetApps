@@ -38,7 +38,7 @@ export function FolderContext() {
         _hover={
           isActivitiesActive
             ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isActivitiesActive ? "4px" : "0"}
         marginLeft={isActivitiesActive ? "0" : "4px"}
@@ -61,7 +61,7 @@ export function FolderContext() {
         _hover={
           isSharedWithMeActive
             ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isSharedWithMeActive ? "4px" : "0"}
         marginLeft={isSharedWithMeActive ? "0" : "4px"}
@@ -87,7 +87,7 @@ export function FolderContext() {
         _hover={
           isTrashActive
             ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isTrashActive ? "4px" : "0"}
         marginLeft={isTrashActive ? "0" : "4px"}

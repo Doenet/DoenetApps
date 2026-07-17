@@ -302,8 +302,8 @@ export function LibraryActivities() {
 
   const heading = (
     <Box
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height="130px"
       width="100%"
       textAlign="center"
@@ -516,7 +516,7 @@ export function LibraryActivities() {
         padding="0 10px"
         margin="0px"
         width="100%"
-        background={"white"}
+        background="surface"
         minHeight="calc(100vh - 189px)"
         direction="column"
       >

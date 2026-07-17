@@ -1,4 +1,5 @@
 import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 import { doenetImagesUrl } from "../utils/media";
 import { PanelPair } from "../widgets/PanelPair";
 import {
@@ -54,6 +55,7 @@ export async function loader({ params }: { params: any }) {
 }
 
 export function DoenetMLComparison() {
+  const { themeSetting } = useThemeSettingContext();
   const {
     activity,
     activityCompare,
@@ -155,6 +157,10 @@ export function DoenetMLComparison() {
         width="100%"
         doenetML={activity.doenetML}
         doenetmlVersion={activity.doenetmlVersion.fullVersion}
+        darkMode={effectiveDarkMode(
+          themeSetting,
+          activity.doenetmlVersion.fullVersion,
+        )}
         border="none"
         readOnly={true}
         viewerLocation="bottom"
@@ -201,6 +207,10 @@ export function DoenetMLComparison() {
         width="100%"
         doenetML={activityCompare.doenetML}
         doenetmlVersion={activityCompare.doenetmlVersion.fullVersion}
+        darkMode={effectiveDarkMode(
+          themeSetting,
+          activityCompare.doenetmlVersion.fullVersion,
+        )}
         border="none"
         viewerLocation="bottom"
         readOnly={true}

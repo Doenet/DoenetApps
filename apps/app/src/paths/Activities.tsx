@@ -855,7 +855,7 @@ export function Activities() {
   return (
     <Flex
       data-test="Activities"
-      background={"white"}
+      background="surface"
       align="flex-start"
       overflowY="hidden"
       height="100%"

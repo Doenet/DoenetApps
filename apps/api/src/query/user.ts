@@ -94,6 +94,7 @@ export async function getMyUserInfo({
       isEditor: true,
       isAuthor: true,
       canUploadImages: true,
+      theme: true,
     },
   });
   return { user };
@@ -188,6 +189,19 @@ export async function setIsAuthor({
   await prisma.users.update({
     where: { userId: loggedInUserId },
     data: { isAuthor },
+  });
+}
+
+export async function setTheme({
+  loggedInUserId,
+  theme,
+}: {
+  loggedInUserId: Uint8Array;
+  theme: "system" | "light" | "dark";
+}) {
+  await prisma.users.update({
+    where: { userId: loggedInUserId },
+    data: { theme },
   });
 }
 

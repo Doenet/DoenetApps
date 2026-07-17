@@ -180,7 +180,7 @@ export function Home() {
   );
 
   // const exploreSection = (
-  //   <WithSideBanners bgColor="white" padding="50px">
+  //   <WithSideBanners bgColor="surface" padding="50px">
   //     <Heading size="lg">Explore community content</Heading>
 
   //     <Heading size="md" pl="40px" mt="20px">
@@ -207,7 +207,7 @@ export function Home() {
 
   const featuresSection = (
     <WithSideBanners
-      bgColor="white"
+      bgColor="surface"
       borderTopColor="doenet.lightGray"
       padding="70px"
     >
@@ -270,7 +270,7 @@ export function Home() {
   );
 
   const communitySection = (
-    <WithSideBanners bgColor="white" padding="70px">
+    <WithSideBanners bgColor="surface" padding="70px">
       <Heading size="lg">A community project</Heading>
 
       <Text marginTop="10px" fontSize="22px" fontWeight="400">
@@ -611,7 +611,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
               width: "100%",
               display: "block",
               objectFit: "cover",
-              backgroundColor: "white",
+              backgroundColor: "var(--canvas)",
             }}
           />
 
@@ -623,7 +623,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
             left={0}
             right={0}
             bottom={0}
-            bg="white"
+            bg="background"
             zIndex={2}
             style={{
               opacity: overlayShown ? 1 : 0,
@@ -706,7 +706,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
               height: "100%",
               display: "block",
               objectFit: "cover",
-              backgroundColor: "white",
+              backgroundColor: "var(--canvas)",
             }}
           />
 
@@ -718,7 +718,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
             left={0}
             right={0}
             bottom={0}
-            bg="white"
+            bg="background"
             zIndex={2}
             style={{
               opacity: overlayShown ? 1 : 0,

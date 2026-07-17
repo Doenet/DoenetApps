@@ -21,10 +21,11 @@ const Button = defineStyleConfig({
     outline: (props) => {
       if (props.colorScheme === "blue") {
         return {
-          color: "blue.700",
-          borderColor: "blue.700",
+          color: props.colorMode === "dark" ? "blue.200" : "blue.700",
+          borderColor: props.colorMode === "dark" ? "blue.200" : "blue.700",
           _hover: {
-            bg: "blue.50",
+            // blue.50 is near-white — use a dark tint in dark mode.
+            bg: props.colorMode === "dark" ? "blue.900" : "blue.50",
             _disabled: {
               bg: "transparent",
             },
@@ -60,14 +61,32 @@ const theme = extendTheme({
     initialColorMode: "light",
     useSystemColorMode: false,
   },
+  // Semantic color tokens flip automatically with the color mode. The six flat
+  // names below and the theme-sensitive `doenet.*` values live here (not in
+  // `colors`) so every `bg="background"` / `color="text"` / `bg="doenet.canvas"`
+  // usage becomes dark-mode-aware with no per-component change. Brand hues that
+  // read the same in both modes stay in `colors` below.
+  semanticTokens: {
+    colors: {
+      background: { default: "#FCFAF6", _dark: "#121212" },
+      surface: { default: "#FFFFFF", _dark: "#1e1e1e" },
+      // Subtle raised/inset panel background (was gray.50 / gray.100 / white).
+      surfaceMuted: { default: "#f2f2f2", _dark: "#262626" },
+      interact: { default: "#EFEFEF", _dark: "#2c2c2c" },
+      border: { default: "#e0e0e0", _dark: "#3a3a3a" },
+      text: { default: "#1F1F1F", _dark: "#e8e8e8" },
+      // Secondary/de-emphasized text (was gray.600 / gray.700 / gray.800).
+      textMuted: { default: "#4a5568", _dark: "#a8a8a8" },
+      accent: { default: "#8cebff", _dark: "#1c5a72" },
+      doenet: {
+        canvas: { default: "#ffffff", _dark: "#121212" },
+        canvastext: { default: "#000000", _dark: "#ffffff" },
+        mainGray: { default: "#e3e3e3", _dark: "#3a3a3a" },
+        lightGray: { default: "#e7e7e7", _dark: "#2c2c2c" },
+      },
+    },
+  },
   colors: {
-    background: "#FCFAF6",
-    surface: "#FFFFFF",
-    interact: "#EFEFEF",
-    border: "#e0e0e0",
-    text: "#1F1F1F",
-    accent: "#8cebff",
-
     doenet_blue: {
       100: "#a6f19f", //Ghost/Outline Click
       200: "#c1292e", //Normal Button - Dark Mode - Background
@@ -80,19 +99,17 @@ const theme = extendTheme({
       900: "#4a03d9",
     },
     doenet: {
+      // canvas, canvastext, mainGray, and lightGray are defined as semantic
+      // tokens above so they flip with the color mode.
       mainBlue: "#1a5a99",
       lightBlue: "#b8d2ea",
       solidLightBlue: "#8fb8de",
-      mainGray: "#e3e3e3",
       mediumGray: "#949494",
-      lightGray: "#e7e7e7",
       donutBody: "#eea177",
       donutTopping: "#6d4445",
       mainRed: "#c1292e",
       lightRed: "#eab8b8",
       mainGreen: "#459152",
-      canvas: "#ffffff",
-      canvastext: "#000000",
       lightGreen: "#a6f19f",
       lightYellow: "#f5ed85",
       whiteBlankLink: "#6d4445",

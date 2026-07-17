@@ -108,9 +108,9 @@ function getShareButtonConfig(visibility: Visibility): {
     case "private":
       return {
         icon: FiLock,
-        borderColor: "gray.300",
-        bg: "white",
-        color: "gray.700",
+        borderColor: "border",
+        bg: "surface",
+        color: "textMuted",
         hoverBg: "gray.50",
         hoverBorderColor: "gray.400",
       };

@@ -303,7 +303,7 @@ function ShareWithPeople({
         parentSharedWith={parentSharedWith}
         footerRow={
           <Box as="li" listStyleType="none" data-test="Invite People Row">
-            <Divider borderColor="gray.100" />
+            <Divider borderColor="border" />
             <FormControl isInvalid={addEmailError ? true : false} px="0.75rem">
               <Flex
                 align="center"
@@ -581,7 +581,7 @@ function SharePublicly({
           </Heading>
           <Text
             data-test="Current Access Helper"
-            color="gray.900"
+            color="text"
             fontSize="md"
             fontWeight="medium"
             lineHeight="1.45"
@@ -680,8 +680,8 @@ function SharePublicly({
                 width="100%"
                 borderWidth="1px"
                 borderRadius="lg"
-                borderColor="gray.200"
-                bg="gray.50"
+                borderColor="border"
+                bg="surfaceMuted"
                 p="1rem"
                 data-test="Public Requirements Card"
               >
@@ -830,12 +830,12 @@ function SharePublicly({
             <Text
               fontSize="sm"
               fontWeight="semibold"
-              color="gray.800"
+              color="textMuted"
               mb="0.35rem"
             >
               {`${contentTypeToName[contentType]} link`}
             </Text>
-            <Text color="gray.700" fontSize="sm" mb="0.65rem">
+            <Text color="textMuted" fontSize="sm" mb="0.65rem">
               {contentLinkHelperText}
             </Text>
             <Tooltip
@@ -846,15 +846,15 @@ function SharePublicly({
               <Button
                 size="sm"
                 variant="outline"
-                borderColor="gray.300"
-                bg="white"
-                color="gray.800"
+                borderColor="border"
+                bg="surface"
+                color="textMuted"
                 onClick={() => {
                   navigator.clipboard.writeText(shareableLink);
                   setCopiedShareLink(true);
                   setCopiedEmbedCode(false);
                 }}
-                _hover={{ bg: "gray.50" }}
+                _hover={{ bg: "surfaceMuted" }}
               >
                 {copiedShareLink ? (
                   <IoMdCheckmark fontSize="1.1rem" />
@@ -871,12 +871,12 @@ function SharePublicly({
               <Text
                 fontSize="sm"
                 fontWeight="semibold"
-                color="gray.800"
+                color="textMuted"
                 mb="0.35rem"
               >
                 Embed code
               </Text>
-              <Text color="gray.700" fontSize="sm" mb="0.65rem">
+              <Text color="textMuted" fontSize="sm" mb="0.65rem">
                 Use this code to embed the document on another site or LMS.
               </Text>
               <Tooltip
@@ -887,15 +887,15 @@ function SharePublicly({
                 <Button
                   size="sm"
                   variant="outline"
-                  borderColor="gray.300"
-                  bg="white"
-                  color="gray.800"
+                  borderColor="border"
+                  bg="surface"
+                  color="textMuted"
                   onClick={() => {
                     navigator.clipboard.writeText(embedCode);
                     setCopiedEmbedCode(true);
                     setCopiedShareLink(false);
                   }}
-                  _hover={{ bg: "gray.50" }}
+                  _hover={{ bg: "surfaceMuted" }}
                 >
                   {copiedEmbedCode ? (
                     <IoMdCheckmark fontSize="1.1rem" />
@@ -1136,7 +1136,7 @@ function PublicCriterionDocuments({
             py="0.15rem"
           >
             <Text
-              color="gray.800"
+              color="textMuted"
               fontSize="sm"
               noOfLines={1}
               flex="1"
@@ -1200,8 +1200,8 @@ function AccessSaveButton({
         bg: "blue.700",
       }}
       _disabled={{
-        bg: "gray.200",
-        color: "gray.500",
+        bg: "interact",
+        color: "textMuted",
         boxShadow: "none",
         cursor: "not-allowed",
       }}
@@ -1227,17 +1227,17 @@ function AccessCancelButton({
       variant="outline"
       borderRadius="lg"
       px="1rem"
-      borderColor="gray.300"
-      bg="white"
-      color="gray.700"
+      borderColor="border"
+      bg="surface"
+      color="textMuted"
       boxShadow="sm"
       onClick={onClick}
       isDisabled={isDisabled}
-      _hover={{ bg: "gray.50", borderColor: "gray.400" }}
+      _hover={{ bg: "surfaceMuted", borderColor: "border" }}
       _disabled={{
         color: "gray.400",
-        bg: "gray.100",
-        borderColor: "gray.200",
+        bg: "surfaceMuted",
+        borderColor: "border",
         boxShadow: "none",
         cursor: "not-allowed",
       }}

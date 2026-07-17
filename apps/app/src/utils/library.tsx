@@ -18,7 +18,7 @@ export function getLibraryStatusStylized(status: LibraryStatus) {
       );
     case "REJECTED":
       return (
-        <Text fontWeight="bold" as="span" color="black">
+        <Text fontWeight="bold" as="span" color="text">
           rejected
         </Text>
       );

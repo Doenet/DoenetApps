@@ -535,7 +535,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.categoryLabel}
         </Heading>
@@ -576,7 +576,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.subCategoryLabel}
         </Heading>
@@ -617,7 +617,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.descriptionLabel}
         </Heading>
@@ -707,7 +707,7 @@ export function FilterPanel({
 
   return (
     <>
-      <Flex backgroundColor="gray.100" pl="10px" pt="10px" pb="10px">
+      <Flex backgroundColor="surfaceMuted" pl="10px" pt="10px" pb="10px">
         <Heading size="md">Filters</Heading>
       </Flex>
       <Box marginTop="5px" minHeight="25px">
