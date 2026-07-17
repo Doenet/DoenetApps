@@ -24,6 +24,7 @@ import { Link as ReactRouterLink, useOutletContext } from "react-router";
 import { SiteContext } from "./SiteHeader";
 import { getDiscourseUrl } from "../utils/discourse";
 import { WithSideBanners } from "../layout/WithSideBanners";
+import { WelcomeBanner } from "../widgets/WelcomeBanner";
 import { FaExternalLinkAlt } from "react-icons/fa";
 
 export async function loader() {
@@ -205,7 +206,11 @@ export function Home() {
   // );
 
   const featuresSection = (
-    <WithSideBanners bgColor="#d3dff1ff" padding="70px">
+    <WithSideBanners
+      bgColor="white"
+      borderTopColor="doenet.lightGray"
+      padding="70px"
+    >
       <Heading size="lg" mb="20px">
         Customize or create your own activities
       </Heading>
@@ -429,6 +434,7 @@ export function Home() {
 
   return (
     <>
+      <WelcomeBanner />
       {heroSection}
       {/* {exploreSection} */}
       {featuresSection}

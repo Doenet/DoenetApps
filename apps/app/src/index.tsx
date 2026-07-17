@@ -444,10 +444,30 @@ const router = createBrowserRouter([
       </ChakraProvider>
     ),
   },
+  // These paths no longer exist on the new site but were used by the old
+  // site (now at legacy.doenet.org), so send visitors there instead of
+  // showing a 404. Forwards the full path and query string as-is.
+  {
+    path: "/portfolioviewer/:contentId",
+    loader: legacySiteRedirectLoader,
+  },
+  {
+    path: "/publiceditor/:contentId1/:contentId2",
+    loader: legacySiteRedirectLoader,
+  },
 ]);
 
 const root = createRoot(document.getElementById("root")!);
 root.render(<RouterProvider router={router} />);
+
+/**
+ * Redirects a request to the same path (and query string) on legacy.doenet.org.
+ * Used for old-site paths that no longer exist on the new site.
+ */
+function legacySiteRedirectLoader({ request }: { request: Request }) {
+  const { pathname, search } = new URL(request.url);
+  return redirect(`https://legacy.doenet.org${pathname}${search}`);
+}
 
 /**
  * A generic action handler for React Router pages

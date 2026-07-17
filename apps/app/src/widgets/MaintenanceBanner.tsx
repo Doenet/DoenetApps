@@ -16,16 +16,21 @@ import { WarningTwoIcon } from "@chakra-ui/icons";
  *
  * NOTE: This is a temporary, time-boxed banner for the maintenance window on
  * Jul 17, 2026 (12pm–2pm ET). Safe to delete after that date.
+ *
+ * Currently disabled via SHOW_BANNER below; flip back to true to re-enable
+ * (or reuse this component for a future notice).
  */
 
 // End of the maintenance window: 2pm ET on Jul 17, 2026 (== 18:00 UTC).
 const MAINTENANCE_END = new Date("2026-07-17T18:00:00Z");
 
+const SHOW_BANNER = false;
+
 export function MaintenanceBanner() {
   const [show, setShow] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
 
-  const visible = show && Date.now() < MAINTENANCE_END.getTime();
+  const visible = SHOW_BANNER && show && Date.now() < MAINTENANCE_END.getTime();
 
   useLayoutEffect(() => {
     const root = document.documentElement;
