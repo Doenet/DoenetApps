@@ -26,7 +26,7 @@
     "@doenet-tools/shared": "*",
     "@doenet/assignment-viewer": "^0.1.0-alpha-16",
     "@doenet/doenetml-iframe": "^0.7.21",
-    "@doenet/v06-to-v07": "^0.7.19",
+    "@doenet/v06-to-v07": "^0.7.21",
     "@fontsource/jost": "^5.2.6",
     "axios": "^1.11.0",
     "better-react-mathjax": "^3.0.0",
