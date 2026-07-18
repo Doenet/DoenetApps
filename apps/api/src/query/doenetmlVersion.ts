@@ -2,6 +2,7 @@ import axios from "axios";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
+import { doenetmlFullVersionSchema } from "../schemas/doenetmlVersionSchemas";
 
 /**
  * npm registry endpoint returning just the dist-tags of a package, e.g.
@@ -37,6 +38,14 @@ export async function updateTrackedDoenetmlVersion({
     if (typeof resolvedVersion !== "string" || resolvedVersion.length === 0) {
       throw new InvalidRequestError(
         `npm has no @doenet/standalone version for dist-tag "${tag}"`,
+      );
+    }
+    // Validate the registry-supplied version with the same schema as an
+    // explicit `version` body param, so this fallback path can never write a
+    // non-URL-safe value into `fullVersion` (which builds the jsDelivr URL).
+    if (!doenetmlFullVersionSchema.safeParse(resolvedVersion).success) {
+      throw new InvalidRequestError(
+        `npm returned an invalid version "${resolvedVersion}" for dist-tag "${tag}"`,
       );
     }
   }

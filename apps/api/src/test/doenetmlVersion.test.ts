@@ -129,6 +129,25 @@ describe("updateTrackedDoenetmlVersion()", () => {
     expect(row?.fullVersion).toBe("0.7.22");
   });
 
+  test("rejects a malformed version resolved from npm", async () => {
+    const tag = `test-${crypto.randomUUID()}`;
+    await createTrackingRow(tag, "0.0.1");
+
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { [tag]: "0.7.21/../evil" },
+    });
+
+    await expect(updateTrackedDoenetmlVersion({ tag })).rejects.toThrow(
+      /invalid version/,
+    );
+
+    // The bad value must not have been written to the tracked row.
+    const row = await prisma.doenetmlVersions.findUnique({
+      where: { trackingNpmTag: tag },
+    });
+    expect(row?.fullVersion).toBe("0.0.1");
+  });
+
   test("throws when no row tracks the tag", async () => {
     await expect(
       updateTrackedDoenetmlVersion({
