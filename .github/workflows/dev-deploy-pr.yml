@@ -144,85 +144,58 @@ jobs:
             echo "blocked=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Open GitHub deployment
-        id: deployment
+      - name: Resolve PR head commit
+        id: head
         if: steps.cmd.outputs.run == 'true' && steps.check.outputs.authorized == 'true' && steps.merge.outputs.blocked != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.issue.number }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           # Attribute the deployment to the PR head commit so GitHub links it to
           # the PR (the built code may be refs/pull/N/merge, but the head SHA is
           # the real commit that shows up on the PR timeline).
           # Best-effort: deployment bookkeeping must never block an actual deploy.
           head_sha=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" -q .head.sha 2>/dev/null || true)
-          if [[ -n "$head_sha" ]]; then
-            payload=$(jq -n --arg ref "$head_sha" \
-              '{ref: $ref, environment: "dev3", required_contexts: [], auto_merge: false, description: "dev3 deploy (PR command)"}')
-            id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments" --input - -q .id <<<"$payload" 2>/dev/null || true)
+          if [[ -z "$head_sha" ]]; then
+            echo "::warning::could not resolve PR head sha; deploying without a dev3 deployment record"
           fi
-          if [[ -n "${id:-}" ]]; then
-            echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" \
-              -f state=in_progress \
-              -f environment=dev3 \
-              -f environment_url=https://dev3.doenet.org \
-              -f log_url="$RUN_URL" >/dev/null 2>&1 || true
-          else
-            echo "::warning::could not create dev3 deployment record; deploy continues"
-          fi
+          echo "sha=$head_sha" >> "$GITHUB_OUTPUT"
 
-  deploy-backend:
+      # Local composite actions need the repo on disk. issue_comment events
+      # check out the default branch, so this is trusted code, not the PR's.
+      - name: Checkout repository
+        if: steps.head.outputs.sha != ''
+        uses: actions/checkout@v6
+
+      - name: Open GitHub deployment
+        id: deployment
+        if: steps.head.outputs.sha != ''
+        uses: ./.github/actions/open-deployment
+        with:
+          environment: dev3
+          environment-url: https://dev3.doenet.org
+          ref: ${{ steps.head.outputs.sha }}
+          description: dev3 deploy (PR command)
+
+  deploy:
     needs: gate
     if: needs.gate.outputs.go == 'true'
-    uses: ./.github/workflows/reusable-deploy-backend.yml
+    uses: ./.github/workflows/reusable-deploy-env.yml
     with:
       deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
-      aws_region: us-east-2
-      ecr_repository: dev3/doenet
-      ecs_cluster: dev3
-      ecs_service: doenet-FARGATE
-      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
-      sns_topic: arn:aws:sns:us-east-2:568298704244:dev3-critical-cloudwatch-notifications
-      tag_name: latest
-    secrets: inherit
-
-  deploy-frontend:
-    needs: gate
-    if: needs.gate.outputs.go == 'true'
-    uses: ./.github/workflows/reusable-deploy-frontend.yml
-    with:
-      deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
-      aws_region: us-east-1
-      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
-      aws_account_id: "568298704244"
       env_name: dev3
-      build_mode: dev3
-    secrets: inherit
-
-  deploy-site:
-    needs: gate
-    if: needs.gate.outputs.go == 'true'
-    uses: ./.github/workflows/reusable-deploy-site.yml
-    with:
-      deploy_ref: ${{ needs.gate.outputs.deploy_ref }}
-      aws_region: us-east-1
-      gha_role: arn:aws:iam::568298704244:role/github-actions-dev3
-      aws_account_id: "568298704244"
-      env_name: dev3
-      build_mode: dev3
     secrets: inherit
 
   notify:
-    needs: [gate, deploy-backend, deploy-frontend, deploy-site]
+    needs: [gate, deploy]
     if: always() && needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
-      # Read-only creds so we can ask whether dev3 is actually awake before
-      # claiming a deployment is live. Best-effort: never fails the job.
+      # Read-only creds so finalize-deployment can ask whether dev3 is
+      # actually awake before claiming a deployment is live. Best-effort:
+      # never fails the job; without creds the lights read falls back to
+      # treating dev3 as awake.
       - name: Configure AWS credentials
-        id: aws
         if: needs.gate.outputs.deployment_id != ''
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v6
@@ -232,45 +205,21 @@ jobs:
           role-session-name: dev3-deploy-status
           aws-region: us-east-2
 
+      - name: Checkout repository
+        if: needs.gate.outputs.deployment_id != ''
+        uses: actions/checkout@v6
+
       - name: Finalize GitHub deployment status
         if: needs.gate.outputs.deployment_id != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ID: ${{ needs.gate.outputs.deployment_id }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          HAVE_AWS: ${{ steps.aws.outcome }}
-          B: ${{ needs.deploy-backend.result }}
-          F: ${{ needs.deploy-frontend.result }}
-          S: ${{ needs.deploy-site.result }}
-        run: |
-          if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
-            # dev3 scales to zero on the lights-out schedule (and the backend
-            # deploy is a no-op while it's asleep), so reflect whether it's
-            # actually serving rather than always claiming success.
-            lights=unknown
-            if [[ "$HAVE_AWS" == "success" ]]; then
-              lights=$(aws ssm get-parameter --name /dev3/doenet/lights \
-                --query Parameter.Value --output text 2>/dev/null || echo unknown)
-            fi
-            if [[ "$lights" == "off" ]]; then
-              state=inactive
-              desc="dev3 is asleep (lights off); this ref serves on next wake"
-            else
-              state=success
-              desc="deployed to dev3"
-            fi
-          else
-            state=failure
-            desc="dev3 deploy failed (backend:$B frontend:$F site:$S)"
-          fi
-          # On a success status GitHub auto-inactivates the previous dev3
-          # deployment, so the Environments tab reflects what is currently live.
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${ID}/statuses" \
-            -f state="$state" \
-            -f description="$desc" \
-            -f environment=dev3 \
-            -f environment_url=https://dev3.doenet.org \
-            -f log_url="$RUN_URL" >/dev/null
+        uses: ./.github/actions/finalize-deployment
+        with:
+          deployment-id: ${{ needs.gate.outputs.deployment_id }}
+          environment: dev3
+          environment-url: https://dev3.doenet.org
+          backend-result: ${{ needs.deploy.outputs.backend_result }}
+          frontend-result: ${{ needs.deploy.outputs.frontend_result }}
+          site-result: ${{ needs.deploy.outputs.site_result }}
+          lights-parameter: /dev3/doenet/lights
 
       - name: Comment result on the PR
         env:
@@ -278,9 +227,9 @@ jobs:
           PR: ${{ github.event.issue.number }}
           REF: ${{ needs.gate.outputs.deploy_ref }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          B: ${{ needs.deploy-backend.result }}
-          F: ${{ needs.deploy-frontend.result }}
-          S: ${{ needs.deploy-site.result }}
+          B: ${{ needs.deploy.outputs.backend_result }}
+          F: ${{ needs.deploy.outputs.frontend_result }}
+          S: ${{ needs.deploy.outputs.site_result }}
         run: |
           if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
             printf '%s\n' \

@@ -1,0 +1,103 @@
+name: Reusable - Deploy an environment (backend + frontend + site)
+
+# Single definition of what "a deploy" is: the per-environment constants and
+# the fan-out to the three component workflows. Callers decide when and what
+# ref to deploy; this workflow decides where and how.
+
+on:
+  workflow_call:
+    inputs:
+      deploy_ref:
+        description: Git ref or SHA to deploy
+        required: true
+        type: string
+      env_name:
+        description: "Target environment: dev3 or prod"
+        required: true
+        type: string
+    outputs:
+      backend_result:
+        description: Result of the backend deploy job
+        value: ${{ jobs.deploy-backend.result }}
+      frontend_result:
+        description: Result of the frontend deploy job
+        value: ${{ jobs.deploy-frontend.result }}
+      site_result:
+        description: Result of the site deploy job
+        value: ${{ jobs.deploy-site.result }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # Single source of truth for per-environment deploy constants.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      aws_account_id: ${{ steps.env.outputs.aws_account_id }}
+      gha_role: ${{ steps.env.outputs.gha_role }}
+      ecr_repository: ${{ steps.env.outputs.ecr_repository }}
+      ecs_cluster: ${{ steps.env.outputs.ecs_cluster }}
+      sns_topic: ${{ steps.env.outputs.sns_topic }}
+      tag_name: ${{ steps.env.outputs.tag_name }}
+    steps:
+      - name: Resolve environment config
+        id: env
+        env:
+          ENV_NAME: ${{ inputs.env_name }}
+        run: |
+          case "$ENV_NAME" in
+            dev3) account=568298704244 tag_name=latest ;;
+            prod) account=350646758180 tag_name=main ;;
+            *)
+              echo "::error::unknown env_name '$ENV_NAME' (expected dev3 or prod)"
+              exit 1
+              ;;
+          esac
+          {
+            echo "aws_account_id=$account"
+            echo "gha_role=arn:aws:iam::${account}:role/github-actions-${ENV_NAME}"
+            echo "ecr_repository=${ENV_NAME}/doenet"
+            echo "ecs_cluster=${ENV_NAME}"
+            echo "sns_topic=arn:aws:sns:us-east-2:${account}:${ENV_NAME}-critical-cloudwatch-notifications"
+            echo "tag_name=$tag_name"
+          } >> "$GITHUB_OUTPUT"
+
+  deploy-backend:
+    needs: config
+    uses: ./.github/workflows/reusable-deploy-backend.yml
+    with:
+      deploy_ref: ${{ inputs.deploy_ref }}
+      aws_region: us-east-2
+      ecr_repository: ${{ needs.config.outputs.ecr_repository }}
+      ecs_cluster: ${{ needs.config.outputs.ecs_cluster }}
+      ecs_service: doenet-FARGATE
+      gha_role: ${{ needs.config.outputs.gha_role }}
+      sns_topic: ${{ needs.config.outputs.sns_topic }}
+      tag_name: ${{ needs.config.outputs.tag_name }}
+    secrets: inherit
+
+  deploy-frontend:
+    needs: config
+    uses: ./.github/workflows/reusable-deploy-frontend.yml
+    with:
+      deploy_ref: ${{ inputs.deploy_ref }}
+      aws_region: us-east-1
+      gha_role: ${{ needs.config.outputs.gha_role }}
+      aws_account_id: ${{ needs.config.outputs.aws_account_id }}
+      env_name: ${{ inputs.env_name }}
+      build_mode: ${{ inputs.env_name }}
+    secrets: inherit
+
+  deploy-site:
+    needs: config
+    uses: ./.github/workflows/reusable-deploy-site.yml
+    with:
+      deploy_ref: ${{ inputs.deploy_ref }}
+      aws_region: us-east-1
+      gha_role: ${{ needs.config.outputs.gha_role }}
+      aws_account_id: ${{ needs.config.outputs.aws_account_id }}
+      env_name: ${{ inputs.env_name }}
+      build_mode: ${{ inputs.env_name }}
+    secrets: inherit
