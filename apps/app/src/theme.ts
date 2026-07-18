@@ -32,16 +32,12 @@ const Button = defineStyleConfig({
     solid: (props) => {
       if (props.colorScheme === "blue") {
         return {
-          // Mode-aware fill: blue.600 in light mode, a slightly brighter blue
-          // in dark mode (see buttonBlueBg) so solid blue buttons — New, Start
-          // writing, MenuButtons — separate from the fixed doenet.mainBlue
-          // section bands and the near-black page. White text stays >=4.5:1.
-          bg: "buttonBlueBg",
+          bg: "blue.600",
           color: "white",
           _hover: {
-            bg: "buttonBlueHover",
+            bg: "blue.700",
             _disabled: {
-              bg: "buttonBlueBg",
+              bg: "blue.600",
             },
           },
           // Without an explicit active bg, an open MenuButton falls back to
@@ -125,13 +121,6 @@ const theme = extendTheme({
       // a dark viewer in dark mode. Keep the light-blue identity in light mode,
       // recede to a dark blue-gray in dark mode.
       viewerFrame: { default: "#b8d2ea", _dark: "#17293a" },
-      // Solid blue button fill (colorScheme="blue"). Light mode keeps blue.600;
-      // dark mode uses a slightly brighter blue so the control separates from
-      // the fixed doenet.mainBlue section bands and the near-black page. Tuned
-      // to stay >=4.5:1 with white text (#2d75bc is 4.79:1). Hover darkens in
-      // both modes (dark hover lands on blue.600).
-      buttonBlueBg: { default: "blue.600", _dark: "#2d75bc" },
-      buttonBlueHover: { default: "blue.700", _dark: "blue.600" },
       doenet: {
         canvas: { default: "#ffffff", _dark: "#121212" },
         canvastext: { default: "#000000", _dark: "#ffffff" },
