@@ -247,7 +247,9 @@ export function Activities() {
       <Box>
         <Icon
           as={parent ? folderIcon : LuDessert}
-          color={parent ? folderColor : "black"}
+          // "black" is invisible in dark mode; use the flipping text token for
+          // the root (My Activities) icon.
+          color={parent ? folderColor : "text"}
           boxSizing="content-box"
           width="24px"
           height="24px"

@@ -21,7 +21,11 @@ export function FolderContext() {
       width={{ base: "100%", md: "8rem", lg: "12rem" }}
       flexShrink={0}
       align="flex-start"
-      borderRight={{ base: "none", md: "solid 2px black" }}
+      // A hardcoded black divider is invisible on the dark background; use the
+      // mode-flipping border token.
+      borderRightWidth={{ base: "0", md: "2px" }}
+      borderRightStyle="solid"
+      borderRightColor="border"
       p={{ base: "0px", xl: "10px" }}
       minHeight={{ base: "fit-content", md: "100%" }}
       flexDir={{ base: "row", md: "column" }}
