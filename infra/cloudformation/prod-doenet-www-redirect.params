@@ -5,11 +5,11 @@
   },
   {
     "ParameterKey": "RedirectName",
-    "ParameterValue": "beta"
+    "ParameterValue": "www"
   },
   {
     "ParameterKey": "SourceHost",
-    "ParameterValue": "beta.doenet.org"
+    "ParameterValue": "www.doenet.org"
   },
   {
     "ParameterKey": "SourceHostedZoneId",
@@ -21,6 +21,6 @@
   },
   {
     "ParameterKey": "RedirectSubdomains",
-    "ParameterValue": "true"
+    "ParameterValue": "false"
   }
 ]

@@ -19,6 +19,7 @@ STACKS['prod-doenet-frontend']='s3-hosted-stackset'
 STACKS['prod-doenet-media-cert']='cdn-cert'
 STACKS['prod-doenet-media-cdn']='cdn'
 STACKS['prod-doenet-redirect']='redirect'
+STACKS['prod-doenet-www-redirect']='redirect'
 
 STACKS['prod-discourse-forums']='discourse-forums-ec2'
 
@@ -27,6 +28,7 @@ STACK_REGION['prod-doenet-media-cert']='us-east-1'
 # CloudFront requires its ACM certificate in us-east-1; this stack bundles the
 # cert with the distribution, so the whole stack is deployed there.
 STACK_REGION['prod-doenet-redirect']='us-east-1'
+STACK_REGION['prod-doenet-www-redirect']='us-east-1'
 
 declare -g -a STACK_ORDER
 STACK_ORDER=(
@@ -41,6 +43,7 @@ STACK_ORDER=(
     prod-doenet-media-cdn
     prod-doenet-frontend
     prod-doenet-redirect
+    prod-doenet-www-redirect
 )
 
 declare -g -a SAM_STACKS
