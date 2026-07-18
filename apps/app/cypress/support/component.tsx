@@ -98,17 +98,34 @@ import { theme } from "../../src/theme";
 
 // Cypress.Commands.add('mount', mount)
 
+// A ColorModeManager that pins Chakra to a fixed mode, so component tests can
+// render in dark mode (for accessibility/contrast checks) without the app's
+// runtime theme plumbing. See `colorMode` option / `colorMode` Cypress env.
+function fixedColorModeManager(mode: "light" | "dark") {
+  return {
+    type: "localStorage" as const,
+    ssr: false,
+    get: () => mode,
+    set: () => {},
+  };
+}
+
 Cypress.Commands.add("mount", (component, options = {}) => {
   const {
     routerProps = { initialEntries: ["/"] },
     action,
     routes,
+    colorMode,
     ...mountOptions
   } = options as MountOptions & {
     routerProps?: MemoryRouterProps;
     action?: (data: { request: Request }) => Promise<any>;
     routes?: any[];
+    colorMode?: "light" | "dark";
   };
+
+  const resolvedColorMode: "light" | "dark" =
+    colorMode ?? (Cypress.env("colorMode") === "dark" ? "dark" : "light");
 
   const safeActionWithDefault = async ({ request }: { request: Request }) => {
     try {
@@ -143,7 +160,10 @@ Cypress.Commands.add("mount", (component, options = {}) => {
     {
       path: "/",
       element: (
-        <ChakraProvider theme={theme}>
+        <ChakraProvider
+          theme={theme}
+          colorModeManager={fixedColorModeManager(resolvedColorMode)}
+        >
           <MathJaxContext
             version={4}
             config={mathjaxConfig}
