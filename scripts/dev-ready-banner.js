@@ -1,6 +1,6 @@
 /* global process, console, setTimeout */
 import net from "net";
-import { apiPort, appPort } from "./worktree-env.js";
+import { apiPort, appPort, webPort } from "./worktree-env.js";
 
 // Printed by `npm run dev` once the API is accepting connections, so the
 // one-click dev auto-login link is ready the moment it appears. Dev-only; not
@@ -10,7 +10,9 @@ import { apiPort, appPort } from "./worktree-env.js";
 
 const POLL_MS = 500;
 const GIVE_UP_MS = 90_000;
-const url = `http://localhost:${appPort}/?autologin=true`;
+const appUrl = `http://localhost:${appPort}/?autologin=true`;
+const apiUrl = `http://localhost:${apiPort}`;
+const webUrl = `http://localhost:${webPort}/`;
 
 function apiIsUp() {
   return new Promise((resolve) => {
@@ -44,9 +46,11 @@ async function main() {
       console.log(
         "\n" +
           box([
-            "Dev auto-login ready - open this to sign in as dev@doenet.org:",
+            "Dev servers - click the app link to sign in as dev@doenet.org:",
             "",
-            url,
+            `app  ->  ${appUrl}`,
+            `api      ${apiUrl}`,
+            `web      ${webUrl}`,
           ]) +
           "\n",
       );
@@ -55,7 +59,7 @@ async function main() {
     await delay(POLL_MS);
   }
   // Do not fail the dev process just because the banner timed out.
-  console.log(`\n[dev] auto-login link (once the API is up): ${url}\n`);
+  console.log(`\n[dev] app auto-login link (once the API is up): ${appUrl}\n`);
 }
 
 main();
