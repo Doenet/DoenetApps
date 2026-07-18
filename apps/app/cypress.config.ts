@@ -27,6 +27,18 @@ export default defineConfig({
             // recharts; pre-bundle it so Vite doesn't re-optimize mid-run and
             // full-reload the page (issue #2957).
             "recharts",
+            // react-icons subpaths: each bundles thousands of icon modules and
+            // is a classic mid-run re-optimize trigger. The page specs under
+            // paths/ (Curate/SharedWithMe/Trash, via CardList/Card) sort ahead
+            // of any widget spec that would otherwise warm these first, so
+            // pre-bundle them at startup to keep those specs from flaking
+            // (issue #2957).
+            "react-icons/fa6",
+            "react-icons/fi",
+            "react-icons/io5",
+            "react-icons/md",
+            "react-icons/lu",
+            "react-icons/bs",
           ],
         },
       },

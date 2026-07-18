@@ -16,6 +16,12 @@ declare global {
        *   Defaults to the `colorMode` Cypress env value, else "light". Set the
        *   env for a whole run (e.g. `--env colorMode=dark`) to exercise every
        *   spec's accessibility checks in dark mode.
+       * @param options.outletContext Value provided to `useOutletContext()` — the
+       *   component is mounted as an index child of a route rendering
+       *   `<Outlet context={outletContext}>`. Use for pages that read the site
+       *   context (e.g. `{ user }`).
+       * @param options.loaderData Value returned from the route `loader`, for
+       *   pages that read `useLoaderData()`.
        */
       mount(
         component: React.ReactNode,
@@ -24,6 +30,8 @@ declare global {
           action?: (data: { request: Request }) => Promise<any>;
           routes?: any[];
           colorMode?: "light" | "dark";
+          outletContext?: unknown;
+          loaderData?: unknown;
         },
       ): Cypress.Chainable<MountReturn>;
       /**

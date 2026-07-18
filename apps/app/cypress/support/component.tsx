@@ -86,6 +86,7 @@ import {
   createMemoryRouter,
   RouterProvider,
   MemoryRouterProps,
+  Outlet,
 } from "react-router";
 import { MathJaxContext } from "better-react-mathjax";
 import { mathjaxConfig } from "@doenet/doenetml-iframe";
@@ -116,12 +117,16 @@ Cypress.Commands.add("mount", (component, options = {}) => {
     action,
     routes,
     colorMode,
+    outletContext,
+    loaderData,
     ...mountOptions
   } = options as MountOptions & {
     routerProps?: MemoryRouterProps;
     action?: (data: { request: Request }) => Promise<any>;
     routes?: any[];
     colorMode?: "light" | "dark";
+    outletContext?: unknown;
+    loaderData?: unknown;
   };
 
   const resolvedColorMode: "light" | "dark" =
@@ -155,26 +160,54 @@ Cypress.Commands.add("mount", (component, options = {}) => {
     }
   };
 
+  const withProviders = (children: any) => (
+    <ChakraProvider
+      theme={theme}
+      colorModeManager={fixedColorModeManager(resolvedColorMode)}
+    >
+      <MathJaxContext
+        version={4}
+        config={mathjaxConfig}
+        src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"
+      >
+        {children}
+      </MathJaxContext>
+    </ChakraProvider>
+  );
+
+  // A route `loader` supplying `loaderData` to the mounted component, for pages
+  // that read `useLoaderData()` (defined only when the test passes loaderData).
+  const componentLoader =
+    loaderData !== undefined ? () => loaderData : undefined;
+
+  // When the test passes `outletContext`, render the component as an index child
+  // of a route that provides `<Outlet context={...}>`, so pages that call
+  // `useOutletContext()` (e.g. those reading the site's `{ user }`) mount.
+  // Otherwise the component renders directly at "/".
+  const rootRoute =
+    outletContext !== undefined
+      ? {
+          path: "/",
+          element: withProviders(<Outlet context={outletContext} />),
+          children: [
+            {
+              index: true,
+              element: component as any,
+              action: safeActionWithDefault,
+              loader: componentLoader,
+            },
+          ],
+        }
+      : {
+          path: "/",
+          element: withProviders(component as any),
+          action: safeActionWithDefault,
+          loader: componentLoader,
+        };
+
   // Build the routes array
   const routesArray = [
-    {
-      path: "/",
-      element: (
-        <ChakraProvider
-          theme={theme}
-          colorModeManager={fixedColorModeManager(resolvedColorMode)}
-        >
-          <MathJaxContext
-            version={4}
-            config={mathjaxConfig}
-            src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"
-          >
-            {component as any}
-          </MathJaxContext>
-        </ChakraProvider>
-      ),
-      action: safeActionWithDefault,
-    },
+    rootRoute,
     // Add any additional routes provided by the test
     ...(routes || []),
   ];
