@@ -31,7 +31,8 @@ export default function Searchbar({
         <Input
           type="search"
           placeholder="Search..."
-          border="1px solid #949494"
+          border="1px solid"
+          borderColor="border"
           borderLeftRadius={5}
           name={name}
           data-test={dataTest}

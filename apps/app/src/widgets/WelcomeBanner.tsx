@@ -17,17 +17,24 @@ export function WelcomeBanner() {
       justify="center"
       gap="8px"
       padding="8px 16px"
-      background="doenet.lightBlue"
-      color="black"
+      // viewerFrame keeps the light-blue band in light mode and recedes to a
+      // dark blue in dark mode; pair with flipping text/link colors.
+      background="viewerFrame"
+      color="text"
       borderBottom="1px solid"
       borderColor="doenet.mainBlue"
     >
-      <InfoOutlineIcon color="doenet.mainBlue" flexShrink={0} />
+      <InfoOutlineIcon
+        color="doenet.mainBlue"
+        _dark={{ color: "blue.300" }}
+        flexShrink={0}
+      />
       <Text fontSize="sm" textAlign="center">
         Welcome to the new Doenet! The old site can still be found at{" "}
         <ChakraLink
           href="https://legacy.doenet.org"
           color="doenet.mainBlue"
+          _dark={{ color: "blue.300" }}
           textDecoration="underline"
         >
           legacy.doenet.org
@@ -36,6 +43,7 @@ export function WelcomeBanner() {
         <ChakraLink
           href="https://community.doenet.org/t/the-new-doenet-org/254"
           color="doenet.mainBlue"
+          _dark={{ color: "blue.300" }}
           textDecoration="underline"
         >
           this post

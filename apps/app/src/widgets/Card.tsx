@@ -416,7 +416,7 @@ export default function Card({
             aria-label={`Options menu for item ${idx + 1}: ${title}`}
           >
             <Flex alignItems="center">
-              <Icon color="#949494" as={FaEllipsisVertical} />
+              <Icon color="textMuted" as={FaEllipsisVertical} />
             </Flex>
           </MenuButton>
           <MenuList zIndex="1000">{menuItems}</MenuList>
@@ -432,7 +432,8 @@ export default function Card({
       marginLeft={`${indentLevel * indentWidth}rem`}
       data-test="Content Card"
       variant="unstyled"
-      borderBottom="2px solid gray"
+      borderBottom="2px solid"
+      borderBottomColor="border"
       borderRadius={0}
       // Theme-aware hover: the old fixed light values (#eeeeee / "ffffff", the
       // latter also missing its #) became white-on-white in dark mode. Semantic
