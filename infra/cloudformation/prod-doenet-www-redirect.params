@@ -5,7 +5,7 @@
   },
   {
     "ParameterKey": "RedirectName",
-    "ParameterValue": "beta"
+    "ParameterValue": "www"
   },
   {
     "ParameterKey": "PublicHostedZoneName",
@@ -17,6 +17,6 @@
   },
   {
     "ParameterKey": "RedirectSubdomains",
-    "ParameterValue": "true"
+    "ParameterValue": "false"
   }
 ]
