@@ -26,6 +26,13 @@ declare global {
           colorMode?: "light" | "dark";
         },
       ): Cypress.Chainable<MountReturn>;
+      /**
+       * Assert WCAG 2 AA text contrast for every text-bearing element under
+       * `selector`, computing the ratio directly against the resolved
+       * background. Fills the gap where axe returns "incomplete" for text
+       * inside a transformed/portaled Chakra <Modal>. See commands.ts.
+       */
+      checkContrast(selector: string): Cypress.Chainable<void>;
     }
   }
 }

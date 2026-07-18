@@ -984,5 +984,93 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       cy.wait(100); // Wait for any dynamic content to load
       cy.checkAccessibility("body");
     });
+
+    // axe's color-contrast rule returns "incomplete" for text inside the
+    // portaled/transformed Chakra Modal, so these dark-mode contrast bugs slip
+    // past checkAccessibility. checkContrast computes the ratio directly.
+    it("has readable contrast in the public requirements card", () => {
+      const mountOptions = setupMocks({
+        shareStatus: {
+          ...shareStatusData,
+          isPublic: true,
+          visibility: "public",
+          canSharePublicly: false,
+          publicShareIssues: ["accessibilityCheck"],
+        },
+      });
+
+      cy.mount(
+        <ShareModal
+          contentId={contentId}
+          contentType={contentType}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Public Requirements Card"]').should("exist");
+      cy.wait(100);
+      cy.checkContrast('[data-test="Public Requirements Card"]');
+    });
+
+    it("has readable contrast in the blocking-documents list", () => {
+      const firstDocId = "doc-aaa";
+      const mountOptions = setupMocks({
+        shareStatus: {
+          ...shareStatusData,
+          canSharePublicly: false,
+          publicShareIssues: ["errorsCheck", "accessibilityCheck"],
+          publicShareBlockers: [
+            {
+              contentId: firstDocId,
+              name: "Intro to Fractions",
+              contentType: "singleDoc",
+              issues: ["errorsCheck"],
+            },
+            {
+              contentId: "doc-ccc",
+              name: "Chapter 3 Quiz",
+              contentType: "singleDoc",
+              issues: ["accessibilityCheck"],
+            },
+          ],
+        },
+      });
+
+      cy.mount(
+        <ShareModal
+          contentId={contentId}
+          contentType={contentType}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Share Publicly Button"]').click();
+      cy.get('[data-test="Public Criteria Errors"]').should("exist");
+      cy.wait(100);
+      cy.checkContrast('[data-test="Public Requirements Card"]');
+    });
+
+    it("has readable contrast on the unsaved-visibility note and cards", () => {
+      const mountOptions = setupMocks();
+
+      cy.mount(
+        <ShareModal
+          contentId={contentId}
+          contentType={contentType}
+          modalIsOpen={true}
+          closeModal={cy.spy().as("onClose")}
+        />,
+        mountOptions,
+      );
+
+      cy.get('[data-test="Share Publicly Button"]').click();
+      cy.get('[data-test="Access Unsaved Note"]').should("exist");
+      cy.wait(100);
+      cy.checkContrast('[data-test="Access Unsaved Note"]');
+    });
   });
 });

@@ -608,6 +608,7 @@ function SharePublicly({
             <Text
               data-test="Access Unsaved Note"
               color="blue.700"
+              _dark={{ color: "blue.300" }}
               fontSize="sm"
             >
               {`Saving will make it ${selectedVisibility}.`}
@@ -690,6 +691,10 @@ function SharePublicly({
                     color={
                       remainingRequirements === 0 ? "green.800" : "gray.800"
                     }
+                    _dark={{
+                      color:
+                        remainingRequirements === 0 ? "green.200" : "gray.200",
+                    }}
                     fontWeight="medium"
                   >
                     {isCurrentlyPublicButFailing
@@ -944,6 +949,10 @@ function VisibilityOptionCard({
       borderRadius="lg"
       borderColor={isSelected ? "blue.600" : "gray.300"}
       bg={isSelected ? "blue.100" : "white"}
+      _dark={{
+        borderColor: isSelected ? "blue.400" : "border",
+        bg: isSelected ? "blue.900" : "surface",
+      }}
       boxShadow={isSelected ? "sm" : "none"}
       px="0.85rem"
       py="0.8rem"
@@ -978,17 +987,23 @@ function VisibilityOptionCard({
               as={icon}
               boxSize="1rem"
               color={isSelected ? "blue.800" : "gray.700"}
+              _dark={{ color: isSelected ? "blue.200" : "gray.300" }}
               mt="0.1rem"
             />
             <Box>
               <Text
                 color={isSelected ? "blue.900" : "gray.900"}
+                _dark={{ color: isSelected ? "blue.100" : "gray.100" }}
                 fontWeight="semibold"
                 fontSize="sm"
               >
                 {title}
               </Text>
-              <Text color={isSelected ? "blue.800" : "gray.700"} fontSize="xs">
+              <Text
+                color={isSelected ? "blue.800" : "gray.700"}
+                _dark={{ color: isSelected ? "blue.200" : "gray.300" }}
+                fontSize="xs"
+              >
                 {description}
               </Text>
             </Box>
@@ -1033,7 +1048,11 @@ function PublicCriterion({
           color={passed ? "green.500" : "red.500"}
           boxSize="1rem"
         />
-        <Text color={passed ? "gray.800" : "red.700"} noOfLines={1}>
+        <Text
+          color={passed ? "gray.800" : "red.700"}
+          _dark={{ color: passed ? "gray.200" : "red.300" }}
+          noOfLines={1}
+        >
           {label}
         </Text>
       </HStack>
@@ -1043,7 +1062,10 @@ function PublicCriterion({
           to={actionTo}
           variant="link"
           size="sm"
-          colorScheme="blue"
+          // blue.500 (default link) is too light on the muted card surface; pin
+          // a readable blue in each mode.
+          color="blue.600"
+          _dark={{ color: "blue.300" }}
           rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
           onClick={closeModal}
           flexShrink={0}
@@ -1103,14 +1125,23 @@ function PublicCriterionDocuments({
       borderRadius="md"
       px="0.8rem"
       py="0.6rem"
+      _dark={{
+        bg: pending ? "orange.900" : "red.900",
+        borderColor: pending ? "orange.700" : "red.700",
+      }}
     >
       <HStack align="center" spacing="0.55rem">
         <Icon
           as={pending ? FiClock : FiXCircle}
           color={pending ? "orange.500" : "red.500"}
+          _dark={{ color: pending ? "orange.300" : "red.300" }}
           boxSize="1rem"
         />
-        <Text fontWeight="medium" color={pending ? "orange.800" : "red.800"}>
+        <Text
+          fontWeight="medium"
+          color={pending ? "orange.800" : "red.800"}
+          _dark={{ color: pending ? "orange.200" : "red.200" }}
+        >
           {headline}
         </Text>
       </HStack>
@@ -1124,6 +1155,7 @@ function PublicCriterionDocuments({
         pl="1.05rem"
         borderLeftWidth="2px"
         borderColor={pending ? "orange.200" : "red.200"}
+        _dark={{ borderColor: pending ? "orange.700" : "red.700" }}
       >
         {documents.map((doc) => (
           <Flex
@@ -1154,7 +1186,10 @@ function PublicCriterionDocuments({
               aria-label={`Open ${doc.name || "Untitled"}`}
               variant="link"
               size="sm"
-              colorScheme="blue"
+              // blue.500 (default link) is only 3.76:1 on the red.50 box; pin a
+              // darker blue in light mode and a light blue on the dark box.
+              color="blue.600"
+              _dark={{ color: "blue.300" }}
               rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
               onClick={closeModal}
               flexShrink={0}

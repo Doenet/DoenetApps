@@ -46,6 +46,30 @@ export function ShareButton({
       color={
         shouldShowPublicComplianceWarning ? "red.700" : shareButtonConfig.color
       }
+      _dark={{
+        borderColor: shouldShowPublicComplianceWarning
+          ? "red.700"
+          : shareButtonConfig.dark.borderColor,
+        bg: shouldShowPublicComplianceWarning
+          ? "red.900"
+          : shareButtonConfig.dark.bg,
+        color: shouldShowPublicComplianceWarning
+          ? "red.200"
+          : shareButtonConfig.dark.color,
+        _hover: {
+          bg: shouldShowPublicComplianceWarning
+            ? "red.800"
+            : shareButtonConfig.dark.hoverBg,
+          borderColor: shouldShowPublicComplianceWarning
+            ? "red.600"
+            : shareButtonConfig.dark.hoverBorderColor,
+        },
+        _active: {
+          bg: shouldShowPublicComplianceWarning
+            ? "red.800"
+            : shareButtonConfig.dark.hoverBg,
+        },
+      }}
       leftIcon={<Icon as={shareButtonConfig.icon} boxSize="0.95rem" />}
       rightIcon={<FaChevronRight color="currentColor" fontSize="0.7rem" />}
       _hover={{
@@ -103,6 +127,15 @@ function getShareButtonConfig(visibility: Visibility): {
   color: string;
   hoverBg: string;
   hoverBorderColor: string;
+  // Dark-mode counterparts: the light `*.50/.100/gray.50` fills above are near
+  // white and would render as a light pill (and a white hover) in dark mode.
+  dark: {
+    borderColor: string;
+    bg: string;
+    color: string;
+    hoverBg: string;
+    hoverBorderColor: string;
+  };
 } {
   switch (visibility) {
     case "private":
@@ -113,6 +146,13 @@ function getShareButtonConfig(visibility: Visibility): {
         color: "textMuted",
         hoverBg: "gray.50",
         hoverBorderColor: "gray.400",
+        dark: {
+          borderColor: "border",
+          bg: "surface",
+          color: "textMuted",
+          hoverBg: "surfaceMuted",
+          hoverBorderColor: "gray.600",
+        },
       };
     case "unlisted":
       return {
@@ -122,6 +162,13 @@ function getShareButtonConfig(visibility: Visibility): {
         color: "blue.700",
         hoverBg: "blue.100",
         hoverBorderColor: "blue.400",
+        dark: {
+          borderColor: "blue.700",
+          bg: "blue.900",
+          color: "blue.200",
+          hoverBg: "blue.800",
+          hoverBorderColor: "blue.600",
+        },
       };
     case "public":
       return {
@@ -131,6 +178,13 @@ function getShareButtonConfig(visibility: Visibility): {
         color: "green.700",
         hoverBg: "green.100",
         hoverBorderColor: "green.400",
+        dark: {
+          borderColor: "green.700",
+          bg: "green.900",
+          color: "green.200",
+          hoverBg: "green.800",
+          hoverBorderColor: "green.600",
+        },
       };
   }
 }
