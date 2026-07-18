@@ -149,6 +149,10 @@ colorModes.forEach((colorMode) => {
           // axe evaluates the hovered state's contrast.
           cy.get('[data-test="Content Card"]').first().realHover();
 
+          // Hovering opens a Chakra tooltip that fades in; let it reach full
+          // opacity before scanning so axe never samples a transitional
+          // (semi-transparent, low-contrast) frame.
+          cy.wait(600);
           cy.checkAccessibility(undefined);
         });
       });
@@ -163,6 +167,9 @@ colorModes.forEach((colorMode) => {
         cy.get('[data-test="Content Card"]').first().should("be.visible");
         cy.get('[data-test="Content Card"]').first().realHover();
 
+        // Let the hover tooltip finish fading in (see note above) so axe does
+        // not sample a mid-animation, low-contrast frame.
+        cy.wait(600);
         cy.checkAccessibility(undefined);
       });
 
