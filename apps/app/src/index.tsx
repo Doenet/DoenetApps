@@ -104,6 +104,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
+import { ensureDevAutoLogin } from "./dev/autoLogin";
 import { loadShareStatus } from "./features/sharing";
 import {
   DocEditorHistoryMode,
@@ -458,7 +459,13 @@ const router = createBrowserRouter([
 ]);
 
 const root = createRoot(document.getElementById("root")!);
-root.render(<RouterProvider router={router} />);
+
+// Dev-only: optionally auto-authenticate before the first render so the app
+// loaders see a logged-in session. No-op (and stripped) in production builds.
+void (async () => {
+  await ensureDevAutoLogin();
+  root.render(<RouterProvider router={router} />);
+})();
 
 /**
  * Redirects a request to the same path (and query string) on legacy.doenet.org.

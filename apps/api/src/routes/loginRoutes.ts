@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { getUser, getUserInfoFromEmail } from "../query/user";
 import axios from "axios";
 import { convertUUID } from "../utils/uuid";
+import { isTestAuthBypassEnabled } from "../utils/env";
 import { UserInfoWithEmail } from "../types";
 
 // Type assertion to work around passport type declaration issues
@@ -12,10 +13,7 @@ const passport = passportLib as any;
 
 export const loginRouter = express.Router();
 
-if (
-  process.env.ENABLE_TEST_AUTH_BYPASS &&
-  process.env.ENABLE_TEST_AUTH_BYPASS.toLocaleLowerCase() !== "false"
-) {
+if (isTestAuthBypassEnabled()) {
   loginRouter.post(
     "/createOrLoginAsTest",
     passport.authenticate("anonymous"),
