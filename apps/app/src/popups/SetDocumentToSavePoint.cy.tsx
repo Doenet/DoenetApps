@@ -121,7 +121,7 @@ describe("SetDocumentToSavePoint component", { tags: ["@group3"] }, () => {
       // reset effect clears `updated` on the initial mount), so drive it via a
       // harness that flips the fetcher data on demand.
       function SuccessHarness() {
-        const props = getDefaultProps();
+        const harnessProps = getDefaultProps();
         const [data, setData] = useState<any>(undefined);
         const fetcher = {
           state: "idle",
@@ -139,14 +139,14 @@ describe("SetDocumentToSavePoint component", { tags: ["@group3"] }, () => {
                 setData({
                   data: {
                     newRevisionNum: 2,
-                    revisionName: props.revision.revisionName,
+                    revisionName: harnessProps.revision.revisionName,
                   },
                 })
               }
             >
               trigger
             </button>
-            <SetDocumentToSavePoint {...props} fetcher={fetcher} />
+            <SetDocumentToSavePoint {...harnessProps} fetcher={fetcher} />
           </>
         );
       }
