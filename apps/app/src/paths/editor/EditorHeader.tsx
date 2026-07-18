@@ -722,7 +722,7 @@ export function EditorHeader() {
         left="0"
         right="0"
         bottom="0"
-        background="doenet.lightBlue"
+        background="viewerFrame"
         overflow="auto"
       >
         {/*

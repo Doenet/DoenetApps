@@ -350,21 +350,21 @@ export function AssignmentItemResponseStudent({
       <Box marginTop="10px" borderTop="1px" borderColor="doenet.mediumGray">
         <Grid
           width="100%"
-          background="doenet.lightBlue"
+          background="viewerFrame"
           templateAreas={`"leftGutter viewer rightGutter"`}
           templateColumns={`1fr minmax(340px,850px) 1fr`}
           overflow="hidden"
         >
           <GridItem
             area="leftGutter"
-            background="doenet.lightBlue"
+            background="viewerFrame"
             width="100%"
             paddingTop="10px"
             alignSelf="start"
           />
           <GridItem
             area="rightGutter"
-            background="doenet.lightBlue"
+            background="viewerFrame"
             width="100%"
             paddingTop="10px"
             alignSelf="start"

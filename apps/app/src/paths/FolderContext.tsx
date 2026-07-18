@@ -36,15 +36,13 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isActivitiesActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={
-          isActivitiesActive ? "doenet.lightBlue" : "transparent"
-        }
-        // Active bg is a fixed light blue, so pin dark text (ghost-button text
-        // otherwise flips near-white in dark mode -> unreadable on light blue).
-        color={isActivitiesActive ? "gray.800" : undefined}
+        backgroundColor={isActivitiesActive ? "viewerFrame" : "transparent"}
+        // Active bg (viewerFrame) flips with the mode, so pair it with the
+        // flipping text token for a readable label in both modes.
+        color={isActivitiesActive ? "text" : undefined}
         _hover={
           isActivitiesActive
-            ? { backgroundColor: "doenet.lightBlue" }
+            ? { backgroundColor: "viewerFrame" }
             : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isActivitiesActive ? "4px" : "0"}
@@ -62,13 +60,11 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isSharedWithMeActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={
-          isSharedWithMeActive ? "doenet.lightBlue" : "transparent"
-        }
-        color={isSharedWithMeActive ? "gray.800" : undefined}
+        backgroundColor={isSharedWithMeActive ? "viewerFrame" : "transparent"}
+        color={isSharedWithMeActive ? "text" : undefined}
         _hover={
           isSharedWithMeActive
-            ? { backgroundColor: "doenet.lightBlue" }
+            ? { backgroundColor: "viewerFrame" }
             : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isSharedWithMeActive ? "4px" : "0"}
@@ -91,11 +87,11 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isTrashActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={isTrashActive ? "doenet.lightBlue" : "transparent"}
-        color={isTrashActive ? "gray.800" : undefined}
+        backgroundColor={isTrashActive ? "viewerFrame" : "transparent"}
+        color={isTrashActive ? "text" : undefined}
         _hover={
           isTrashActive
-            ? { backgroundColor: "doenet.lightBlue" }
+            ? { backgroundColor: "viewerFrame" }
             : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isTrashActive ? "4px" : "0"}

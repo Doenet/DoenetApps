@@ -562,7 +562,7 @@ export function ActivityViewer() {
       {infoDrawer}
       {copyContentModal}
       <Grid
-        background="doenet.lightBlue"
+        background="viewerFrame"
         height="calc(100vh - 40px)" //40px header height
         templateAreas={`"header"
       "centerContent"

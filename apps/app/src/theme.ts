@@ -116,6 +116,11 @@ const theme = extendTheme({
       // Slate-purple category/label icon accent (was #666699); lightened for dark.
       iconAccent: { default: "#666699", _dark: "#a9abe5" },
       accent: { default: "#8cebff", _dark: "#1c5a72" },
+      // Page/gutter frame around the (flipping) viewer canvas. Was the fixed
+      // brand `doenet.lightBlue` (#b8d2ea), which left light-blue margins around
+      // a dark viewer in dark mode. Keep the light-blue identity in light mode,
+      // recede to a dark blue-gray in dark mode.
+      viewerFrame: { default: "#b8d2ea", _dark: "#17293a" },
       doenet: {
         canvas: { default: "#ffffff", _dark: "#121212" },
         canvastext: { default: "#000000", _dark: "#ffffff" },

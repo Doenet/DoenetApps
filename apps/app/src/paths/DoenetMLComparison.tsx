@@ -234,7 +234,7 @@ export function DoenetMLComparison() {
     <>
       {basicUpdateActionsModel}
       <Grid
-        background="doenet.lightBlue"
+        background="viewerFrame"
         minHeight="calc(100vh - 40px)" //40px header height
         templateAreas={`"header"
       "centerContent"
