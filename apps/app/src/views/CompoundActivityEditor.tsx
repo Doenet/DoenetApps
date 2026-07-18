@@ -48,6 +48,19 @@ import {
 } from "../utils/actionBarConfig";
 import { CreateContentMenu } from "../dropdowns/CreateContentMenu";
 
+/**
+ * Background token for the compound-activity editor body.
+ *
+ * An empty activity uses the mode-flipping `viewerFrame` token (light blue in
+ * light mode, dark blue-gray in dark mode) rather than a fixed brand color: the
+ * previous `var(--lightBlue)` did not flip and painted a light-blue panel with
+ * light text on the dark page. A non-empty body uses the page `background`.
+ * (That `viewerFrame` flips per color mode is covered by WelcomeBanner.cy.tsx.)
+ */
+export function compoundEditorBodyBackground(numCards: number) {
+  return numCards > 0 ? "background" : "viewerFrame";
+}
+
 export function CompoundActivityEditor({
   activity,
   asViewer = false,
@@ -543,7 +556,7 @@ export function CompoundActivityEditor({
         margin="0px"
         width="100%"
         minHeight={`calc(100vh - ${headerHeight} - ${cardListHeaderHieght})`}
-        background={numCards > 0 ? "background" : "var(--lightBlue)"}
+        background={compoundEditorBodyBackground(numCards)}
         direction="column"
       >
         {cardList}

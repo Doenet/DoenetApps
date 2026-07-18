@@ -23,6 +23,10 @@ export default defineConfig({
             "better-react-mathjax",
             "luxon",
             "axios",
+            // ScoreSummaryChart.cy.tsx is the first component spec to import
+            // recharts; pre-bundle it so Vite doesn't re-optimize mid-run and
+            // full-reload the page (issue #2957).
+            "recharts",
           ],
         },
       },
