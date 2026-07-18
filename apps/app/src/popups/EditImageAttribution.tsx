@@ -158,6 +158,13 @@ function LicenseCard({
       borderWidth="2px"
       borderColor={selected ? "blue.500" : "gray.200"}
       background={selected ? "blue.50" : undefined}
+      _dark={{
+        borderColor: selected ? "blue.400" : "border",
+        // blue.50 is near-white and leaves the default (light) label text
+        // unreadable in dark mode; use a dark-blue selected fill instead.
+        background: selected ? "blue.900" : undefined,
+        _hover: { borderColor: selected ? "blue.400" : "whiteAlpha.400" },
+      }}
       _hover={{ borderColor: selected ? "blue.500" : "gray.300" }}
     >
       {/* Rendered as spans: block elements are invalid inside a <button>. */}
@@ -167,6 +174,7 @@ function LicenseCard({
           display="flex"
           minHeight="20px"
           color={selected ? "blue.600" : "gray.500"}
+          _dark={{ color: selected ? "blue.200" : "gray.400" }}
         >
           {icon}
         </Box>
@@ -563,7 +571,11 @@ export function EditImageAttribution({
             ) : null}
 
             {errMsg ? (
-              <Text color="red.600" data-test="Image Attribution Error">
+              <Text
+                color="red.600"
+                _dark={{ color: "red.300" }}
+                data-test="Image Attribution Error"
+              >
                 {errMsg}
               </Text>
             ) : null}

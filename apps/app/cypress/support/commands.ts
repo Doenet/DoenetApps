@@ -71,14 +71,33 @@ function contrastRatio(
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function resolveBg(el: Element): [number, number, number, number] {
-  let node: Element | null = el;
-  while (node) {
-    const bg = parseRGB(window.getComputedStyle(node).backgroundColor);
-    if (bg[3] !== 0) return bg;
-    node = node.parentElement;
-  }
-  return [255, 255, 255, 1];
+function composite(
+  over: [number, number, number, number],
+  under: [number, number, number, number],
+): [number, number, number, number] {
+  const a = over[3];
+  return [
+    over[0] * a + under[0] * (1 - a),
+    over[1] * a + under[1] * (1 - a),
+    over[2] * a + under[2] * (1 - a),
+    1,
+  ];
+}
+
+// Resolve an element's *effective* opaque background, compositing any
+// semi-transparent layers (e.g. Chakra's whiteAlpha button fills) over their
+// ancestors. Without this, a translucent whiteAlpha.200 fill would be read as
+// pure white and flagged as a false contrast failure in dark mode.
+function resolveBg(
+  el: Element | null,
+  fallback: [number, number, number, number] = [255, 255, 255, 1],
+): [number, number, number, number] {
+  if (!el) return fallback;
+  const bg = parseRGB(window.getComputedStyle(el).backgroundColor);
+  if (bg[3] === 1) return bg;
+  const under = resolveBg(el.parentElement, fallback);
+  if (bg[3] === 0) return under;
+  return composite(bg, under);
 }
 
 Cypress.Commands.add("checkContrast", (selector: string) => {
@@ -97,8 +116,11 @@ Cypress.Commands.add("checkContrast", (selector: string) => {
       if (!ownText) continue;
       const cs = window.getComputedStyle(el);
       if (cs.visibility === "hidden" || cs.display === "none") continue;
-      const fg = parseRGB(cs.color);
       const bg = resolveBg(el);
+      const rawFg = parseRGB(cs.color);
+      // Text colors are often whiteAlpha/blackAlpha (e.g. Chakra body text is
+      // rgba(255,255,255,0.92)); composite over the background for a true ratio.
+      const fg = rawFg[3] < 1 ? composite(rawFg, bg) : rawFg;
       const ratio = contrastRatio(fg, bg);
       const sizePx = parseFloat(cs.fontSize) || 16;
       const bold = parseInt(cs.fontWeight, 10) >= 700;

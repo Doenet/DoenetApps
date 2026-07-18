@@ -713,6 +713,33 @@ describe(
       cy.checkAccessibility("body");
     });
 
+    // An already-added classification card used the CSS-named "lightGray" fill,
+    // which does not flip, leaving its heading unreadable in dark mode. axe
+    // reports "incomplete" for this modal-nested text, so assert it directly.
+    it("keeps an added classification card readable", () => {
+      const mockFetcher = createMockFetcher();
+      const onCloseSpy = cy.spy().as("onClose");
+
+      cy.mount(
+        <AddClassificationModal
+          contentId={mockContentId}
+          existingClassifications={[mockSearchResults[0]]}
+          isOpen={true}
+          onClose={onCloseSpy}
+          fetcher={mockFetcher}
+        />,
+      );
+
+      cy.wait("@getCategories");
+      cy.wait("@searchClassifications");
+
+      cy.get('[data-test="Matching Classifications"]').should("exist");
+      // The first search result is now an "added" card (Remove button).
+      cy.contains("Remove").should("exist");
+      cy.wait(100);
+      cy.checkContrast('[data-test="Matching Classifications"]');
+    });
+
     it("is accessible with no results", () => {
       const mockFetcher = createMockFetcher();
       const onCloseSpy = cy.spy().as("onClose");
