@@ -1,37 +1,57 @@
 name: Prod Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
+    branches: ["main"]
 
 permissions:
   contents: read
   id-token: write
+  deployments: write
 
+# Never cancel a deploy that has started: killing a run mid-S3-sync or
+# mid-ECS-rollout (or mid-rollback) can leave prod half-updated. Queued
+# runs are safe to supersede — GitHub keeps only the newest pending run,
+# and branch protection guarantees it contains every earlier merge.
 concurrency:
   group: prod-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  approve:
-    if: >-
-      ${{
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main'
-      }}
+  # Open a GitHub deployment so the repo's prod Environment always shows
+  # what is currently live. Uses the Deployments API rather than an
+  # `environment:` key so environment protection rules can never gate the
+  # deploy, and no deploy job depends on this one — bookkeeping must never
+  # block or skip an actual deploy.
+  create-deployment:
     runs-on: ubuntu-latest
-    environment:
-      name: prod
+    outputs:
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
-      - name: Queue prod deploy
-        run: echo "Preparing prod deploy for ${{ github.event.workflow_run.head_sha }}"
+      - name: Open GitHub deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          payload=$(jq -n --arg ref "$GITHUB_SHA" \
+            '{ref: $ref, environment: "prod", required_contexts: [], auto_merge: false, production_environment: true, description: "prod deploy"}')
+          id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments" --input - -q .id <<<"$payload" 2>/dev/null || true)
+          if [[ -n "$id" ]]; then
+            echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" \
+              -f state=in_progress \
+              -f environment=prod \
+              -f environment_url=https://doenet.org \
+              -f log_url="$RUN_URL" >/dev/null 2>&1 || true
+          else
+            echo "::warning::could not create prod deployment record; deploy continues"
+          fi
 
   deploy-backend:
-    needs: approve
     uses: ./.github/workflows/reusable-deploy-backend.yml
     with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
+      deploy_ref: ${{ github.sha }}
       aws_region: us-east-2
       ecr_repository: prod/doenet
       ecs_cluster: prod
@@ -42,10 +62,9 @@ jobs:
     secrets: inherit
 
   deploy-frontend:
-    needs: approve
     uses: ./.github/workflows/reusable-deploy-frontend.yml
     with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
+      deploy_ref: ${{ github.sha }}
       aws_region: us-east-1
       gha_role: arn:aws:iam::350646758180:role/github-actions-prod
       aws_account_id: "350646758180"
@@ -54,10 +73,9 @@ jobs:
     secrets: inherit
 
   deploy-site:
-    needs: approve
     uses: ./.github/workflows/reusable-deploy-site.yml
     with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
+      deploy_ref: ${{ github.sha }}
       aws_region: us-east-1
       gha_role: arn:aws:iam::350646758180:role/github-actions-prod
       aws_account_id: "350646758180"
@@ -65,27 +83,32 @@ jobs:
       build_mode: prod
     secrets: inherit
 
-  tag-prod:
-    needs:
-      - approve
-      - deploy-backend
-      - deploy-frontend
-      - deploy-site
+  record-deployment:
+    needs: [create-deployment, deploy-backend, deploy-frontend, deploy-site]
+    if: always() && needs.create-deployment.outputs.deployment_id != ''
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Update prod tag
-        shell: bash
+      - name: Finalize GitHub deployment status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.create-deployment.outputs.deployment_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          B: ${{ needs.deploy-backend.result }}
+          F: ${{ needs.deploy-frontend.result }}
+          S: ${{ needs.deploy-site.result }}
         run: |
-          DEPLOY_REF="${{ github.event.workflow_run.head_sha }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f prod "$DEPLOY_REF"
-          git push origin refs/tags/prod --force
+          if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
+            state=success
+            desc="deployed to prod"
+          else
+            state=failure
+            desc="prod deploy failed (backend:$B frontend:$F site:$S)"
+          fi
+          # On a success status GitHub auto-inactivates the previous prod
+          # deployment, so the Environments tab reflects what is currently live.
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${ID}/statuses" \
+            -f state="$state" \
+            -f description="$desc" \
+            -f environment=prod \
+            -f environment_url=https://doenet.org \
+            -f log_url="$RUN_URL" >/dev/null
