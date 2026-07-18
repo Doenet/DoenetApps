@@ -1,4 +1,4 @@
-import { VisibilityPill } from "./Card";
+import { VisibilityPill } from "./VisibilityPill";
 
 describe("VisibilityPill", { tags: ["@group4"] }, () => {
   // The Unlisted/Public pills used fixed light fills (blue.50 / green.50) that
