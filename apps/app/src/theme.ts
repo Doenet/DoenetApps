@@ -40,6 +40,12 @@ const Button = defineStyleConfig({
               bg: "blue.600",
             },
           },
+          // Without an explicit active bg, an open MenuButton falls back to
+          // Chakra's default dark _active (blue.400), which fails contrast with
+          // white text (3.05:1). Pin a dark-safe active blue.
+          _active: {
+            bg: "blue.700",
+          },
         };
       }
       // Return undefined to fall back to default behavior for other color schemes

@@ -295,10 +295,16 @@ jobs:
   component-tests:
     runs-on: ubuntu-latest
 
+    # Each group runs in both light and dark color modes so accessibility
+    # (contrast) regressions are caught in dark mode too. The two modes run as
+    # independent matrix jobs (in parallel), so wall-clock time is unaffected.
     strategy:
       fail-fast: false
       matrix:
         test-group: [group1, group2, group3, group4]
+        color-mode: [light, dark]
+
+    name: component-tests (${{ matrix.test-group }}, ${{ matrix.color-mode }})
 
     steps:
       # Checkout repo
@@ -316,16 +322,17 @@ jobs:
       - name: Build shared package
         run: npm run build --workspace @doenet-tools/shared
 
-      # Run component tests (grouped)
+      # Run component tests (grouped). The `:dark` script variants pass
+      # `--env colorMode=dark`; light uses the plain script.
       - name: Run component tests
-        run: npm run test:${{ matrix.test-group }} --workspace @doenet-tools/app
+        run: npm run test:${{ matrix.test-group }}${{ matrix.color-mode == 'dark' && ':dark' || '' }} --workspace @doenet-tools/app
 
       # Upload artifacts on failure
       - name: Upload test artifacts
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: component-test-artifacts
+          name: component-test-artifacts-${{ matrix.test-group }}-${{ matrix.color-mode }}
           path: |
             apps/app/cypress/screenshots/
             apps/app/cypress/videos/
