@@ -9,7 +9,12 @@ const require = createRequire(import.meta.url);
 
 import { apiPort, appPort } from "../../scripts/worktree-env.js";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Quiet the dev server: `command === "serve"` suppresses info-level chatter
+  // (the `[vite] page reload` flood from the shared-package watcher and the
+  // startup "ready" line — we print our own URL banner). Warnings and errors
+  // still show, and `vite build` output is left untouched.
+  logLevel: command === "serve" ? "warn" : "info",
   // Node.js global to browser globalThis
   define: {
     global: "globalThis",
@@ -69,4 +74,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
