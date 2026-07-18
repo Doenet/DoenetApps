@@ -6,13 +6,23 @@ export function getLibraryStatusStylized(status: LibraryStatus) {
   switch (status) {
     case "PENDING":
       return (
-        <Text fontWeight="bold" as="span" color="blue">
+        <Text
+          fontWeight="bold"
+          as="span"
+          color="blue.600"
+          _dark={{ color: "blue.300" }}
+        >
           pending
         </Text>
       );
     case "UNDER_REVIEW":
       return (
-        <Text fontWeight="bold" as="span" color="orange.600">
+        <Text
+          fontWeight="bold"
+          as="span"
+          color="orange.600"
+          _dark={{ color: "orange.300" }}
+        >
           under review
         </Text>
       );
@@ -24,7 +34,12 @@ export function getLibraryStatusStylized(status: LibraryStatus) {
       );
     case "PUBLISHED":
       return (
-        <Text fontWeight="bold" as="span" color="green">
+        <Text
+          fontWeight="bold"
+          as="span"
+          color="green.600"
+          _dark={{ color: "green.300" }}
+        >
           published
         </Text>
       );
