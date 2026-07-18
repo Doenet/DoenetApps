@@ -451,7 +451,10 @@ export default function Card({
       variant="unstyled"
       borderBottom="2px solid gray"
       borderRadius={0}
-      _hover={{ backgroundColor: cardLink ? "#eeeeee" : "ffffff" }}
+      // Theme-aware hover: the old fixed light values (#eeeeee / "ffffff", the
+      // latter also missing its #) became white-on-white in dark mode. Semantic
+      // tokens flip: interact #EFEFEF/#2c2c2c, surface #FFFFFF/#1e1e1e.
+      _hover={{ backgroundColor: cardLink ? "interact" : "surface" }}
     >
       <CardBody>
         <Flex height={itemHeight} alignItems="center">

@@ -133,6 +133,39 @@ colorModes.forEach((colorMode) => {
         cy.checkAccessibility(undefined);
       });
 
+      it("Check accessibility of my activities with a row hovered", () => {
+        cy.loginAsTestUser();
+        cy.createContent({ name: "Test Document" });
+
+        cy.getUserInfo().then((user) => {
+          cy.visit(`/activities/${user.userId}`);
+
+          cy.get('[data-test="Folder Title"]').should(
+            "have.text",
+            "My Activities",
+          );
+
+          // Real hover so the CSS :hover (Chakra _hover) background applies and
+          // axe evaluates the hovered state's contrast.
+          cy.get('[data-test="Content Card"]').first().realHover();
+
+          cy.checkAccessibility(undefined);
+        });
+      });
+
+      it("Check accessibility of explore with a row hovered", () => {
+        cy.loginAsTestUser();
+        cy.createContent({ name: "Test Hover Explore", makePublic: true });
+
+        cy.visit("/explore");
+        cy.get('[data-test="Search"]').type("Test Hover Explore{enter}");
+
+        cy.get('[data-test="Content Card"]').first().should("be.visible");
+        cy.get('[data-test="Content Card"]').first().realHover();
+
+        cy.checkAccessibility(undefined);
+      });
+
       it("Check accessibility of my activities with search open", () => {
         cy.loginAsTestUser();
         cy.createContent({

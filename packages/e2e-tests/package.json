@@ -33,6 +33,7 @@
   "devDependencies": {
     "@doenet-tools/eslint-config": "*",
     "@types/cssesc": "^3.0.2",
-    "@types/luxon": "^3.7.1"
+    "@types/luxon": "^3.7.1",
+    "cypress-real-events": "^1.15.0"
   }
 }
