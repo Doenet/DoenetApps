@@ -591,7 +591,8 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
 
         <Box
           position="relative"
-          border="1px solid lightgray"
+          border="1px solid"
+          borderColor="border"
           width={`${VIDEO_WIDTH_PX}px`}
           aspectRatio={VIDEO_WIDTH_PX / VIDEO_HEIGHT_PX}
           overflow="hidden"
@@ -686,7 +687,8 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
       <VStack spacing={4} display={{ base: "flex", lg: "none" }}>
         <Box
           position="relative"
-          border="3px solid lightgray"
+          border="3px solid"
+          borderColor="border"
           width={`min(100vw, ${VIDEO_WIDTH_PX}px)`}
           aspectRatio={VIDEO_WIDTH_PX / VIDEO_HEIGHT_PX}
           overflow="hidden"
