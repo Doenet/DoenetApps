@@ -543,7 +543,7 @@ export function CompoundActivityEditor({
         margin="0px"
         width="100%"
         minHeight={`calc(100vh - ${headerHeight} - ${cardListHeaderHieght})`}
-        background={numCards > 0 ? "white" : "var(--lightBlue)"}
+        background={numCards > 0 ? "background" : "var(--lightBlue)"}
         direction="column"
       >
         {cardList}

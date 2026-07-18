@@ -93,7 +93,12 @@ function AttributionRow({
       </Th>
       <Td>
         {isUrl ? (
-          <ChakraLink href={value} isExternal color="blue.600">
+          <ChakraLink
+            href={value}
+            isExternal
+            color="blue.600"
+            _dark={{ color: "blue.300" }}
+          >
             {value}
           </ChakraLink>
         ) : (
@@ -263,7 +268,12 @@ export function ImageDetails() {
         ) : null}
 
         <HStack>
-          <Button variant="link" color="blue.600" onClick={() => navigate(-1)}>
+          <Button
+            variant="link"
+            color="blue.600"
+            _dark={{ color: "blue.300" }}
+            onClick={() => navigate(-1)}
+          >
             Back
           </Button>
         </HStack>

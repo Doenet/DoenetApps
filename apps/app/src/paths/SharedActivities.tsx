@@ -325,9 +325,11 @@ export function SharedActivities() {
         {mainPanel}
       </Flex>
       <Box
-        background="gray"
+        // "gray" (#808080) with canvas-colored text was low-contrast in both
+        // modes; use a mode-flipping muted surface with the standard text token.
+        background="surfaceMuted"
         width="100%"
-        color="var(--canvas)"
+        color="text"
         padding="20px"
         minHeight="20vh"
       >
