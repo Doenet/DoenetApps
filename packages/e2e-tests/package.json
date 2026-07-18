@@ -26,6 +26,7 @@
     "cypress-file-upload": "^5.0.8",
     "cypress-iframe": "^1.0.1",
     "cypress-plugin-tab": "^1.0.5",
+    "cypress-real-events": "^1.15.0",
     "cypress-wait-until": "^3.0.2",
     "luxon": "^3.7.1",
     "wick-a11y": "^2.5.0"
@@ -33,7 +34,6 @@
   "devDependencies": {
     "@doenet-tools/eslint-config": "*",
     "@types/cssesc": "^3.0.2",
-    "@types/luxon": "^3.7.1",
-    "cypress-real-events": "^1.15.0"
+    "@types/luxon": "^3.7.1"
   }
 }
