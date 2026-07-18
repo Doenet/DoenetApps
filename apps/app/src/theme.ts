@@ -72,7 +72,9 @@ const theme = extendTheme({
     FormError: {
       baseStyle: {
         text: {
+          // red.700 is unreadable on dark panels; use a light red in dark mode.
           color: "red.700",
+          _dark: { color: "red.300" },
         },
       },
     },

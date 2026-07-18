@@ -18,7 +18,12 @@
     "test:group3": "cypress run --component -b 'chrome' --config video=false --headless --expose grepTags='@group3',grepFilterSpecs=true,grepOmitFiltered=true",
     "test:group4": "cypress run --component -b 'chrome' --config video=false --headless --expose grepTags='@group4',grepFilterSpecs=true,grepOmitFiltered=true",
     "test:mistagged": "cypress run --component -b 'chrome' --config video=false --headless --expose grepTags='-@group1+-@group2+-@group3+-@group4',grepFilterSpecs=true,grepOmitFiltered=true",
-    "test:all": "cypress run --component -b 'chrome' --config video=false --headless"
+    "test:all": "cypress run --component -b 'chrome' --config video=false --headless",
+    "test:group1:dark": "cypress run --component -b 'chrome' --config video=false --headless --env colorMode=dark --expose grepTags='@group1',grepFilterSpecs=true,grepOmitFiltered=true",
+    "test:group2:dark": "cypress run --component -b 'chrome' --config video=false --headless --env colorMode=dark --expose grepTags='@group2',grepFilterSpecs=true,grepOmitFiltered=true",
+    "test:group3:dark": "cypress run --component -b 'chrome' --config video=false --headless --env colorMode=dark --expose grepTags='@group3',grepFilterSpecs=true,grepOmitFiltered=true",
+    "test:group4:dark": "cypress run --component -b 'chrome' --config video=false --headless --env colorMode=dark --expose grepTags='@group4',grepFilterSpecs=true,grepOmitFiltered=true",
+    "test:all:dark": "cypress run --component -b 'chrome' --config video=false --headless --env colorMode=dark"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",
