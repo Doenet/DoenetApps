@@ -43,12 +43,12 @@ export function effectiveDarkMode(
 
 /**
  * Whether a DoenetML `fullVersion` string is at least
- * {@link MIN_DARK_MODE_DOENETML_VERSION}. Unknown/`"latest"`/unparseable
+ * {@link MIN_DARK_MODE_DOENETML_VERSION}. Unknown/`"latest"`/`"dev"`/unparseable
  * versions are treated as newest (supported); a `-dev.N`/prerelease suffix is
  * ignored so `"0.7.21-dev.3"` counts as `"0.7.21"`.
  */
 export function supportsDarkMode(fullVersion?: string): boolean {
-  if (!fullVersion || fullVersion === "latest") {
+  if (!fullVersion || fullVersion === "latest" || fullVersion === "dev") {
     return true;
   }
   const core = fullVersion.split("-")[0].trim();
