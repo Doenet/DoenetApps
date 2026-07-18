@@ -292,17 +292,21 @@ jobs:
           path: packages/e2e-tests/cypress/videos
           if-no-files-found: ignore
 
-  # Light-mode component tests. Job names stay `component-tests (groupN)` so the
-  # existing required status checks keep resolving. Dark mode runs in the
-  # separate `component-tests-dark` job below (kept separate to preserve these
-  # required check names).
   component-tests:
     runs-on: ubuntu-latest
 
+    # Each group runs in both light and dark color modes so accessibility
+    # (contrast) regressions are caught in dark mode too. The two modes run as
+    # independent matrix jobs (in parallel), so wall-clock time is unaffected.
+    # NOTE: this renames the checks to `component-tests (groupN, light|dark)`;
+    # branch-protection required checks must use those names.
     strategy:
       fail-fast: false
       matrix:
         test-group: [group1, group2, group3, group4]
+        color-mode: [light, dark]
+
+    name: component-tests (${{ matrix.test-group }}, ${{ matrix.color-mode }})
 
     steps:
       # Checkout repo
@@ -320,60 +324,17 @@ jobs:
       - name: Build shared package
         run: npm run build --workspace @doenet-tools/shared
 
-      # Run component tests (grouped)
+      # Run component tests (grouped). The `:dark` script variants pass
+      # `--env colorMode=dark`; light uses the plain script.
       - name: Run component tests
-        run: npm run test:${{ matrix.test-group }} --workspace @doenet-tools/app
+        run: npm run test:${{ matrix.test-group }}${{ matrix.color-mode == 'dark' && ':dark' || '' }} --workspace @doenet-tools/app
 
       # Upload artifacts on failure
       - name: Upload test artifacts
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: component-test-artifacts-${{ matrix.test-group }}
-          path: |
-            apps/app/cypress/screenshots/
-            apps/app/cypress/videos/
-          retention-days: 7
-
-  # Dark-mode component tests: same specs with `--env colorMode=dark`, so
-  # accessibility/contrast regressions are caught in dark mode too. Separate job
-  # (new check names `component-tests-dark (groupN)`) so it does not disturb the
-  # required `component-tests (groupN)` checks. Add these as required checks in
-  # branch-protection settings to make dark failures block merges.
-  component-tests-dark:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        test-group: [group1, group2, group3, group4]
-
-    steps:
-      # Checkout repo
-      - uses: actions/checkout@v6
-
-      # Setup Node with caching
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: npm
-
-      # Install dependencies
-      - run: npm ci
-
-      - name: Build shared package
-        run: npm run build --workspace @doenet-tools/shared
-
-      # Run component tests (grouped) in dark mode
-      - name: Run component tests (dark)
-        run: npm run test:${{ matrix.test-group }}:dark --workspace @doenet-tools/app
-
-      # Upload artifacts on failure
-      - name: Upload test artifacts
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: component-test-artifacts-${{ matrix.test-group }}-dark
+          name: component-test-artifacts-${{ matrix.test-group }}-${{ matrix.color-mode }}
           path: |
             apps/app/cypress/screenshots/
             apps/app/cypress/videos/
