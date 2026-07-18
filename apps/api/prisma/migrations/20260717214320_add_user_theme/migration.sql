@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `users` ADD COLUMN `theme` VARCHAR(191) NOT NULL DEFAULT 'system';
+ALTER TABLE `users` ADD COLUMN `theme` ENUM('system', 'light', 'dark') NOT NULL DEFAULT 'system';

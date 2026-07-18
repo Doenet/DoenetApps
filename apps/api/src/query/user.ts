@@ -1,5 +1,5 @@
 import { prisma } from "../model";
-import { Prisma } from "@prisma/client";
+import { Prisma, Theme } from "@prisma/client";
 import { UserInfo, UserInfoWithEmail } from "../types";
 import { generateHandle, generateUnusedHandle } from "../utils/names";
 import { filterEditableContent } from "../utils/permissions";
@@ -197,7 +197,7 @@ export async function setTheme({
   theme,
 }: {
   loggedInUserId: Uint8Array;
-  theme: "system" | "light" | "dark";
+  theme: Theme;
 }) {
   await prisma.users.update({
     where: { userId: loggedInUserId },
