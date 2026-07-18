@@ -4,11 +4,12 @@
 import { DateTime } from "luxon";
 
 // Run every page accessibility check in both light and dark mode so contrast and
-// other theme-dependent violations are caught in each. The theme is applied by
-// setting `doenet-theme-setting` in localStorage before each page load — read
-// pre-paint by the FOUC script in apps/app/index.html and by useThemeSetting, so
-// the whole page (chrome + DoenetML viewers) renders in the target mode before
-// checkAccessibility scans it.
+// other theme-dependent violations are caught in each. The site theme defaults
+// to "system", so we drive the mode by emulating the OS `prefers-color-scheme`
+// (via Chrome DevTools) rather than setting localStorage: for a logged-in user
+// the stored DB theme ("system" by default) would otherwise override a
+// localStorage value, and the real color mode would follow the CI browser's
+// preference instead of the one under test.
 const colorModes = ["light", "dark"] as const;
 
 colorModes.forEach((colorMode) => {
@@ -17,9 +18,15 @@ colorModes.forEach((colorMode) => {
     { tags: ["@group1"] },
     function () {
       beforeEach(() => {
-        cy.on("window:before:load", (win) => {
-          win.localStorage.setItem("doenet-theme-setting", colorMode);
-        });
+        cy.wrap(
+          Cypress.automation("remote:debugger:protocol", {
+            command: "Emulation.setEmulatedMedia",
+            params: {
+              features: [{ name: "prefers-color-scheme", value: colorMode }],
+            },
+          }),
+          { log: false },
+        );
       });
 
       it("Check accessibility of home page", () => {

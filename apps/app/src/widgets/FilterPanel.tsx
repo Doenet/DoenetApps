@@ -292,6 +292,10 @@ export function FilterPanel({
                   isChecked={isPresent}
                   data-test={`${category.code} Checkbox`}
                   disabled={numCurated + numCommunity === 0}
+                  // Chakra dims disabled checkboxes to 0.4 opacity, which is hard
+                  // to read (especially in dark mode); keep them de-emphasized but
+                  // legible.
+                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
                   onChange={() => {
                     let newSearch = search;
                     newSearch = clearQueryParameter(category.code, newSearch);
