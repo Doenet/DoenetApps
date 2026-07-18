@@ -315,11 +315,26 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
   });
 
   it("shows public criteria before allowing public access", () => {
+    const pendingDocId = "doc-pending";
     const mountOptions = setupMocks({
       shareStatus: {
         ...shareStatusData,
         canSharePublicly: false,
         publicShareIssues: ["missingRequiredCategories", "errorsCheckPending"],
+        publicShareBlockers: [
+          {
+            contentId: pendingDocId,
+            name: "Draft Document",
+            contentType: "singleDoc",
+            issues: ["errorsCheckPending"],
+          },
+          {
+            contentId,
+            name: "My Problem Set",
+            contentType: "sequence",
+            issues: ["missingRequiredCategories"],
+          },
+        ],
       },
     });
 
@@ -345,19 +360,26 @@ describe("ShareModal component tests", { tags: ["@group3"] }, () => {
       "contain.text",
       "Categories need to be added",
     );
-    cy.get('[data-test="Public Criteria Errors"]').should(
+    // The syntax check is still pending on a descendant document. Rather than a
+    // dead link to the bare compound editor, that specific document is listed
+    // with a link so the user can open and save it to run the check.
+    cy.get('[data-test="Public Criteria Errors Pending"]').should(
       "contain.text",
-      "Syntax check needs to complete",
+      "1 document needs to be opened to run the syntax check",
     );
+    cy.get('[data-test="Public Criteria Errors Pending"]')
+      .contains("Draft Document")
+      .parent()
+      .contains("Open")
+      .should("have.attr", "href")
+      .and("equal", `/documentEditor/${pendingDocId}/edit?diagnostics=errors`);
     cy.get('[data-test="Public Criteria Accessibility"]').should(
       "contain.text",
       "No accessibility violations",
     );
-    cy.contains("Open categories").should("be.visible");
-    cy.contains("Open syntax errors").should("be.visible");
-    cy.contains("Open syntax errors")
-      .should("have.attr", "href")
-      .and("equal", `/compoundEditor/${contentId}/edit`);
+    cy.contains("Open categories").scrollIntoView().should("be.visible");
+    // No bare-editor "Open syntax errors" aggregate link for the compound item.
+    cy.contains("Open syntax errors").should("not.exist");
     cy.contains("Open accessibility violations").should("not.exist");
     cy.get('[data-test="Share Submit Button"]')
       .should("contain.text", "Save access")
