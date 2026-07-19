@@ -3,10 +3,10 @@
   <head>
     <!--
       Apply the user's theme before first paint to avoid a flash of the wrong
-      theme. Source of truth is `doenet-theme-setting` (system|light|dark); we
-      resolve it to light|dark and pre-seed Chakra's own key so Chakra hydrates
-      already-correct. Chakra v2 also reads `html[data-theme]`, which activates
-      the [data-theme="dark"] CSS-variable block below. Keep this first in <head>.
+      theme. Source of truth is `doenet-theme-setting` (system|light|dark),
+      resolved to light|dark and written to `html[data-theme]` (which activates
+      the [data-theme="dark"] CSS-variable block below) and `color-scheme`.
+      Chakra reads the same setting via its colorModeManager. Keep first in <head>.
     -->
     <script>
       (function () {
@@ -20,7 +20,6 @@
           var d = document.documentElement;
           d.dataset.theme = resolved;
           d.style.colorScheme = resolved;
-          localStorage.setItem("chakra-ui-color-mode", resolved);
         } catch (e) {}
       })();
     </script>

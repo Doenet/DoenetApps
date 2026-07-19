@@ -100,6 +100,27 @@ function resolveColorMode(
 }
 
 /**
+ * Chakra color-mode manager backed by `doenet-theme-setting` (resolving
+ * `system` against the OS preference), so Chakra hydrates from the site's
+ * source of truth. `set` is a no-op — the preference is persisted by
+ * `setThemeSetting`.
+ */
+export const doenetColorModeManager = {
+  type: "localStorage" as const,
+  ssr: false,
+  get(init?: "light" | "dark") {
+    if (typeof window === "undefined") {
+      return init;
+    }
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    return resolveColorMode(readStoredThemeSetting(), prefersDark);
+  },
+  set() {},
+};
+
+/**
  * Site-wide theme controller. Holds the tri-state {@link ThemeSetting}
  * preference, keeps Chakra's resolved color mode in sync (and follows live OS
  * changes while set to `"system"`), and persists changes to localStorage and —
