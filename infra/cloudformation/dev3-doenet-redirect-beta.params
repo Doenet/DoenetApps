@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev3"
+  },
+  {
+    "ParameterKey": "RedirectName",
+    "ParameterValue": "beta"
+  },
+  {
+    "ParameterKey": "RedirectSubdomains",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "dev3.doenet.org"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "Z0066937J8QHRAL9H84P"
+  }
+]
