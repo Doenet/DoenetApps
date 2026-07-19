@@ -1,4 +1,3 @@
-import type { ThemeSetting } from "@doenet/assignment-viewer";
 import { useColorMode } from "@chakra-ui/react";
 import {
   createContext,
@@ -9,7 +8,8 @@ import {
 } from "react";
 import { useFetcher } from "react-router";
 
-export type { ThemeSetting };
+/** The site theme preference, and the value passed to the viewer's `darkMode` prop. */
+export type ThemeSetting = "dark" | "light" | "system";
 
 /**
  * The user's theme preference is stored under this localStorage key as one of
