@@ -7,8 +7,6 @@ import {
   Checkbox,
   MenuItem,
   MenuDivider,
-  MenuOptionGroup,
-  MenuItemOption,
   Text,
   Link as ChakraLink,
   Tooltip,
@@ -17,6 +15,7 @@ import { UserInfoWithEmail } from "../../types";
 import { ThemeSetting } from "../../utils/theme";
 import { createNameNoTag } from "../../utils/names";
 import { AccessibleAvatar } from "../../widgets/AccessibleAvatar";
+import { ThemeSelector } from "./ThemeSelector";
 import { useFetcher, useLocation } from "react-router";
 
 /**
@@ -94,16 +93,7 @@ export function AccountIconAndCard({
             </Box>
           ) : null}
         </VStack>
-        <MenuOptionGroup
-          title="Theme"
-          type="radio"
-          value={themeSetting}
-          onChange={(value) => setThemeSetting(value as ThemeSetting)}
-        >
-          <MenuItemOption value="system">System</MenuItemOption>
-          <MenuItemOption value="light">Light</MenuItemOption>
-          <MenuItemOption value="dark">Dark</MenuItemOption>
-        </MenuOptionGroup>
+        <ThemeSelector value={themeSetting} onChange={setThemeSetting} />
         <MenuDivider />
         {!user.isAnonymous && (
           <MenuItem
