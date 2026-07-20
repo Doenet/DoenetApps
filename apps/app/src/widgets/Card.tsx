@@ -436,7 +436,7 @@ export default function Card({
       borderRadius={0}
       // Theme-aware hover: the old fixed light values (#eeeeee / "ffffff", the
       // latter also missing its #) became white-on-white in dark mode. Semantic
-      // tokens flip: interact #EFEFEF/#2c2c2c, surface #FFFFFF/#1e1e1e.
+      // tokens flip: interact #EFEFEF/#31353f, surface #FFFFFF/#20232b.
       _hover={{ backgroundColor: cardLink ? "interact" : "surface" }}
     >
       <CardBody>

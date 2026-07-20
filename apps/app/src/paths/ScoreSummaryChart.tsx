@@ -18,8 +18,8 @@ export function ScoreSummaryChart({
 }) {
   // Match the textMuted / border semantic tokens (theme.ts). Both pass contrast
   // for axis text in their mode; the grid is decorative.
-  const axisColor = useColorModeValue("#4a5568", "#a8a8a8");
-  const gridColor = useColorModeValue("#e0e0e0", "#3a3a3a");
+  const axisColor = useColorModeValue("#4a5568", "#a6adba");
+  const gridColor = useColorModeValue("#e0e0e0", "#3c414d");
 
   return (
     <BarChart

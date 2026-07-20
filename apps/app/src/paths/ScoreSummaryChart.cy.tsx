@@ -22,7 +22,7 @@ describe("ScoreSummaryChart", { tags: ["@group4"] }, () => {
         const [r, g, b] = m![1].split(",").map((p) => parseFloat(p.trim()));
         const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
         const isDark = Cypress.env("colorMode") === "dark";
-        // Light axis #4a5568 (luminance ~0.33); dark axis #a8a8a8 (~0.66).
+        // Light axis #4a5568 (luminance ~0.33); dark axis #a6adba (~0.68).
         expect(
           luminance,
           `axis fill ${fill} (luminance ${luminance.toFixed(2)}) for ${isDark ? "dark" : "light"} mode`,

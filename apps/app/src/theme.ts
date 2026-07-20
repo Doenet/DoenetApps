@@ -104,15 +104,18 @@ const theme = extendTheme({
   // read the same in both modes stay in `colors` below.
   semanticTokens: {
     colors: {
-      background: { default: "#FCFAF6", _dark: "#121212" },
-      surface: { default: "#FFFFFF", _dark: "#1e1e1e" },
+      // Dark surfaces carry a faint blue tint (off-gray) and are a hair lighter
+      // than flat neutrals so the theme feels inviting rather than harsh — see
+      // the dark-mode palette follow-up.
+      background: { default: "#FCFAF6", _dark: "#14161b" },
+      surface: { default: "#FFFFFF", _dark: "#20232b" },
       // Subtle raised/inset panel background (was gray.50 / gray.100 / white).
-      surfaceMuted: { default: "#f2f2f2", _dark: "#262626" },
-      interact: { default: "#EFEFEF", _dark: "#2c2c2c" },
-      border: { default: "#e0e0e0", _dark: "#3a3a3a" },
-      text: { default: "#1F1F1F", _dark: "#e8e8e8" },
+      surfaceMuted: { default: "#f2f2f2", _dark: "#282c35" },
+      interact: { default: "#EFEFEF", _dark: "#31353f" },
+      border: { default: "#e0e0e0", _dark: "#3c414d" },
+      text: { default: "#1F1F1F", _dark: "#e6e6e6" },
       // Secondary/de-emphasized text (was gray.600 / gray.700 / gray.800).
-      textMuted: { default: "#4a5568", _dark: "#a8a8a8" },
+      textMuted: { default: "#4a5568", _dark: "#a6adba" },
       // Slate-purple category/label icon accent (was #666699); lightened for dark.
       iconAccent: { default: "#666699", _dark: "#a9abe5" },
       accent: { default: "#8cebff", _dark: "#1c5a72" },
@@ -122,10 +125,11 @@ const theme = extendTheme({
       // recede to a dark blue-gray in dark mode.
       viewerFrame: { default: "#b8d2ea", _dark: "#17293a" },
       doenet: {
-        canvas: { default: "#ffffff", _dark: "#121212" },
-        canvastext: { default: "#000000", _dark: "#ffffff" },
-        mainGray: { default: "#e3e3e3", _dark: "#3a3a3a" },
-        lightGray: { default: "#e7e7e7", _dark: "#2c2c2c" },
+        canvas: { default: "#ffffff", _dark: "#14161b" },
+        // #ededed rather than pure white to avoid halation on dark surfaces.
+        canvastext: { default: "#000000", _dark: "#ededed" },
+        mainGray: { default: "#e3e3e3", _dark: "#3c414d" },
+        lightGray: { default: "#e7e7e7", _dark: "#31353f" },
       },
     },
   },
