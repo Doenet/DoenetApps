@@ -3,3 +3,7 @@ multi-reporter-config.json
 runner-results/
 .astro
 package-lock.json
+
+# Vendored third-party files — kept verbatim for provenance; never reformat.
+# See packages/scorm-export/vendor/VENDORED.md.
+packages/scorm-export/vendor/

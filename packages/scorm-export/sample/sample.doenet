@@ -1,0 +1,372 @@
+<setup>
+  <select name="set" type="text">A B</select>
+  <boolean name="s_A">$set=A</boolean>
+  <boolean name="s_B">$set=B</boolean>
+  
+  <boolean name="exact">false</boolean>
+  <boolean name="debug">false</boolean>
+
+  <!-- WCAG Compliant Intersection Blends -->
+  <text name="c_ac_wcag">#633075</text>
+  <text name="c_bc_wcag">#005350</text>
+  <text name="c_ab_wcag">#701B1A</text>
+  <text name="c_abc_wcag">#414C37</text> 
+  <text name="c_frame">#4A5568</text> 
+
+
+
+  
+  <!-- Style definitions for sub regions (Intersections) -->
+  <styleDefinition styleNumber="4" fillopacity="0.4" fillColor="$c_ac_wcag" lineColor="$c_ac_wcag" linewidth="0" />
+  <styleDefinition styleNumber="6" fillopacity="0.4" fillColor="$c_bc_wcag" lineColor="$c_bc_wcag" linewidth="0" />
+  <styleDefinition styleNumber="5" fillopacity="0.4" fillColor="$c_ab_wcag" lineColor="$c_bc_wcag" linewidth="0" />
+  <styleDefinition styleNumber="7" fillopacity="0.4" fillColor="$c_abc_wcag" lineColor="$c_abc_wcag" linewidth="0" />
+
+  <!-- Region 8 Outside Shading (Borderless Internal Background) -->
+  <styleDefinition styleNumber="8" fillopacity="0.4" fillColor="$c_frame" lineColor="$c_frame" linewidth="0" />
+
+  <!-- Style for Universal Set Frame & Macro Circle Outlines -->
+  <styleDefinition styleNumber="12" fillopacity="0.25" fillColor="$c_frame" lineColor="$c_frame" linewidth="4" lineStyle="solid" markerColor="black"/>
+
+  <!--Defining which regions are in the sets-->
+  <numberList name="A_elmnt">1 4 6 7</numberList>
+  <numberList name="B_elmnt">2 4 5 7</numberList>
+  <numberList name="C_elmnt">3 5 6 7</numberList>
+  <numberList name="U_elmnt">1 2 3 4 5 6 7 8</numberList>
+
+  
+  <!--Approximations-->
+  <number name="n1">
+    <conditionalContent>
+      <case condition="$exact">1.732</case>
+      <else>1.732</else>
+    </conditionalContent>
+  </number>
+  
+  <!-- Centers -->
+  <point name="Acenter">(-2,0)</point>
+  <point name="Bcenter">(0,2*$n1)</point>
+  <point name="Ccenter">(2,0)</point>
+
+  <!-- Global Scale Metric to prevent calculation loop -->
+  <number name="box_hl">9</number>
+
+
+  <!-- Parametric functions -->
+  <function name="Ax">$Acenter.x + 4*cos(x)</function>
+  <function name="Ay">$Acenter.y + 4*sin(x)</function>
+
+  <function name="Bx">$Bcenter.x + 4*cos(x)</function>
+  <function name="By">$Bcenter.y + 4*sin(x)</function>
+
+  <function name="Cx">$Ccenter.x + 4*cos(x)</function>
+  <function name="Cy">$Ccenter.y + 4*sin(x)</function>
+
+  <!--Top and Bottom height of the Universal Set-->
+  <function name="top">$box_hl</function>
+  <function name="bot">-$box_hl</function>
+
+<!--Point list calculations found here:  https://beta.doenet.org/activityViewer/eLiXy29jh4TbZRpfqgnBLn -->
+
+  <!--Pre-calculating and Caching Arc Coordinates in Setup to stop live frame loop refresh lag-->
+  <pointList name="A1"> (2,0) (1.86,1.04) (1.46,2) (0.828,2.83) (0,3.46) </pointList>
+  <pointList name="A1r"> (0,3.46) (0.828,2.83) (1.46,2) (1.86,1.04) (2,0) </pointList>
+  <pointList name="A2"> (0,3.46) (−0.965,3.86) (−2,4) (−3.04,3.86) (−4,3.46) </pointList>
+  <pointList name="A3t"> (−4,3.46) (−4.83,2.83) (−5.46,2) (−5.86,1.04) (−6,0) </pointList>
+  <pointList name="A3b"> (−6,0) (−5.86,−1.04) (−5.46,−2) (−4.83,−2.83) (−4,−3.46) (−3.04,−3.86) (−2,−4) (−0.965,−3.86) (0,−3.46) </pointList>
+  <pointList name="A3r"> (0,−3.46) (−0.965,−3.86) (−2,−4) (−3.04,−3.86) (−4,−3.46) (−4.83,−2.83) (−5.46,−2) (−5.86,−1.04) (−6,0) (−5.86,1.04) (−5.46,2) (−4.83,2.83) (−4,3.46) </pointList>
+  <pointList name="A4"> (0,−3.46) (0.828,−2.83) (1.46,−2) (1.86,−1.04) (2,0) </pointList>
+    
+  <pointList name="B1"> (−2,−0.000102) (−1.04,−0.4) (0,−0.536) (1.04,−0.4) (2,−0.000102) </pointList>
+  <pointList name="B1r"> (2,−0.000102) (1.04,−0.4) (0,−0.536) (−1.04,−0.4) (−2,−0.000102) </pointList>
+  <pointList name="B2"> (2,−0.000102) (2.83,0.636) (3.46,1.46) (3.86,2.43) (4,3.46) </pointList>
+  <pointList name="B3"> (4,3.46) (3.86,4.5) (3.46,5.46) (2.83,6.29) (2,6.93) (1.04,7.33) (0,7.46) (−1.04,7.33) (−2,6.93) (−2.83,6.29) (−3.46,5.46) (−3.86,4.5) (−4,3.46) </pointList>
+  <pointList name="B3r"> (−4,3.46) (−3.86,4.5) (−3.46,5.46) (−2.83,6.29) (−2,6.93) (−1.04,7.33) (0,7.46) (1.04,7.33) (2,6.93) (2.83,6.29) (3.46,5.46) (3.86,4.5) (4,3.46) </pointList>
+  <pointList name="B4"> (−4,3.46) (−3.86,2.43) (−3.46,1.46) (−2.83,0.636) (−2,−0.000102) </pointList>
+
+  <pointList name="C1"> (0,3.46) (−0.828,2.83) (−1.46,2) (−1.86,1.04) (−2,0) </pointList>
+  <pointList name="C1r"> (−2,0) (−1.86,1.04) (−1.46,2) (−0.828,2.83) (0,3.46) </pointList>
+  <pointList name="C2"> (−2,0) (−1.86,−1.04) (−1.46,−2) (−0.828,−2.83) (0,−3.46) </pointList>
+  <pointList name="C3t"> (6,0) (5.86,1.04) (5.46,2) (4.83,2.83) (4,3.46) </pointList>
+  <pointList name="C3b"> (0,−3.46) (0.965,−3.86) (2,−4) (3.04,−3.86) (4,−3.46) (4.83,−2.83) (5.46,−2) (5.86,−1.04) (6,0) </pointList>
+  <pointList name="C3r"> (4,3.46) (4.83,2.83) (5.46,2) (5.86,1.04) (6,0) (5.86,−1.04) (5.46,−2) (4.83,−2.83) (4,−3.46) (3.04,−3.86) (2,−4) (0.965,−3.86) (0,−3.46) </pointList>
+  <pointList name="C4"> (4,3.46) (3.04,3.86) (2,4) (0.965,3.86) (0,3.46) </pointList>
+
+  <!--List of all active shading-->
+  <booleanList name="nsh">
+    $p1.open $p2.open $p3.open $p4.open $p5.open $p6.open $p7.open $p8.open
+  </booleanList>
+
+  <booleanList name="sh">
+    !$p1.open !$p2.open !$p3.open !$p4.open !$p5.open !$p6.open !$p7.open !$p8.open
+  </booleanList>
+
+  <boolean name="hide_reset"><and>$nsh</and></boolean>
+
+  
+
+</setup>
+
+<section noAutoTitle>
+  <title>Venn Diagrams and Set Relationships</title>
+  The image below shows a Venn diagram with three sets: <m>A, B,</m> and <m>C</m>. For each of the questions below, use the radio buttons to select the regions that correspond to the given set(s) or set operations.<br/>
+
+</section>
+
+
+<sideBySide widths="30% 70%">
+<subsection noAutoTitle>
+  <title>Problems</title>
+Shade the sets given below. Shade exactly the given set with no additional shading.
+ <div name="ps" aggregateScores>
+    <cascade >
+      <problem collapsible>
+        <answer name="ans_set" disableAfterCorrect>
+          <label>
+           <m>$set</m>
+          </label>
+        <award>
+          <when>
+            <and> $s_A $sh[1] $nsh[2] $nsh[3] $sh[4] $nsh[5] $sh[6] $sh[7] $nsh[8]</and>
+            or 
+            <and> $s_B $nsh[1] $sh[2] $nsh[3] $sh[4] $sh[5] $nsh[6] $sh[7] $nsh[8]</and>
+          </when>
+        </award>
+        </answer>
+      </problem>
+
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_setuC">
+          <label>
+            <m>$set \cup C</m>
+          </label>
+          <award>
+            <when>
+              <and>$s_A $sh[1] $nsh[2] $sh[3] $sh[4] $sh[5] $sh[6] $sh[7] $nsh[8]</and>
+              or
+              <and>$s_B $nsh[1] $sh[2] $sh[3] $sh[4] $sh[5] $sh[6] $sh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+          
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_setnC">
+          <label>
+          <m>$set \cap C</m>
+          </label>
+          <award>
+            <when>
+              <and>$s_A $nsh[1] $nsh[2] $nsh[3] $nsh[4] $nsh[5] $sh[6] $sh[7] $nsh[8]</and>
+              or 
+              <and>$s_B $nsh[1] $nsh[2] $nsh[3] $nsh[4] $sh[5] $nsh[6] $sh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_setp">
+          <label>
+           <m>\overline{$set}</m>, the complement of <m>$set</m>
+          </label>
+          <award>
+            <when>
+              <and>$s_A $nsh[1] $sh[2] $sh[3] $nsh[4] $sh[5] $nsh[6] $nsh[7] $sh[8]</and>
+              or
+              <and>$s_B $sh[1] $nsh[2] $sh[3] $nsh[4] $nsh[5] $sh[6] $nsh[7] $sh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_AnBnC">
+          <label>
+           <m>A \cap B \cap C</m>
+          </label>
+          <award>
+            <when>
+              <and>$nsh[1] $nsh[2] $nsh[3] $nsh[4] $nsh[5] $nsh[6] $sh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+         <problem collapsible>
+        <answer disableAfterCorrect name="ans_AuBuC">
+          <label>
+           <m>A \cup B \cup C</m>
+          </label>
+          <award>
+            <when>
+              <and>$sh[1] $sh[2] $sh[3] $sh[4] $sh[5] $sh[6] $sh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_AnBuC">
+          <label>
+            <m>(A \cap B) \cup C</m>
+          </label>
+          <award>
+            <when>
+              <and>$nsh[1] $nsh[2] $sh[3] $sh[4] $sh[5] $sh[6] $sh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+      <problem collapsible>
+        <answer disableAfterCorrect name="ans_Crelcomp_set">
+          <label>
+            <m>C-$set</m>, the set difference of <m>C</m> and <m>$set</m>
+          </label>
+          <award>
+            <when>
+              <and>$s_A $nsh[1] $nsh[2] $sh[3] $nsh[4] $sh[5] $nsh[6] $nsh[7] $nsh[8]</and>
+              or
+              <and>$s_B $nsh[1] $nsh[2] $sh[3] $nsh[4] $nsh[5] $sh[6] $nsh[7] $nsh[8]</and>
+            </when>
+          </award>
+        </answer>
+      </problem>
+
+</cascade>     
+</div>
+  
+
+
+
+</subsection>
+<subsection noAutoTitle>
+  <title>Venn Diagram</title>
+  
+<graph name="graph1" displayXAxis="false" displayYAxis="false" ymin="-12" identicalAxisScales fixAxes>
+  <shortDescription>A graph that shows three overlapping circles representing the sets A, B, and C.</shortDescription>
+
+  <!-- Universal Set Background Layer (Style 12) -->
+  <polygon vertices="($box_hl,$box_hl) (-$box_hl,$box_hl) (-$box_hl,-$box_hl) ($box_hl,-$box_hl)" styleNumber="12" fixed />  
+  
+
+  <!-- Circle outlines and fill (Style 12 gives the outer line, fillColor handles the inside color) -->
+  <circle center="$Acenter" radius="4" styleNumber="1" lineWidth="4" fixed></circle>
+  <circle center="$Bcenter" radius="4" styleNumber="2" lineWidth="4" fixed ></circle>
+  <circle center="$Ccenter" radius="4" styleNumber="3" lineWidth="4" fixed ></circle>
+  
+  <!--Circle name labels-->
+  <label anchor="(-2,-4)" positionFromAnchor="bottom" fixed>Set <m>A</m></label>
+  <label anchor="(0,2*$n1+4)" positionFromAnchor="top" fixed>Set <m>B</m></label>
+  <label anchor="(2,-4)" positionFromAnchor="bottom" fixed> Set <m>C</m></label>
+  <label anchor="(0,-0.9*$box_hl)" positionFromAnchor="top" fixed><m>U</m></label>
+
+  
+  <!-- Region 8 Background (Style 8) -->
+  <polygon styleNumber="8" filled="!$p8.open" vertices="(9,0) $C3t $B3 $A3t (-9,0) (-9,9) (9,9)" fixed />
+  <polygon styleNumber="8" filled="!$p8.open" vertices="(-9,0) $A3b $C3b (9,0) (9,-9) (-9,-9)" fixed />
+
+
+  <!-- Toggle points on the region interiors (Static & Fixed) -->
+  <endpoint styleNumber="12" name="p1" switchable open fixLocation><label>1</label>(-(2+1.732), -1)</endpoint>
+  <endpoint styleNumber="12" name="p2" switchable open fixLocation><label>2</label>(0, 3*1.732)</endpoint>
+  <endpoint styleNumber="12" name="p3" switchable open fixLocation><label>3</label>(2+1.732, -1)</endpoint>
+  <endpoint styleNumber="12" name="p4" switchable open fixLocation><label>4</label>(-(1+1.732), 1+1.732)</endpoint>
+  <endpoint styleNumber="12" name="p5" switchable open fixLocation><label>5</label>(1+1.732, 1+1.732)</endpoint>
+  <endpoint styleNumber="12" name="p6" switchable open fixLocation><label>6</label>(0, -2)</endpoint>
+  <endpoint styleNumber="12" name="p7" switchable open fixLocation><label>7</label>(0, 2*1.732/3)</endpoint>
+  <endpoint styleNumber="12" name="p8" switchable open fixLocation><label>8</label>(-6.75, 6.75)</endpoint>
+  
+  <!-- Region 7: Three set intersection (Style 7) -->
+  <conditionalContent>
+    <case condition="!$p7.open">
+      <polygon name="AnBnC" vertices="$A1 $C1 $B1" filled="!$p7.open" styleNumber="7" fixed />
+    </case>
+  </conditionalContent>
+
+  <!-- Relative set complements (Outer Sub-Regions) -->
+  
+  <!-- Region 1: A only (Style 1) -->
+  <conditionalContent>
+    <case condition="!$p1.open">
+      <polygon name="A_BuC" vertices="$A3r $B4 $C2" filled styleNumber="1" fixed /> 
+    </case>
+  </conditionalContent>
+  
+  <!-- Region 2: B only (Style 2) -->
+  <conditionalContent>
+    <case condition="!$p2.open">
+      <polygon name="B_AuC" vertices="$B3r $C4 $A2" filled styleNumber="2" fixed /> 
+    </case>
+  </conditionalContent>
+
+  <!-- Region 3: C only (Style 3) -->
+  <conditionalContent>
+    <case condition="!$p3.open">
+      <polygon name="C_AuB" vertices="$C3r $A4 $B2" filled styleNumber="3" fixed /> 
+    </case>
+  </conditionalContent>
+  
+  <!-- Intersections -->
+  
+  <!-- Region 4: A and B (Style 4) -->
+  <conditionalContent>
+    <case condition="!$p4.open">
+      <polygon name="AnB_C" vertices="$A2 $B4 $C1r" filled styleNumber="4" fixed /> 
+    </case>
+  </conditionalContent>
+
+  <!-- Region 5: B and C (Style 5) -->
+  <conditionalContent>
+    <case condition="!$p5.open">
+      <polygon name="BnC_A" vertices="$B2 $C4 $A1r" filled styleNumber="5" fixed /> 
+    </case>
+  </conditionalContent>
+
+  <!-- Region 6: A and C (Style 6) -->
+  <conditionalContent>
+    <case condition="!$p6.open">
+      <polygon name="AnC_B" vertices="$C2 $A4 $B1r" filled styleNumber="6" fixed /> 
+    </case>
+  </conditionalContent>
+
+  <conditionalContent>
+    <case></case>
+  </conditionalContent>
+
+  <!--Invert Shading Button  -->
+  <triggerSet anchor="(0,-11)" name="flip_btn">
+    <label>Invert all shading</label>
+    <updateValue target="$p1.open" newValue="!$p1.open" type="boolean" />
+    <updateValue target="$p2.open" newValue="!$p2.open" type="boolean" />
+    <updateValue target="$p3.open" newValue="!$p3.open" type="boolean" />
+    <updateValue target="$p4.open" newValue="!$p4.open" type="boolean" />
+    <updateValue target="$p5.open" newValue="!$p5.open" type="boolean" />
+    <updateValue target="$p6.open" newValue="!$p6.open" type="boolean" />
+    <updateValue target="$p7.open" newValue="!$p7.open" type="boolean" />
+    <updateValue target="$p8.open" newValue="!$p8.open" type="boolean" />
+  </triggerSet>
+
+
+<!--Clear Shading Button-->
+ <triggerSet anchor="(0,-10)" name="reset_btn" hide="$hide_reset">
+    <label>Clear All Shading</label>
+    <updateValue target="$p1.open" newValue="true" type="boolean" />
+    <updateValue target="$p2.open" newValue="true" type="boolean" />
+    <updateValue target="$p3.open" newValue="true" type="boolean" />
+    <updateValue target="$p4.open" newValue="true" type="boolean" />
+    <updateValue target="$p5.open" newValue="true" type="boolean" />
+    <updateValue target="$p6.open" newValue="true" type="boolean" />
+    <updateValue target="$p7.open" newValue="true" type="boolean" />
+    <updateValue target="$p8.open" newValue="true" type="boolean" />
+  </triggerSet>
+  
+</graph>
+  
+
+  
+</subsection>
+</sideBySide>
+ <feedback condition="$ps.creditAchieved=1">
+  Congratulations! You have earned credit for all problems in this section.    </feedback> 

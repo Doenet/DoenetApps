@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #222; }
+    main { max-width: 55rem; margin: 0 auto; padding: 1rem; }
+    [data-component="doenet"] > iframe {
+      display: block;
+      width: 100%;
+      min-height: 25rem;   /* until the first lti.frameResize arrives */
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Diagnostic size probe, inlined here only when built with --debug;
+       empty in a normal package. See debug/size-probe.html. -->
+  {{DEBUG_PROBE}}
+
+  <main>
+    <!-- DOM contract required by ptx_scorm_events.js:                    -->
+    <!--   * a div with data-component="doenet" and the activity's id     -->
+    <!--     (used to key scores and saved state), wrapping                -->
+    <!--   * the iframe that hosts the Doenet viewer (matched against      -->
+    <!--     event.source when SPLICE messages arrive).                    -->
+    <div data-component="doenet" id="{{ACTIVITY_ID}}">
+      <iframe src="activity.html" title="{{TITLE}}"></iframe>
+    </div>
+  </main>
+  <!-- Grows the activity iframe on SPLICE lti.frameResize messages. -->
+  <script src="lti_iframe_resizer.js"></script>
+  <!-- LZ-string: compresses the Doenet activity state so it fits in         -->
+  <!-- cmi.suspend_data (server-side, survives LMS relaunch). Must load      -->
+  <!-- BEFORE ptx_scorm_events.js, which references window.LZString.         -->
+  <script src="lz-string.min.js"></script>
+  <!-- SCORM bridge: discovers the LMS API, records scores from Doenet's -->
+  <!-- SPLICE messages, persists/restores activity state, adds the       -->
+  <!-- "Submit Assignment" button (appended to <main>).                  -->
+  <script src="ptx_scorm_events.js"></script>
+</body>
+</html>
