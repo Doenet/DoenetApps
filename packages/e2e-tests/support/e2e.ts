@@ -16,6 +16,7 @@
 // Import commands.js using ES2015 syntax:
 import "./commands";
 import "cypress-plugin-tab";
+import "cypress-real-events";
 import "wick-a11y";
 import { register as registerCypressGrep } from "@cypress/grep";
 registerCypressGrep();

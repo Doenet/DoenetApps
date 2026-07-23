@@ -12,6 +12,7 @@ import "./styles/mathjax-menu.css";
 
 import { MathJaxContext } from "better-react-mathjax";
 import { theme } from "./theme";
+import { doenetColorModeManager } from "./utils/theme";
 import { loader as exploreLoader, Explore } from "./paths/Explore";
 
 import { loader as curateLoader, Curate } from "./paths/Curate";
@@ -139,7 +140,7 @@ const router = createBrowserRouter([
     loader: siteLoader,
     element: (
       <>
-        <ChakraProvider theme={theme}>
+        <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
           <MathJaxContext
             version={4}
             config={mathjaxConfig}
@@ -151,7 +152,7 @@ const router = createBrowserRouter([
       </>
     ),
     errorElement: (
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
         <ErrorPage />
       </ChakraProvider>
     ),
@@ -439,7 +440,7 @@ const router = createBrowserRouter([
     element: <RawViewer />,
     loader: rawViewerLoader,
     errorElement: (
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
         <ErrorPage />
       </ChakraProvider>
     ),

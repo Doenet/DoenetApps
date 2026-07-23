@@ -149,8 +149,8 @@ export function SharedActivities() {
 
   const heading = (
     <Box
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height="120px"
       width="100%"
       textAlign="center"
@@ -202,7 +202,7 @@ export function SharedActivities() {
           width="100%"
           alignContent="center"
           hidden={!cardSelections.areActive && addTo === null}
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
           justifyContent="center"
         >
           {addTo !== null ? (
@@ -318,16 +318,18 @@ export function SharedActivities() {
         padding=".5em 10px"
         margin="0"
         width="100%"
-        background={"white"}
+        background="surface"
         minHeight="calc(80vh - 130px)"
         flexDirection="column"
       >
         {mainPanel}
       </Flex>
       <Box
-        background="gray"
+        // "gray" (#808080) with canvas-colored text was low-contrast in both
+        // modes; use a mode-flipping muted surface with the standard text token.
+        background="surfaceMuted"
         width="100%"
-        color="var(--canvas)"
+        color="text"
         padding="20px"
         minHeight="20vh"
       >

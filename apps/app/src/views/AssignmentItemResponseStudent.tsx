@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 
 import {
   Box,
@@ -78,6 +79,7 @@ export function AssignmentItemResponseStudent({
 
   const { search } = useLocation();
   const navigate = useNavigate();
+  const { themeSetting } = useThemeSettingContext();
 
   const [responseAnswerId, setResponseAnswerId] = useState<string | null>(null);
 
@@ -157,6 +159,7 @@ export function AssignmentItemResponseStudent({
       doenetML={doenetML}
       key={`${user.userId}|${itemAttemptState.itemNumber ?? ""}|${attemptNumber}`}
       doenetmlVersion={doenetmlVersion.fullVersion}
+      darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
       requestedVariantIndex={itemAttemptState.variant}
       flags={{
         showCorrectness: true,
@@ -347,21 +350,21 @@ export function AssignmentItemResponseStudent({
       <Box marginTop="10px" borderTop="1px" borderColor="doenet.mediumGray">
         <Grid
           width="100%"
-          background="doenet.lightBlue"
+          background="viewerFrame"
           templateAreas={`"leftGutter viewer rightGutter"`}
           templateColumns={`1fr minmax(340px,850px) 1fr`}
           overflow="hidden"
         >
           <GridItem
             area="leftGutter"
-            background="doenet.lightBlue"
+            background="viewerFrame"
             width="100%"
             paddingTop="10px"
             alignSelf="start"
           />
           <GridItem
             area="rightGutter"
-            background="doenet.lightBlue"
+            background="viewerFrame"
             width="100%"
             paddingTop="10px"
             alignSelf="start"

@@ -13,6 +13,7 @@ import {
   getMyUserInfo,
   getUserInfoIfLoggedIn,
   setIsAuthor,
+  setTheme,
   updateUser,
   upgradeAnonymousUser,
 } from "../query/user";
@@ -104,6 +105,21 @@ test("turn author mode on and off", async () => {
   await setIsAuthor({ loggedInUserId: userId, isAuthor: false });
   userInfo = await getMyUserInfo({ loggedInUserId: userId });
   expect(userInfo.user.isAuthor).eq(false);
+});
+
+test("set and read theme preference", async () => {
+  const { userId } = await createTestUser();
+
+  let userInfo = await getMyUserInfo({ loggedInUserId: userId });
+  expect(userInfo.user.theme).eq("system");
+
+  await setTheme({ loggedInUserId: userId, theme: "dark" });
+  userInfo = await getMyUserInfo({ loggedInUserId: userId });
+  expect(userInfo.user.theme).eq("dark");
+
+  await setTheme({ loggedInUserId: userId, theme: "light" });
+  userInfo = await getMyUserInfo({ loggedInUserId: userId });
+  expect(userInfo.user.theme).eq("light");
 });
 
 test("a logged-in user can see their own email", async () => {

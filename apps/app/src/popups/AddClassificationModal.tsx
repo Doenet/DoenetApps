@@ -449,7 +449,7 @@ export function AddClassificationModal({
 
               return (
                 <Card
-                  backgroundColor={added ? "lightGray" : "var(--canvas)"}
+                  backgroundColor={added ? "doenet.lightGray" : "doenet.canvas"}
                   key={classification.id}
                 >
                   <CardBody paddingLeft={2}>
