@@ -141,7 +141,7 @@ export function Trash() {
     <Box
       data-test="Trash"
       width={{ base: "100%", md: "calc(100% - 40px)" }}
-      background={"white"}
+      background="surface"
       ml={{ base: "0px", md: "20px" }}
       mr={{ base: "0px", md: "20px" }}
     >

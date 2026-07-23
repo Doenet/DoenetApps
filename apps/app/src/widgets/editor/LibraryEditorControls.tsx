@@ -165,7 +165,7 @@ export function LibraryEditorControls({
       height="100%"
       borderWidth="5px"
       borderColor="orange"
-      backgroundColor="white"
+      backgroundColor="surface"
       padding="1rem 0rem 0rem 1rem"
       direction="column"
     >

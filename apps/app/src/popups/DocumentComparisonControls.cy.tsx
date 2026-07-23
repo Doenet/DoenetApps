@@ -1,6 +1,7 @@
 import { DocumentComparisonControls } from "./DocumentComparisonControls";
 import { FetcherWithComponents } from "react-router";
 import { DoenetmlVersion, UserInfo } from "../types";
+import { useState } from "react";
 
 describe(
   "DocumentComparisonControls component tests",
@@ -556,6 +557,54 @@ describe(
           />,
         );
 
+        cy.wait(200);
+        cy.checkAccessibility("body");
+      });
+
+      // The status Box only renders after fetcher.data changes post-mount (the
+      // reset effect wins on the initial mount), so drive it via a harness that
+      // flips the fetcher data on demand.
+      function StatusHarness({ resultData }: { resultData: any }) {
+        const [data, setData] = useState<any>(undefined);
+        const fetcher = {
+          state: "idle",
+          formData: undefined,
+          data,
+          Form: ({ children }: any) => <form>{children}</form>,
+          submit: cy.stub(),
+          load: () => {},
+        } as unknown as FetcherWithComponents<any>;
+        return (
+          <>
+            <button data-test="trigger" onClick={() => setData(resultData)}>
+              trigger
+            </button>
+            <DocumentComparisonControls
+              isOpen={true}
+              onClose={cy.spy().as("onClose")}
+              activity={mockActivity}
+              activityCompare={mockActivityCompare}
+              activityCompareChanged={true}
+              activityAtCompare={false}
+              compareRelation="source"
+              fetcher={fetcher}
+            />
+          </>
+        );
+      }
+
+      it("should be accessible with success status message", () => {
+        cy.mount(<StatusHarness resultData={{ updated: true }} />);
+        cy.get('[data-test="trigger"]').click({ force: true });
+        cy.get('[data-test="Status message"]').should("be.visible");
+        cy.wait(200);
+        cy.checkAccessibility("body");
+      });
+
+      it("should be accessible with error status message", () => {
+        cy.mount(<StatusHarness resultData={{ updateError: true }} />);
+        cy.get('[data-test="trigger"]').click({ force: true });
+        cy.get('[data-test="Status message"]').should("be.visible");
         cy.wait(200);
         cy.checkAccessibility("body");
       });

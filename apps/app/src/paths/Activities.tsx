@@ -247,7 +247,9 @@ export function Activities() {
       <Box>
         <Icon
           as={parent ? folderIcon : LuDessert}
-          color={parent ? folderColor : "black"}
+          // "black" is invisible in dark mode; use the flipping text token for
+          // the root (My Activities) icon.
+          color={parent ? folderColor : "text"}
           boxSizing="content-box"
           width="24px"
           height="24px"
@@ -744,7 +746,7 @@ export function Activities() {
   const searchResultsHeading = haveQuery ? (
     <Flex
       width="100%"
-      background="lightgray"
+      background="surfaceMuted"
       fontSize="large"
       alignItems="center"
       padding="5px"
@@ -759,7 +761,7 @@ export function Activities() {
         <Tooltip label="Close search results" placement="bottom-end">
           <IconButton
             icon={<MdClose />}
-            background="lightgray"
+            background="surfaceMuted"
             aria-label="Close search results"
             type="submit"
             onClick={() => {
@@ -855,7 +857,7 @@ export function Activities() {
   return (
     <Flex
       data-test="Activities"
-      background={"white"}
+      background="surface"
       align="flex-start"
       overflowY="hidden"
       height="100%"

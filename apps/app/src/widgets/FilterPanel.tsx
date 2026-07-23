@@ -292,6 +292,10 @@ export function FilterPanel({
                   isChecked={isPresent}
                   data-test={`${category.code} Checkbox`}
                   disabled={numCurated + numCommunity === 0}
+                  // Chakra dims disabled checkboxes to 0.4 opacity, which is hard
+                  // to read (especially in dark mode); keep them de-emphasized but
+                  // legible.
+                  _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
                   onChange={() => {
                     let newSearch = search;
                     newSearch = clearQueryParameter(category.code, newSearch);
@@ -313,7 +317,7 @@ export function FilterPanel({
                         <Icon
                           paddingLeft="5px"
                           as={activityCategoryIcons[categoryCode]}
-                          color="#666699"
+                          color="iconAccent"
                           boxSize={5}
                           verticalAlign="middle"
                         />
@@ -535,7 +539,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.categoryLabel}
         </Heading>
@@ -576,7 +580,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.subCategoryLabel}
         </Heading>
@@ -617,7 +621,7 @@ export function FilterPanel({
           paddingTop="4px"
           paddingBottom="4px"
           paddingLeft="10px"
-          backgroundColor="gray.100"
+          backgroundColor="surfaceMuted"
         >
           {classificationInfo?.system?.descriptionLabel}
         </Heading>
@@ -707,7 +711,7 @@ export function FilterPanel({
 
   return (
     <>
-      <Flex backgroundColor="gray.100" pl="10px" pt="10px" pb="10px">
+      <Flex backgroundColor="surfaceMuted" pl="10px" pt="10px" pb="10px">
         <Heading size="md">Filters</Heading>
       </Flex>
       <Box marginTop="5px" minHeight="25px">

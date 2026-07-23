@@ -1,6 +1,7 @@
 import { CreateDocumentSavePoint } from "./CreateDocumentSavePoint";
 import { FetcherWithComponents } from "react-router";
 import { ContentRevision } from "../types";
+import { useState } from "react";
 
 describe(
   "CreateDocumentSavePoint component tests",
@@ -510,23 +511,50 @@ describe(
       });
 
       it("should be accessible with success message", () => {
-        const mockFetcher = createMockFetcher("idle", {
-          contentRevision: { revisionNum: 1 },
-          createdNew: true,
-        });
-        const onCloseSpy = cy.spy().as("onClose");
+        // The status Box only renders after fetcher.data changes post-mount (the
+        // reset effect clears the message on the initial mount), so drive it via
+        // a harness that flips the fetcher data on demand.
+        function SuccessHarness() {
+          const [data, setData] = useState<any>(undefined);
+          const fetcher = {
+            state: "idle",
+            formData: undefined,
+            data,
+            Form: ({ children }: any) => <form>{children}</form>,
+            submit: cy.stub(),
+            load: () => {},
+          } as unknown as FetcherWithComponents<any>;
+          return (
+            <>
+              <button
+                data-test="trigger"
+                onClick={() =>
+                  setData({
+                    contentRevision: { revisionNum: 1 },
+                    createdNew: true,
+                  })
+                }
+              >
+                trigger
+              </button>
+              <CreateDocumentSavePoint
+                isOpen={true}
+                onClose={cy.spy().as("onClose")}
+                revisions={[]}
+                contentId={mockContentId}
+                atLastRevision={false}
+                fetcher={fetcher}
+              />
+            </>
+          );
+        }
 
-        cy.mount(
-          <CreateDocumentSavePoint
-            isOpen={true}
-            onClose={onCloseSpy}
-            revisions={[]}
-            contentId={mockContentId}
-            atLastRevision={false}
-            fetcher={mockFetcher}
-          />,
-        );
-
+        cy.mount(<SuccessHarness />);
+        // Fill the name field so the (already-tested) validation error is absent
+        // and this test isolates the success-box styling.
+        cy.get('input[type="text"]').type("My Save Point");
+        cy.get('[data-test="trigger"]').click({ force: true });
+        cy.get('[data-test="Status message"]').should("be.visible");
         cy.wait(200);
         cy.checkAccessibility("body");
       });

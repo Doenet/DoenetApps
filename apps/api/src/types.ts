@@ -102,6 +102,7 @@ export type UserInfoWithEmail = UserInfo & {
   isAuthor?: boolean;
   isEditor?: boolean;
   canUploadImages?: boolean;
+  theme?: Theme;
 };
 
 export type ContentClassification = {
@@ -177,6 +178,9 @@ export function isContentType(type: unknown): type is ContentType {
 export type AssignmentMode = "formative" | "summative";
 
 export type Visibility = "private" | "unlisted" | "public";
+
+/** This type must match the Prisma-defined enum `Theme` */
+export type Theme = "system" | "light" | "dark";
 
 export type ContentBase = {
   contentId: Uuid;
