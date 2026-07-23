@@ -5,8 +5,12 @@ modification is recorded below, they are verbatim copies and must not be edited.
 To update, diff upstream's current version against the commit recorded below,
 review the changes, and re-copy (re-applying any recorded local modification).
 
-License: the two PreTeXt files are GPL v2 or v3 (see PreTeXt's `COPYING` file);
-`lz-string.min.js` is MIT. Attribution and these notices must be preserved.
+License: these PreTeXt files are GPL v2 or v3 (see PreTeXt's `COPYING` file).
+Attribution and this notice must be preserved.
+
+Note: `lz-string` (MIT) is **not** vendored here — it is a pinned npm
+dependency (see `../package.json`) that `build.mjs` copies into the package
+from `node_modules` at build time.
 
 ## ptx_scorm_events.js
 
@@ -33,7 +37,8 @@ License: the two PreTeXt files are GPL v2 or v3 (see PreTeXt's `COPYING` file);
   `reportScoreAndState` → `recordInteraction` call. This is a candidate to
   contribute upstream to PreTeXt (Oscar Levin); if accepted, drop the local mod
   and re-copy verbatim.
-- Requires `lz-string.min.js` and the manifest declaring SCORM 2004 4th Edition.
+- Requires the `lz-string` npm dependency (loaded as `window.LZString`) and the
+  manifest declaring SCORM 2004 4th Edition.
 
 ## lti_iframe_resizer.js
 
@@ -41,14 +46,4 @@ License: the two PreTeXt files are GPL v2 or v3 (see PreTeXt's `COPYING` file);
 - Copied at commit: `83e8f200248383d1bdbe009d8b57f3d91f379d3e` (2026-07-17)
 - Handles the SPLICE `lti.frameResize` postMessage so the activity iframe
   grows to fit its content.
-- Local modifications: none
-
-## lz-string.min.js
-
-- Source: https://github.com/pieroxy/lz-string — `libs/lz-string.min.js`
-- Version: 1.5.0, fetched from `https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js` (2026-07-23)
-- License: MIT (© 2013 pieroxy)
-- Used by `ptx_scorm_events.js` (via `window.LZString`) to compress the Doenet
-  activity state before storing it in `cmi.suspend_data`. `compressToBase64` /
-  `decompressFromBase64` are used so the payload is JSON- and transport-safe.
 - Local modifications: none

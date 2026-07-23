@@ -97,13 +97,18 @@ for (const name of ["imsmanifest.xml", "index.html", "activity.html"]) {
     fill(readFileSync(join(here, "templates", name), "utf8")),
   );
 }
-for (const name of [
-  "ptx_scorm_events.js",
-  "lti_iframe_resizer.js",
-  "lz-string.min.js",
-]) {
+// PreTeXt's SCORM bridge and SPLICE resize handler are vendored (locally
+// modified; see vendor/VENDORED.md), so they're copied from vendor/.
+for (const name of ["ptx_scorm_events.js", "lti_iframe_resizer.js"]) {
   copyFileSync(join(here, "vendor", name), join(staging, name));
 }
+// lz-string is an unmodified npm dependency (pinned in package.json), not
+// vendored: resolve its minified build from node_modules and copy it in under
+// the filename index.html references.
+const lzStringSrc = fileURLToPath(
+  import.meta.resolve("lz-string/libs/lz-string.min.js"),
+);
+copyFileSync(lzStringSrc, join(staging, "lz-string.min.js"));
 
 // ── zip it (flat: imsmanifest.xml at the zip root, as LMSes require) ────────
 const zipName = slug + "-scorm.zip";

@@ -6,5 +6,8 @@
   "description": "Wraps a single DoenetML activity in an LMS-ready SCORM 2004 package (the doenet.org \"Download SCORM\" feature). Static templates + a build script; no build step.",
   "scripts": {
     "build:sample": "node build.mjs sample/sample.doenet --title \"Sample Doenet Activity\""
+  },
+  "dependencies": {
+    "lz-string": "1.5.0"
   }
 }

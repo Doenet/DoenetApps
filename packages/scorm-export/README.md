@@ -19,18 +19,21 @@ button; scores flow to the LMS gradebook.
 
 ## What's in a package
 
-A SCORM package here is just five static files in a flat zip:
+A SCORM package here is just six static files in a flat zip:
 
-| File                    | Role                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| `imsmanifest.xml`       | Minimal SCORM 2004 3rd Ed. manifest: one item, one SCO, launch `index.html`    |
-| `index.html`            | Chrome-free shell: `div[data-component="doenet"]` wrapping the activity iframe |
-| `activity.html`         | The iframe content: DoenetML source + `@doenet/standalone` viewer from CDN     |
-| `ptx_scorm_events.js`   | Vendored SCORM bridge (LMS API discovery, scoring, state save/restore, submit) |
-| `lti_iframe_resizer.js` | Vendored SPLICE `lti.frameResize` handler so the iframe fits its content       |
+| File                    | Role                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `imsmanifest.xml`       | Minimal SCORM 2004 4th Ed. manifest: one item, one SCO, launch `index.html`     |
+| `index.html`            | Chrome-free shell: `div[data-component="doenet"]` wrapping the activity iframe  |
+| `activity.html`         | The iframe content: DoenetML source + `@doenet/standalone` viewer from CDN      |
+| `ptx_scorm_events.js`   | Vendored SCORM bridge (LMS API discovery, scoring, state save/restore, submit)  |
+| `lti_iframe_resizer.js` | Vendored SPLICE `lti.frameResize` handler so the iframe fits its content        |
+| `lz-string.min.js`      | `lz-string` npm dep, copied in at build time; compresses state for suspend_data |
 
 Only `activity.html` (DoenetML) and the title/id substitutions vary per
-activity; everything else is constant.
+activity; everything else is constant. The two `ptx_*`/`lti_*` files are
+vendored (see `vendor/VENDORED.md`); `lz-string.min.js` comes from the pinned
+`lz-string` npm dependency, not from `vendor/`.
 
 ## How scoring works at runtime
 
@@ -42,9 +45,12 @@ activity; everything else is constant.
    state blob encoding the student's work).
 3. `ptx_scorm_events.js` in `index.html` translates those messages into
    SCORM calls: `cmi.interactions.*` records, `cmi.score.scaled/raw`, and
-   completion status. Doenet state blobs are persisted in localStorage
-   (they exceed the 4 KB `cmi.suspend_data` limit); score bookkeeping goes
-   in `suspend_data` so it survives across devices.
+   completion status. The Doenet state blob is compressed (lz-string) into
+   `cmi.suspend_data` — the manifest declares SCORM 2004 4th Edition for its
+   64,000-char `suspend_data` limit — so both score and state persist
+   server-side and restore on a fresh LMS launch (localStorage is kept only
+   as a same-device cache). A size guard drops the state blob, falling back to
+   localStorage, if it would ever overflow the budget.
 4. "Submit Assignment" commits the final grade; the attempt is finalized
    when the student leaves the page (this ordering is a hard-won Blackboard
    requirement — see the comments in the vendored file).
@@ -52,7 +58,7 @@ activity; everything else is constant.
 ## Toward production on doenet.org
 
 - The build is template substitution + zip, so it can run entirely
-  client-side behind the button: fetch the five files, substitute, zip with
+  client-side behind the button: fetch the six files, substitute, zip with
   JSZip, trigger the download. `build.mjs` exists only so the package can be
   produced and tested from a shell.
 - Keep `--id` stable across re-exports of the same activity: it keys the
