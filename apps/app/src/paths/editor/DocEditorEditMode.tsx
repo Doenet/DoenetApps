@@ -15,6 +15,7 @@ import {
 } from "react-router";
 import { DoenetmlVersion } from "../../types";
 import { DoenetEditor, type DoenetEditorHandle } from "@doenet/doenetml-iframe";
+import { effectiveDarkMode, useThemeSettingContext } from "../../utils/theme";
 import { doenetImagesUrl } from "../../utils/media";
 import axios, { AxiosError } from "axios";
 import { EditorContext } from "./EditorHeader";
@@ -159,6 +160,7 @@ function DocumentEditor({
   registerBeforeShareModalOpens?: (fn: (() => Promise<void>) | null) => void;
   refreshSharingState?: () => void;
 }) {
+  const { themeSetting } = useThemeSettingContext();
   const textEditorDoenetML = useRef(source);
   const savedDoenetML = useRef(source);
   const editorRef = useRef<DoenetEditorHandle>(null);
@@ -345,6 +347,7 @@ function DocumentEditor({
       documentStructureCallback={documentStructureHandler}
       initialOpenTab={initialDiagnosticsTab}
       doenetmlVersion={doenetmlVersion.fullVersion}
+      darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
       initialWarnings={initialWarnings}
       border="none"
       readOnly={readOnly}

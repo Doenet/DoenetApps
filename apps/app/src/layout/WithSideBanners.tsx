@@ -3,7 +3,8 @@ import { ReactNode } from "react";
 
 export function WithSideBanners({
   children,
-  bgColor = "white",
+  // Default to the mode-flipping page background (was hardcoded "white").
+  bgColor = "background",
   padding = "0px",
   borderTopColor,
 }: {

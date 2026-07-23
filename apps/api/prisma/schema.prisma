@@ -158,6 +158,12 @@ enum Visibility {
   public
 }
 
+enum Theme {
+  system
+  light
+  dark
+}
+
 model recentContent {
   id        Int        @id @default(autoincrement())
   userId    Bytes      @db.Binary(16)
@@ -385,6 +391,7 @@ model users {
   isLibrary          Boolean                @default(false)
   isEditor           Boolean                @default(false)
   isAuthor           Boolean                @default(false)
+  theme              Theme                  @default(system)
   // Early-access flag for the experimental image-upload feature. Flip with
   // `apps/api/scripts/enable-image-upload.ts`.
   canUploadImages    Boolean                @default(false)
