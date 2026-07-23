@@ -87,13 +87,18 @@ function AttributionRow({
         width="12rem"
         verticalAlign="top"
         textTransform="none"
-        color="gray.600"
+        color="textMuted"
       >
         {label}
       </Th>
       <Td>
         {isUrl ? (
-          <ChakraLink href={value} isExternal color="blue.600">
+          <ChakraLink
+            href={value}
+            isExternal
+            color="blue.600"
+            _dark={{ color: "blue.300" }}
+          >
             {value}
           </ChakraLink>
         ) : (
@@ -170,7 +175,7 @@ export function ImageDetails() {
   }
 
   return (
-    <WithSideBanners bgColor="white" padding="24px">
+    <WithSideBanners bgColor="surface" padding="24px">
       <VStack align="stretch" spacing="20px">
         <Flex
           direction={{ base: "column", sm: "row" }}
@@ -209,9 +214,9 @@ export function ImageDetails() {
 
         <Box
           borderWidth="1px"
-          borderColor="gray.200"
+          borderColor="border"
           borderRadius="md"
-          bg="gray.50"
+          bg="surfaceMuted"
           p="16px"
           display="flex"
           justifyContent="center"
@@ -226,7 +231,7 @@ export function ImageDetails() {
               data-test="Uploaded Image"
             />
           ) : (
-            <VStack color="gray.500" py="40px" spacing="8px">
+            <VStack color="textMuted" py="40px" spacing="8px">
               <MdOutlineImageNotSupported size="2.5rem" />
               <Text>This image isn't available to display yet.</Text>
             </VStack>
@@ -263,7 +268,12 @@ export function ImageDetails() {
         ) : null}
 
         <HStack>
-          <Button variant="link" color="blue.600" onClick={() => navigate(-1)}>
+          <Button
+            variant="link"
+            color="blue.600"
+            _dark={{ color: "blue.300" }}
+            onClick={() => navigate(-1)}
+          >
             Back
           </Button>
         </HStack>

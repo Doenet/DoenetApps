@@ -118,7 +118,7 @@ export function SharedWithMe() {
     <Box
       data-test="Shared with me"
       width={{ base: "100%", md: "calc(100% - 40px)" }}
-      background={"white"}
+      background="surface"
       ml={{ base: "0px", md: "20px" }}
       mr={{ base: "0px", md: "20px" }}
     >

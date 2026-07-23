@@ -32,8 +32,8 @@ export function Assigned() {
 
   const heading = (
     <Box
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height="80px"
       width="100%"
       textAlign="center"
@@ -95,7 +95,7 @@ export function Assigned() {
         padding=".5em 10px"
         margin="0"
         width="100%"
-        background={"white"}
+        background="surface"
         minHeight="calc(100vh - 188px)"
         flexDirection="column"
       >

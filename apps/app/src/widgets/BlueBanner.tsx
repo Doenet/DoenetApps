@@ -19,14 +19,14 @@ export function BlueBanner({
     >
       <GridItem
         area="leftGutter"
-        background="doenet.lightBlue"
+        background="viewerFrame"
         width="100%"
         paddingTop="10px"
         alignSelf="start"
       />
       <GridItem
         area="rightGutter"
-        background="doenet.lightBlue"
+        background="viewerFrame"
         width="100%"
         paddingTop="10px"
         alignSelf="start"

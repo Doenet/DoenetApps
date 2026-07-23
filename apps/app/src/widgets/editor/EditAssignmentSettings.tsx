@@ -129,7 +129,7 @@ export function MaxAttemptsSelectionBox({
   return (
     <Box>
       <FormControl display="flex" alignItems="center">
-        <FormLabel color={unlimitedUpdating ? "gray" : "black"} mb={0}>
+        <FormLabel color={unlimitedUpdating ? "textMuted" : "text"} mb={0}>
           Allow unlimited attempts
         </FormLabel>
         <Switch
@@ -142,7 +142,7 @@ export function MaxAttemptsSelectionBox({
         />
       </FormControl>
       <FormControl display="flex" alignItems="center" gap={1}>
-        <FormLabel color={finiteMaxUpdating ? "gray" : "black"} mb={0}>
+        <FormLabel color={finiteMaxUpdating ? "textMuted" : "text"} mb={0}>
           Maximum number of attempts allowed
         </FormLabel>
         <NumberInput
@@ -216,7 +216,7 @@ function VariantSelectionBox({
       <FormControl display="flex" alignItems="center">
         <FormLabel
           size="sm"
-          color={fetcher.state === "idle" ? "black" : "gray"}
+          color={fetcher.state === "idle" ? "text" : "textMuted"}
           mb={0}
         >
           Assign the same variant of this activity to all students
