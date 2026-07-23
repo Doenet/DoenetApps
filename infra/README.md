@@ -52,3 +52,26 @@ each is stamped with its ref and commit at build time:
 
 - `https://dev3.doenet.org/api/health` → `{ status, version: { ref, sha, builtAt } }` (backend)
 - `https://dev3.doenet.org/version.json` → `{ ref, sha, builtAt }` (frontend app)
+
+## Rolling back prod
+
+Every merge to `main` deploys to prod automatically, so `main` is the source of
+truth for what prod should be running. There are two ways back:
+
+- **Revert the PR** — the real fix. Prod redeploys once the revert's checks
+  pass. Use this unless prod is badly broken right now.
+- **Re-run the last good deploy** — the emergency stopgap while a revert's CI
+  runs. In Actions → `Prod Deploy`, find the last green run and click
+  "Re-run all jobs"; it redeploys that run's SHA. This does not change `main`,
+  so the next merge ships whatever is on `main` again — always follow up with
+  a revert.
+
+Neither path undoes database migrations: `prisma migrate deploy` runs at
+container boot and is never rolled back, so after a rollback the old code runs
+against the new schema. This is why migrations must be backward compatible
+(expand/contract: add columns/tables in one release, remove in a later one).
+
+Backend deploys that fail to boot or pass health checks roll themselves back
+(see `update-cluster-with-rollback`); manual rollback is for code that deploys
+healthy but is functionally broken. Confirm what prod is actually running at
+`https://doenet.org/api/health` and `https://doenet.org/version.json`.
