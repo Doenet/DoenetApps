@@ -63,6 +63,15 @@ const Button = defineStyleConfig({
               bg: "transparent",
             },
           },
+          // Chakra's default outline `_active` is a translucent blue.200 fill
+          // (transparentize(blue.200, 0.24)). Composited over the softened dark
+          // surfaces (e.g. the doenet.lightGray editor/viewer header), it lands
+          // light enough that the blue.200 label drops below AA (~4.2:1). Pin an
+          // opaque active fill so a selected mode tab (isActive) stays ≥4.5:1:
+          // blue.200 on blue.900 is ~7:1 in dark; blue.700 on blue.100 in light.
+          _active: {
+            bg: props.colorMode === "dark" ? "blue.900" : "blue.100",
+          },
         };
       }
       return {};
