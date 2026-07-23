@@ -58,10 +58,13 @@ vendored (see `vendor/VENDORED.md`); `lz-string.min.js` comes from the pinned
 ## Debugging
 
 `debug/size-probe.html` is a passive diagnostic that logs, to the browser
-console, the size of each state blob Doenet emits and what the LMS actually
-returned in `cmi.suspend_data` on launch (`[DOENET-SIZE-PROBE] …`). It is
-**not** part of a normal package. Pass `--debug` to inline it into
-`index.html`:
+console: the size of each state blob Doenet emits and what the LMS actually
+returned in `cmi.suspend_data` on launch (`[DOENET-SIZE-PROBE] …`), and each
+`lti.frameResize` — the height reported, the height applied to the activity
+iframe, and whether `index.html` overflows the box the LMS gave it
+(`[DOENET-RESIZE-PROBE] …`; the "OUTER frame overflows" clause means the
+scrollbar is the LMS player's, not ours). It is **not** part of a normal
+package. Pass `--debug` to inline it into `index.html`:
 
 ```sh
 node build.mjs sample/sample.doenet --debug

@@ -4,9 +4,11 @@
 
      Passively measures the `state` blob Doenet sends in each
      SPLICE.reportScoreAndState message — the blob that would need to fit
-     in cmi.suspend_data if we persist state through the SCORM API — and,
-     on each launch, reads back what the LMS actually returned in
-     cmi.suspend_data. It only reads; it does not interfere with the bridge.
+     in cmi.suspend_data if we persist state through the SCORM API — reads
+     back on each launch what the LMS actually returned in cmi.suspend_data,
+     and logs each lti.frameResize so we can tell whether the activity iframe
+     is growing and whether the scrollbar is ours or the LMS player's. It
+     only reads; it does not interfere with the bridge or the resizer.
      Registered before the iframe loads so it catches the first report. -->
 <script>
   (function () {
@@ -67,6 +69,40 @@
           ' chars; contains Doenet state (dz): ' + hasDz +
           (hasDz ? ' (' + dzLen + ' compressed chars)' : ''));
       }, 2000);
+    });
+
+    // ── RESIZE PROBE: is the inner activity iframe actually growing, and is
+    // the scrollbar ours or the LMS player's? ──────────────────────────────
+    // Logs each lti.frameResize Doenet emits, the height lti_iframe_resizer.js
+    // then applied to the activity iframe, and whether index.html overflows
+    // the box the LMS gave it. The decisive signal is the last clause:
+    //   • "fits viewport"          → our iframe holds it; no scrollbar from us
+    //   • "OUTER frame overflows"  → index.html is taller than the space the
+    //                                LMS player allotted, so the scrollbar is
+    //                                the LMS player's (not fixable in the SCO)
+    window.addEventListener('message', function (event) {
+      var data = event.data;
+      // lti_iframe_resizer.js accepts a JSON-string form too; mirror that.
+      if (typeof data === 'string' && /lti\.frameResize/.test(data)) {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+      if (!data || typeof data !== 'object' || data.subject !== 'lti.frameResize') return;
+      var reported = data.height;
+      // Defer so lti_iframe_resizer.js — registered later, so it runs after
+      // this listener — has applied the height before we read it back.
+      setTimeout(function () {
+        var frame = document.querySelector('[data-component="doenet"] iframe');
+        var applied = frame ? Math.round(frame.getBoundingClientRect().height) : null;
+        var docH = document.documentElement.scrollHeight;
+        var viewH = window.innerHeight;
+        var overflow = docH > viewH + 1;   // +1 absorbs sub-pixel rounding
+        console.log('[DOENET-RESIZE-PROBE] lti.frameResize height=' + reported +
+          '; activity iframe now ' + applied + 'px; page ' + docH +
+          'px vs viewport ' + viewH + 'px → ' +
+          (overflow
+            ? 'OUTER frame overflows (scrollbar is the LMS player, not our iframe)'
+            : 'fits viewport'));
+      }, 0);
     });
   })();
 </script>
