@@ -10,6 +10,7 @@ import {
 } from "../types";
 import { Navbar } from "../features/navbar";
 import { MaintenanceBanner } from "../widgets/MaintenanceBanner";
+import { ThemeSettingProvider, useThemeSetting } from "../utils/theme";
 
 const navBarHeight = "40px";
 
@@ -56,6 +57,8 @@ export function SiteHeader() {
 
   const [addTo, setAddTo] = useState<ContentDescription | null>(null);
 
+  const { themeSetting, setThemeSetting } = useThemeSetting(user);
+
   const siteContext: SiteContext = {
     user,
     exploreTab,
@@ -67,7 +70,7 @@ export function SiteHeader() {
   };
 
   return (
-    <>
+    <ThemeSettingProvider value={{ themeSetting, setThemeSetting }}>
       <SkipNavLink zIndex="2000">Skip to content</SkipNavLink>
       <Grid
         templateAreas={`"maintenanceBanner"
@@ -87,13 +90,17 @@ export function SiteHeader() {
           m="0"
           h={navBarHeight}
         >
-          <Navbar user={user} />
+          <Navbar
+            user={user}
+            themeSetting={themeSetting}
+            setThemeSetting={setThemeSetting}
+          />
         </GridItem>
         <GridItem as="main" area="main" margin="0" overflowY="auto">
           <SkipNavContent />
           <Outlet context={siteContext} />
         </GridItem>
       </Grid>
-    </>
+    </ThemeSettingProvider>
   );
 }

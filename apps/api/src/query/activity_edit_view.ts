@@ -199,7 +199,7 @@ export async function getContent({
 
 /**
  * Get content for `contentId` as though one were not logged in,
- * i.e., only showing public content.
+ * i.e., only showing link-visible content (`public` or `unlisted`).
  * Calls `getContent` with a blank `loggedInUserId`.
  */
 export async function getPublicContent({
@@ -211,7 +211,7 @@ export async function getPublicContent({
     where: {
       id: contentId,
       isDeletedOn: null,
-      visibility: "public",
+      visibility: { in: ["public", "unlisted"] },
     },
     select: { id: true },
   });
@@ -225,7 +225,8 @@ export async function getPublicContent({
 }
 
 /**
- * Attempts to find public content that has a content revision with `cid`.
+ * Attempts to find link-visible content (`public` or `unlisted`) that has a
+ * content revision with `cid`.
  */
 export async function getPublicContentByCid({ cid }: { cid: string }) {
   const content = await prisma.contentRevisions.findFirstOrThrow({
@@ -233,7 +234,7 @@ export async function getPublicContentByCid({ cid }: { cid: string }) {
       cid,
       content: {
         isDeletedOn: null,
-        visibility: "public",
+        visibility: { in: ["public", "unlisted"] },
         type: { not: "folder" },
       },
     },

@@ -12,6 +12,7 @@ import {
 import { NavItem, NavSection } from "./navbar.types";
 import { Link as RouterLink } from "react-router";
 import { UserInfoWithEmail } from "../../types";
+import { ThemeSetting } from "../../utils/theme";
 import RouterLogo from "../../RouterLogo";
 import { AccountIconAndCard } from "./AccountIconAndCard";
 
@@ -25,12 +26,22 @@ export function NavbarDesktop({
   mainSections,
   accountSection,
   user,
+  themeSetting,
+  setThemeSetting,
 }: {
   mainSections: NavSection[];
   accountSection: NavSection;
   user?: UserInfoWithEmail;
+  themeSetting: ThemeSetting;
+  setThemeSetting: (_: ThemeSetting) => void;
 }) {
-  const account = user && <AccountIconAndCard user={user} />;
+  const account = user && (
+    <AccountIconAndCard
+      user={user}
+      themeSetting={themeSetting}
+      setThemeSetting={setThemeSetting}
+    />
+  );
 
   return (
     <HStack h="100%" spacing="0px" pr="0.5rem">
@@ -70,7 +81,7 @@ function renderSections(sections: NavSection[]) {
           key={`divider-${sectionIndex}`}
           w="1px"
           h="24px"
-          bg="gray.300"
+          bg="interact"
           alignSelf="center"
           mx="16px"
         />,

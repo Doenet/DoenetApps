@@ -181,4 +181,32 @@ describe("EditImageAttribution", { tags: ["@group2"] }, () => {
       .and("contain.text", 'licenseCodes="CC-BY-SA"')
       .and("contain.text", 'authorName="Jane Doe"');
   });
+
+  // The selected license card used a near-white blue.50 fill, leaving its
+  // default (light-in-dark) label unreadable. axe reports "incomplete" for this
+  // modal-nested text, so assert contrast directly.
+  it("keeps the selected license card label readable", () => {
+    mountModal();
+    cy.get('[data-test="License Card CC0"]').click();
+    cy.get('[data-test="License Card CC0"]').should(
+      "have.attr",
+      "aria-pressed",
+      "true",
+    );
+    cy.wait(100);
+    cy.checkContrast('[data-test="License Card CC0"]');
+  });
+
+  it("keeps the attribution error message readable", () => {
+    // A rejecting submit surfaces the inline error text.
+    const onSubmit = cy.stub();
+    onSubmit.rejects(new Error("Could not save"));
+    onSubmit.as("onSubmit");
+    mountModal({ onSubmit });
+    cy.get('[data-test="License Card CC0"]').click();
+    cy.get(SAVE).click();
+    cy.get('[data-test="Image Attribution Error"]').should("be.visible");
+    cy.wait(100);
+    cy.checkContrast('[data-test="Image Attribution Error"]');
+  });
 });

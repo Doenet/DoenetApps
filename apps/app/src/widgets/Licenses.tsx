@@ -151,8 +151,9 @@ export function AuthorLicenseBox({
   return (
     <Card
       // marginTop="20px"
-      border="2px solid lightgray"
-      background="lightgray"
+      border="2px solid"
+      borderColor="border"
+      background="surfaceMuted"
       padding="10px"
     >
       <>

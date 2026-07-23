@@ -1,5 +1,6 @@
 import { ReactElement, useEffect, useMemo, useState } from "react";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { effectiveDarkMode, useThemeSettingContext } from "../../utils/theme";
 import { doenetImagesUrl } from "../../utils/media";
 import { PanelPair } from "../../widgets/PanelPair";
 import { ContentRevision, DoenetmlVersion } from "../../types";
@@ -70,6 +71,7 @@ export function DocEditorHistoryModeComponent({
   fetcher,
   editorComponent: EditorComponent = DoenetEditor,
 }: DocEditorHistoryModeComponentProps) {
+  const { themeSetting } = useThemeSettingContext();
   const [revNum, setRevNum] = useState(0);
 
   const selectedRevision = useMemo(() => {
@@ -238,6 +240,7 @@ export function DocEditorHistoryModeComponent({
         width="100%"
         doenetML={doenetML}
         doenetmlVersion={doenetmlVersion.fullVersion}
+        darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
         border="none"
         readOnly={true}
         viewerLocation="bottom"
@@ -326,6 +329,7 @@ export function DocEditorHistoryModeComponent({
             width="100%"
             doenetML={otherDoenetML}
             doenetmlVersion={otherDoenetmlVersion}
+            darkMode={effectiveDarkMode(themeSetting, otherDoenetmlVersion)}
             border="none"
             viewerLocation="bottom"
             showErrorsWarnings={false}

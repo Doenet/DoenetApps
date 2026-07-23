@@ -250,7 +250,11 @@ export function Students() {
             </Tr>
           )}
           {tableBody.map((tableRow, i) => (
-            <Tr key={`student${i}`} borderTopWidth={2} borderTopColor={"#bbb"}>
+            <Tr
+              key={`student${i}`}
+              borderTopWidth={2}
+              borderTopColor={"border"}
+            >
               {tableRow}
             </Tr>
           ))}

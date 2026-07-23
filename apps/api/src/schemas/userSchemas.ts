@@ -10,6 +10,10 @@ export const setIsAuthorSchema = z.object({
   isAuthor: z.boolean(),
 });
 
+export const setThemeSchema = z.object({
+  theme: z.enum(["system", "light", "dark"]),
+});
+
 export const userIdSchema = z.object({
   userId: uuidSchema,
 });
