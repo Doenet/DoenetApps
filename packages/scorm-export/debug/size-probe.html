@@ -1,0 +1,72 @@
+<!-- ─── DIAGNOSTIC: Doenet state-blob size probe ────────────────────────
+     Inlined into index.html only when build.mjs is run with --debug; a
+     normal package never contains it (see build.mjs / README "Debugging").
+
+     Passively measures the `state` blob Doenet sends in each
+     SPLICE.reportScoreAndState message — the blob that would need to fit
+     in cmi.suspend_data if we persist state through the SCORM API — and,
+     on each launch, reads back what the LMS actually returned in
+     cmi.suspend_data. It only reads; it does not interfere with the bridge.
+     Registered before the iframe loads so it catches the first report. -->
+<script>
+  (function () {
+    var SPM_3RD = 4000;    // cmi.suspend_data SPM, SCORM 2004 3rd Edition
+    var SPM_4TH = 64000;   // cmi.suspend_data SPM, SCORM 2004 4th Edition
+    window.addEventListener('message', function (event) {
+      var data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.subject !== 'SPLICE.reportScoreAndState') return;
+      if (data.state === undefined || data.state === null) {
+        console.log('[DOENET-SIZE-PROBE] reportScoreAndState with no state field.');
+        return;
+      }
+      var str = typeof data.state === 'string' ? data.state : JSON.stringify(data.state);
+      var chars = str.length;                                  // SPM is defined in characters
+      var bytes = (new TextEncoder().encode(str)).length;      // UTF-8 bytes, for reference
+      console.log(
+        '[DOENET-SIZE-PROBE] Doenet state blob: ' + chars + ' chars (' + bytes + ' UTF-8 bytes). ' +
+        'Fits 3rd Ed (' + SPM_3RD + '): ' + (chars <= SPM_3RD ? 'YES' : 'NO') + '. ' +
+        'Fits 4th Ed (' + SPM_4TH + '): ' + (chars <= SPM_4TH ? 'YES' : 'NO') + '.'
+      );
+    });
+
+    // ── LAUNCH PROBE: what did the LMS actually hand back in suspend_data? ──
+    // Reads cmi.suspend_data directly on each launch (independent of the
+    // bridge's debug flag) so we can tell whether the state was persisted by
+    // the LMS and returned. This is the key signal for diagnosing restore:
+    //   • "suspend_data = 0 chars"          → LMS did not persist it
+    //   • "contains Doenet state (dz): true" → persisted; look downstream
+    function findSCORMAPI() {
+      function scan(w) {
+        var hops = 0;
+        while (w && hops++ < 12) {
+          if (w.API_1484_11) return { api: w.API_1484_11, get: 'GetValue', err: 'GetLastError' };
+          if (w.API)          return { api: w.API,          get: 'LMSGetValue', err: 'LMSGetLastError' };
+          if (w.parent === w) break;
+          try { w = w.parent; } catch (e) { break; }  // cross-origin guard
+        }
+        return null;
+      }
+      var found = scan(window);
+      if (!found) { try { found = window.top && scan(window.top); } catch (e) {} }
+      if (!found) { try { found = window.opener && scan(window.opener); } catch (e) {} }
+      return found;
+    }
+    window.addEventListener('load', function () {
+      // Delay so the bridge has discovered the API and Initialized the session.
+      setTimeout(function () {
+        var f = findSCORMAPI();
+        if (!f) { console.log('[DOENET-SIZE-PROBE] launch: no SCORM API reachable from probe.'); return; }
+        var sd = '';
+        try { sd = f.api[f.get]('cmi.suspend_data') || ''; } catch (e) {
+          console.log('[DOENET-SIZE-PROBE] launch: suspend_data read threw', e); return;
+        }
+        var hasDz = false, dzLen = 0;
+        try { var o = JSON.parse(sd); hasDz = !!(o && o.dz); dzLen = hasDz ? o.dz.length : 0; } catch (e) {}
+        console.log('[DOENET-SIZE-PROBE] launch: suspend_data = ' + sd.length +
+          ' chars; contains Doenet state (dz): ' + hasDz +
+          (hasDz ? ' (' + dzLen + ' compressed chars)' : ''));
+      }, 2000);
+    });
+  })();
+</script>

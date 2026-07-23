@@ -12,6 +12,9 @@
 //                              activity, or saved student state is orphaned.
 //   --doenet-version X.Y.Z     @doenet/standalone version (default: latest)
 //   --out dir                  Output directory (default: ./dist)
+//   --debug                    Inline debug/size-probe.html into index.html
+//                              (state-blob / suspend_data console logging).
+//                              Off by default; a normal package omits it.
 //
 // Output: <out>/<id>-scorm.zip with imsmanifest.xml at the zip root.
 
@@ -32,9 +35,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const positional = [];
 const opts = { "doenet-version": "latest", out: join(here, "dist") };
+const booleanFlags = new Set(["debug"]);
 for (let i = 0; i < args.length; i++) {
   if (args[i].startsWith("--")) {
-    opts[args[i].slice(2)] = args[++i];
+    const key = args[i].slice(2);
+    opts[key] = booleanFlags.has(key) ? true : args[++i];
   } else {
     positional.push(args[i]);
   }
@@ -72,12 +77,19 @@ const escapeMarkup = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+// The size probe lives in debug/size-probe.html and is inlined into
+// index.html only under --debug; a normal package substitutes it away.
+const debugProbe = opts.debug
+  ? readFileSync(join(here, "debug", "size-probe.html"), "utf8").trimEnd()
+  : "";
+
 const substitutions = {
   TITLE: escapeMarkup(title),
   ACTIVITY_ID: slug,
   IDENTIFIER: "doenet-scorm-" + slug,
   DOENET_VERSION: opts["doenet-version"],
   DOENETML: doenetml,
+  DEBUG_PROBE: debugProbe,
 };
 
 const fill = (template) =>

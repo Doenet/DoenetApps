@@ -55,6 +55,21 @@ vendored (see `vendor/VENDORED.md`); `lz-string.min.js` comes from the pinned
    when the student leaves the page (this ordering is a hard-won Blackboard
    requirement — see the comments in the vendored file).
 
+## Debugging
+
+`debug/size-probe.html` is a passive diagnostic that logs, to the browser
+console, the size of each state blob Doenet emits and what the LMS actually
+returned in `cmi.suspend_data` on launch (`[DOENET-SIZE-PROBE] …`). It is
+**not** part of a normal package. Pass `--debug` to inline it into
+`index.html`:
+
+```sh
+node build.mjs sample/sample.doenet --debug
+```
+
+The file count is unchanged (it is inlined, not added as a separate file);
+without `--debug` the package contains no trace of it.
+
 ## Toward production on doenet.org
 
 - The build is template substitution + zip, so it can run entirely
