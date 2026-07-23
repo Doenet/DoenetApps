@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@doenet/standalone@{{DOENET_VERSION}}/style.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@doenet/standalone@{{DOENET_VERSION}}/doenet-standalone.js" onload="onLoad()"></script>
+  <script>
+    function onLoad() {
+      window.renderDoenetViewerToContainer(document.querySelector(".doenetml-applet"));
+    }
+  </script>
+  <style>
+    body { margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- data-doenet-message-parent="true" makes the viewer speak SPLICE      -->
+  <!-- (SPLICE.getState on load, SPLICE.reportScoreAndState on answers) to  -->
+  <!-- window.parent, where ptx_scorm_events.js listens.                    -->
+  <!-- data-doenet-send-resize-events="true" emits lti.frameResize so the   -->
+  <!-- parent can grow this iframe to fit.                                  -->
+  <div class="doenetml-applet"
+       data-doenet-add-virtual-keyboard="false"
+       data-doenet-send-resize-events="true"
+       data-doenet-message-parent="true">
+    <div class="doenetml-loading" style="text-align:center">
+      <p>Loading activity&#8230;</p>
+    </div>
+    <script type="text/doenetml">{{DOENETML}}</script>
+  </div>
+</body>
+</html>
