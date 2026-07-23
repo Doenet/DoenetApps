@@ -52,7 +52,7 @@ export function ActionBar({
     <HStack
       spacing={"1rem"}
       // align="center"
-      backgroundColor={isActive ? "gray.100" : undefined}
+      backgroundColor={isActive ? "surfaceMuted" : undefined}
       width="100%"
       height="2.3rem"
       mb="10px"

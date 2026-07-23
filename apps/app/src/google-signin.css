@@ -114,3 +114,11 @@
   background-color: #001d35;
   opacity: 8%;
 }
+
+/* Google's official dark-theme variant, applied when the site is in dark mode.
+   Chakra sets html[data-theme="dark"] (and the inline FOUC script pre-sets it). */
+[data-theme="dark"] .gsi-material-button {
+  background-color: #131314;
+  border: 1px solid #8e918f;
+  color: #e3e3e3;
+}

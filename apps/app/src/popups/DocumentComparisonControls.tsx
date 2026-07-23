@@ -292,7 +292,8 @@ export function DocumentComparisonControls({
           {updated || encounteredError ? (
             <Box
               data-test="Status message"
-              border="solid 1px lightgray"
+              border="solid 1px"
+              borderColor="border"
               borderRadius="5px"
               padding="5px 10px"
               marginTop="10px"
@@ -301,11 +302,19 @@ export function DocumentComparisonControls({
                   ? "red.100"
                   : ["green.100", "green.200"][statusStyleIdx % 2]
               }
+              color={encounteredError ? "red.900" : "green.900"}
+              _dark={{
+                backgroundColor: encounteredError
+                  ? "red.900"
+                  : ["green.900", "green.800"][statusStyleIdx % 2],
+                color: encounteredError ? "red.100" : "green.100",
+              }}
             >
               {encounteredError ? (
                 <Icon
                   fontSize="24pt"
                   color="red.800"
+                  _dark={{ color: "red.200" }}
                   as={MdError}
                   verticalAlign="middle"
                   marginRight="5px"
