@@ -1,0 +1,58 @@
+name: Open GitHub deployment
+description: >-
+  Open a GitHub deployment record for an environment and mark it
+  in_progress. Best-effort: never fails the job — an empty deployment_id
+  output means no record was created, and callers should skip finalizing.
+
+inputs:
+  environment:
+    description: GitHub environment name (e.g. dev3, prod)
+    required: true
+  environment-url:
+    description: Public URL shown on the deployment record
+    required: true
+  ref:
+    description: Git ref or SHA the deployment is attributed to
+    required: true
+  description:
+    description: Short description shown on the deployment record
+    required: true
+  production-environment:
+    description: Whether GitHub badges this environment as production (JSON boolean)
+    required: false
+    default: "false"
+
+outputs:
+  deployment_id:
+    description: The created deployment id, or empty if creation failed
+    value: ${{ steps.open.outputs.deployment_id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Open deployment and mark in_progress
+      id: open
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        ENVIRONMENT_URL: ${{ inputs.environment-url }}
+        REF: ${{ inputs.ref }}
+        DESCRIPTION: ${{ inputs.description }}
+        PRODUCTION_ENVIRONMENT: ${{ inputs.production-environment }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        payload=$(jq -n --arg ref "$REF" --arg env "$ENVIRONMENT" \
+          --arg desc "$DESCRIPTION" --argjson prod "$PRODUCTION_ENVIRONMENT" \
+          '{ref: $ref, environment: $env, required_contexts: [], auto_merge: false, production_environment: $prod, description: $desc}')
+        id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments" --input - -q .id <<<"$payload" 2>/dev/null || true)
+        if [[ -n "$id" ]]; then
+          echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses" \
+            -f state=in_progress \
+            -f environment="$ENVIRONMENT" \
+            -f environment_url="$ENVIRONMENT_URL" \
+            -f log_url="$RUN_URL" >/dev/null 2>&1 || true
+        else
+          echo "::warning::could not create $ENVIRONMENT deployment record; deploy continues"
+        fi
