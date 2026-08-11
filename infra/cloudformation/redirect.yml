@@ -1,11 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  Redirect distribution: permanently (301) redirects a legacy host (e.g.
-  beta.doenet.org and *.beta.doenet.org) to a new domain (e.g. doenet.org),
-  preserving the subdomain label, path, and query string. Must be deployed to
-  us-east-1 so the ACM certificate can attach to CloudFront (and, because SSM
-  parameters are regional, this stack takes its hosted-zone values as literals
-  rather than /prod/PublicHostedZone* SSM refs, which live in us-east-2).
+  Redirect distribution: permanently (301) redirects a source host to the public
+  hosted zone apex, preserving path and query string. The source host is the
+  subdomain <RedirectName>.<PublicHostedZoneName> (e.g. www.doenet.org,
+  beta.doenet.org) and the redirect target is the apex PublicHostedZoneName
+  (doenet.org). With RedirectSubdomains=true it also covers every subdomain
+  (*.<source>) and carries the subdomain label over to the target
+  (media.<source> -> media.<apex>). With RedirectSubdomains=false it redirects
+  just the single host. Must be deployed to us-east-1 so the ACM certificate can
+  attach to CloudFront; because SSM parameters are regional, this stack takes its
+  PublicHostedZone* values as literals rather than the /prod/PublicHostedZone*
+  SSM refs used elsewhere, which live in us-east-2.
 
 Parameters:
   EnvironmentName:
@@ -13,55 +18,81 @@ Parameters:
     Description: The environment name (the SSM prefix path name)
     MaxLength: 10
 
-  SourceHostedZoneName:
+  RedirectName:
     Type: String
-    Description: Legacy host to redirect FROM (e.g. beta.doenet.org)
+    Description: >-
+      The single DNS label to redirect FROM (e.g. "beta", "www"). The source host
+      is <RedirectName>.<PublicHostedZoneName>. Also used for the CloudFront
+      function name and resource tags, which must be unique per account, so each
+      redirect stack needs a distinct value.
+    AllowedPattern: "[a-z0-9]([a-z0-9-]*[a-z0-9])?"
 
-  SourceHostedZoneId:
+  PublicHostedZoneName:
     Type: String
-    Description: Route 53 hosted zone ID that owns SourceHostedZoneName
+    Description: >-
+      The public hosted zone name (e.g. doenet.org). This is both the redirect
+      target (the apex the source host is sent to) and the parent domain of the
+      source host. Passed as a literal because this stack runs in us-east-1.
 
-  TargetDomainName:
+  PublicHostedZoneId:
     Type: String
-    Description: Domain to redirect TO (e.g. doenet.org)
+    Description: >-
+      Route 53 hosted zone ID for PublicHostedZoneName. The redirect's records
+      (source apex/wildcard + cert validation) are written here, so a subdomain
+      redirect lives directly in the parent zone rather than a delegated subzone.
+
+  RedirectSubdomains:
+    Type: String
+    Description: >-
+      "true" to also redirect *.<source>, carrying the subdomain label to the
+      target; "false" to redirect only the single source host.
+    AllowedValues: ["true", "false"]
+    Default: "true"
+
+Conditions:
+  IncludeSubdomains: !Equals [!Ref RedirectSubdomains, "true"]
 
 Resources:
-  # Covers the legacy host (e.g. beta.doenet.org) and every subdomain
-  # (*.beta.doenet.org) such as media.beta.doenet.org. The wildcard does not
-  # match the apex, so both names are listed explicitly.
   Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Ref SourceHostedZoneName
-      SubjectAlternativeNames:
-        - !Sub "*.${SourceHostedZoneName}"
+      DomainName: !Sub "${RedirectName}.${PublicHostedZoneName}"
+      # A wildcard SAN is only valid when the source is a zone apex, so it is
+      # added only in subdomain mode.
+      SubjectAlternativeNames: !If
+        - IncludeSubdomains
+        - [!Sub "*.${RedirectName}.${PublicHostedZoneName}"]
+        - !Ref "AWS::NoValue"
       ValidationMethod: DNS
       # ACM uses one shared validation CNAME for a domain and its wildcard, so
       # only the apex is listed here; listing the wildcard too would make
       # CloudFormation write the identical Route 53 record twice in one change
       # batch and fail with InvalidChangeBatch. The single record validates both.
       DomainValidationOptions:
-        - DomainName: !Ref SourceHostedZoneName
-          HostedZoneId: !Ref SourceHostedZoneId
+        - DomainName: !Sub "${RedirectName}.${PublicHostedZoneName}"
+          HostedZoneId: !Ref PublicHostedZoneId
 
   # Runs on viewer-request and returns the 301 before the request is ever
   # proxied, so the distribution's origin is never contacted. Host-swaps the
   # source apex for the target while keeping any subdomain label, e.g.
   #   beta.doenet.org/foo?x=1        -> https://doenet.org/foo?x=1
   #   media.beta.doenet.org/img.png  -> https://media.doenet.org/img.png
+  # In single-host mode no subdomain hosts are routed here, so the carry branch
+  # never fires and it reduces to a plain host swap to the apex target.
   RedirectFunction:
     Type: AWS::CloudFront::Function
     Properties:
-      Name: !Sub "${EnvironmentName}-host-redirect"
+      # Names are unique per account, so they are keyed on the redirect label.
+      Name: !Sub "${EnvironmentName}-${RedirectName}-redirect"
       AutoPublish: true
       FunctionConfig:
-        Comment: 301-redirect a legacy host to the target domain, preserving subdomain/path/query
+        Comment: 301-redirect a source host to the target domain, preserving subdomain/path/query
         Runtime: cloudfront-js-2.0
       FunctionCode: !Sub |
         function handler(event) {
             var request = event.request;
-            var source = '${SourceHostedZoneName}';
-            var target = '${TargetDomainName}';
+            var source = '${RedirectName}.${PublicHostedZoneName}';
+            var target = '${PublicHostedZoneName}';
             var host = request.headers.host ? request.headers.host.value : source;
 
             // Default to the apex; if the host is a subdomain of the source,
@@ -115,16 +146,20 @@ Resources:
         Enabled: true
         HttpVersion: http2and3
         IPV6Enabled: true
-        Comment: !Sub "Redirect ${SourceHostedZoneName} -> ${TargetDomainName}"
+        Comment: !Sub "Redirect ${RedirectName}.${PublicHostedZoneName} -> ${PublicHostedZoneName}"
         Aliases:
-          - !Ref SourceHostedZoneName
-          - !Sub "*.${SourceHostedZoneName}"
+          - !Sub "${RedirectName}.${PublicHostedZoneName}"
+          - !If [
+              IncludeSubdomains,
+              !Sub "*.${RedirectName}.${PublicHostedZoneName}",
+              !Ref "AWS::NoValue",
+            ]
         Origins:
           # Placeholder only: the viewer-request function returns a 301 before any
           # request reaches an origin, so this is never contacted. Pointing it at
           # the target keeps it valid and self-documenting.
           - Id: PlaceholderOrigin
-            DomainName: !Ref TargetDomainName
+            DomainName: !Ref PublicHostedZoneName
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               HTTPSPort: 443
@@ -148,14 +183,14 @@ Resources:
           MinimumProtocolVersion: TLSv1.2_2021
       Tags:
         - Key: Name
-          Value: !Sub "${EnvironmentName}-host-redirect-cloudfront"
+          Value: !Sub "${EnvironmentName}-${RedirectName}-redirect-cloudfront"
 
   # Z2FDTNDATAQYW2 is CloudFront's fixed hosted zone ID for alias targets.
   ApexRecordV4:
     Type: AWS::Route53::RecordSet
     Properties:
-      HostedZoneId: !Ref SourceHostedZoneId
-      Name: !Sub "${SourceHostedZoneName}."
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Sub "${RedirectName}.${PublicHostedZoneName}."
       Type: A
       AliasTarget:
         DNSName: !GetAtt RedirectDistribution.DomainName
@@ -165,8 +200,8 @@ Resources:
   ApexRecordV6:
     Type: AWS::Route53::RecordSet
     Properties:
-      HostedZoneId: !Ref SourceHostedZoneId
-      Name: !Sub "${SourceHostedZoneName}."
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Sub "${RedirectName}.${PublicHostedZoneName}."
       Type: AAAA
       AliasTarget:
         DNSName: !GetAtt RedirectDistribution.DomainName
@@ -175,9 +210,10 @@ Resources:
 
   WildcardRecordV4:
     Type: AWS::Route53::RecordSet
+    Condition: IncludeSubdomains
     Properties:
-      HostedZoneId: !Ref SourceHostedZoneId
-      Name: !Sub "*.${SourceHostedZoneName}."
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Sub "*.${RedirectName}.${PublicHostedZoneName}."
       Type: A
       AliasTarget:
         DNSName: !GetAtt RedirectDistribution.DomainName
@@ -186,9 +222,10 @@ Resources:
 
   WildcardRecordV6:
     Type: AWS::Route53::RecordSet
+    Condition: IncludeSubdomains
     Properties:
-      HostedZoneId: !Ref SourceHostedZoneId
-      Name: !Sub "*.${SourceHostedZoneName}."
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Sub "*.${RedirectName}.${PublicHostedZoneName}."
       Type: AAAA
       AliasTarget:
         DNSName: !GetAtt RedirectDistribution.DomainName

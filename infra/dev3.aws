@@ -16,11 +16,15 @@ STACKS['dev3-doenet']='service'
 STACKS['dev3-doenet-frontend']='s3-hosted-stackset'
 STACKS['dev3-doenet-media-cert']='cdn-cert'
 STACKS['dev3-doenet-media-cdn']='cdn'
+STACKS['dev3-doenet-redirect-www']='redirect'
+STACKS['dev3-doenet-redirect-beta']='redirect'
 
 STACKS['dev3-discourse-forums']='discourse-forums-ec2'
 
 declare -g -A STACK_REGION
 STACK_REGION['dev3-doenet-media-cert']='us-east-1'
+STACK_REGION['dev3-doenet-redirect-www']='us-east-1'
+STACK_REGION['dev3-doenet-redirect-beta']='us-east-1'
 
 declare -g -a STACK_ORDER
 STACK_ORDER=(
@@ -33,6 +37,8 @@ STACK_ORDER=(
   dev3-doenet-media-cert
   dev3-doenet-media-cdn
   dev3-doenet-frontend
+  dev3-doenet-redirect-www
+  dev3-doenet-redirect-beta
 )
 
 declare -g -a SAM_STACKS

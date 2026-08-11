@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "RedirectName",
+    "ParameterValue": "beta"
+  },
+  {
+    "ParameterKey": "RedirectSubdomains",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneName",
+    "ParameterValue": "doenet.org"
+  },
+  {
+    "ParameterKey": "PublicHostedZoneId",
+    "ParameterValue": "Z08210421B0UEN4PYID0X"
+  }
+]
