@@ -527,4 +527,55 @@ describe("Assignment workflow Tests", function () {
       });
     },
   );
+
+  it(
+    "Anonymous user sees banner; non-anonymous user does not",
+    { tags: ["@group1"] },
+    () => {
+      const code = Date.now().toString();
+      const instructorEmail = `test${code}@doenet.org`;
+      cy.loginAsTestUser({
+        isAuthor: true,
+        email: instructorEmail,
+        firstNames: "Instructor",
+        lastNames: "One",
+      });
+
+      let classCode: number | null = null;
+
+      cy.createContent({
+        name: "Test Assignment",
+        contentType: "singleDoc",
+        doenetML: `<p>Hello world</p>`,
+      }).then((contentId) => {
+        cy.createAssignment({
+          contentId,
+          closedOn: DateTime.now().plus({ days: 7 }).toISO(),
+        }).then(({ classCode: cc }) => {
+          classCode = cc;
+        });
+      });
+
+      // Anonymous user sees the banner
+      cy.loginAsTestUser({ isAnonymous: true });
+
+      cy.then(() => {
+        cy.visit(`/code/${classCode}`);
+        cy.get('[data-test="Anonymous User Banner"]').should("be.visible");
+        cy.contains("anonymous user").should("be.visible");
+      });
+
+      // Non-anonymous user does not see the banner
+      cy.loginAsTestUser({
+        email: instructorEmail,
+        firstNames: "Instructor",
+        lastNames: "One",
+      });
+
+      cy.then(() => {
+        cy.visit(`/code/${classCode}`);
+        cy.get('[data-test="Anonymous User Banner"]').should("not.exist");
+      });
+    },
+  );
 });
