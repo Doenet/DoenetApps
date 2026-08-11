@@ -33,7 +33,7 @@ type ActiveView = {
     name: string;
     type: ContentType;
     isPublic: boolean;
-    sharedWith: string[];
+    sharedWith: { userId: string }[];
     parent: {
       id: string;
       type: ContentType;
@@ -226,13 +226,13 @@ export function MoveCopyContent({
         (c) => c.sharedWith?.map((user) => user.userId) ?? [],
       );
       const count = new Map<string, number>();
-      for (userId of sourceSharedWith) {
-        count.set(userId, (count.get(userId) || 0) + 1);
+      for (const sharedUserId of sourceSharedWith) {
+        count.set(sharedUserId, (count.get(sharedUserId) || 0) + 1);
       }
       // If the count of that userId is the same as the length of private sources,
       // that means each private source was shared with that userId
       shareAlert = !activeView.parent.sharedWith.every(
-        (user) => count.get(user) === privateSources.length,
+        (share) => count.get(share.userId) === privateSources.length,
       );
     }
   }
