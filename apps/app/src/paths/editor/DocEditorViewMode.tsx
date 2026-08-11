@@ -46,7 +46,7 @@ export function DocEditorViewMode() {
       const targetAbsoluteTop = iframeTop + offset;
 
       scrollingContainer.current.scrollTo({
-        top: targetAbsoluteTop - 90,
+        top: targetAbsoluteTop - (parseInt(headerHeight) + 10),
         behavior: "smooth",
       });
     }
