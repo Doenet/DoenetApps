@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useMemo, useState } from "react";
+import React, { ReactElement, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   Box,
@@ -293,15 +293,66 @@ export function Explore() {
       />
     ) : null;
 
+  const curatedEmptyMessage = useMemo(() => {
+    const numCommunity = totalCount.numCommunity ?? 0;
+    if (numCommunity > 0) {
+      return (
+        <VStack spacing={4} data-test="Curated Empty With Community Results">
+          <Text fontSize="36pt">No Curated Matches Found!</Text>
+          <Text fontSize="16pt">
+            There {numCommunity === 1 ? "is" : "are"}{" "}
+            {intWithCommas(numCommunity)} Community{" "}
+            {numCommunity === 1 ? "match" : "matches"}.
+          </Text>
+          <Button
+            colorScheme="blue"
+            onClick={() => setCurrentTab(1)}
+            data-test="Switch To Community Tab"
+          >
+            Switch to Community tab
+          </Button>
+        </VStack>
+      );
+    }
+    return "No Matches Found!";
+  }, [totalCount.numCommunity, setCurrentTab]);
+
+  const searchedEmptyMessage = useMemo(() => {
+    const numCurated = totalCount.numCurated ?? 0;
+    if (numCurated > 0) {
+      return (
+        <VStack spacing={4} data-test="Community Empty With Curated Results">
+          <Text fontSize="36pt">No Community Matches Found!</Text>
+          <Text fontSize="16pt">
+            There {numCurated === 1 ? "is" : "are"} {intWithCommas(numCurated)}{" "}
+            Curated {numCurated === 1 ? "match" : "matches"}.
+          </Text>
+          <Button
+            colorScheme="blue"
+            onClick={() => setCurrentTab(0)}
+            data-test="Switch To Curated Tab"
+          >
+            Switch to Curated tab
+          </Button>
+        </VStack>
+      );
+    }
+    return "No Matches Found!";
+  }, [totalCount.numCurated, setCurrentTab]);
+
   const curatedContentDisplay = useMemo(
     () =>
       curatedContent
-        ? displayMatchingContent(curatedContent, {
-            base: `calc(100vh - ${q ? "250" : "210"}px)`,
-            lg: `calc(100vh - ${q ? "210" : "170"}px)`,
-          })
+        ? displayMatchingContent(
+            curatedContent,
+            {
+              base: `calc(100vh - ${q ? "250" : "210"}px)`,
+              lg: `calc(100vh - ${q ? "210" : "170"}px)`,
+            },
+            curatedEmptyMessage,
+          )
         : null,
-    [displayMatchingContent, curatedContent, q],
+    [displayMatchingContent, curatedContent, q, curatedEmptyMessage],
   );
 
   const trendingContentDisplay = useMemo(
@@ -323,12 +374,16 @@ export function Explore() {
   const searchedContentDisplay = useMemo(
     () =>
       searchedContent
-        ? displayMatchingContent(searchedContent, {
-            base: `calc(100vh - ${q ? "250" : "210"}px)`,
-            lg: `calc(100vh - ${q ? "210" : "170"}px)`,
-          })
+        ? displayMatchingContent(
+            searchedContent,
+            {
+              base: `calc(100vh - ${q ? "250" : "210"}px)`,
+              lg: `calc(100vh - ${q ? "210" : "170"}px)`,
+            },
+            searchedEmptyMessage,
+          )
         : null,
-    [displayMatchingContent, searchedContent, q],
+    [displayMatchingContent, searchedContent, q, searchedEmptyMessage],
   );
 
   // TODO: figure out functions inside hooks
@@ -336,6 +391,7 @@ export function Explore() {
   function displayMatchingContent(
     matches: Content[],
     minHeight?: string | { base: string; lg: string },
+    emptyMessage?: React.ReactNode,
   ) {
     const cardContent: CardContent[] = matches.map((itemObj) => {
       const { contentId, owner, type: contentType } = itemObj;
@@ -367,7 +423,7 @@ export function Explore() {
           showActivityCategories={true}
           showOwnerName={true}
           cardContent={cardContent}
-          emptyMessage={"No Matches Found!"}
+          emptyMessage={emptyMessage ?? "No Matches Found!"}
           includeSelectionBox={user ? true : false}
           selectedCards={cardSelections.ids}
           onCardSelected={cardSelections.add}
