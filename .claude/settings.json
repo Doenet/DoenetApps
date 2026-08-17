@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [ -n \"$f\" ] && npx prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true"
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; [ -n \"$f\" ] && cd \"${CLAUDE_PROJECT_DIR:-$(git -C \"$(dirname \"$f\")\" rev-parse --show-toplevel 2>/dev/null || echo .)}\" && npx prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true"
           }
         ]
       }

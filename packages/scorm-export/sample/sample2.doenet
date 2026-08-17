@@ -1,0 +1,11 @@
+<p>This is a small sample activity for testing the SCORM export.</p>
+
+<p>What is <m>2+3</m>?
+  <answer name="sum">5</answer>
+</p>
+
+<p>What is the derivative of <m>x^2</m>?
+  <answer name="deriv">
+    <award><math>2x</math></award>
+  </answer>
+</p>

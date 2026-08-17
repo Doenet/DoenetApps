@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{TITLE}}</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/@doenet/standalone@{{DOENET_VERSION}}/style.css"
+    />
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@doenet/standalone@{{DOENET_VERSION}}/doenet-standalone.js"
+      onload="onLoad()"
+    ></script>
+    <script>
+      function onLoad() {
+        window.renderDoenetViewerToContainer(
+          document.querySelector(".doenetml-applet"),
+        );
+      }
+    </script>
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- data-doenet-message-parent="true" makes the viewer speak SPLICE      -->
+    <!-- (SPLICE.getState on load, SPLICE.reportScoreAndState on answers) to  -->
+    <!-- window.parent, where ptx_scorm_events.js listens.                    -->
+    <!-- data-doenet-send-resize-events="true" emits lti.frameResize so the   -->
+    <!-- parent can grow this iframe to fit.                                  -->
+    <div
+      class="doenetml-applet"
+      data-doenet-add-virtual-keyboard="false"
+      data-doenet-send-resize-events="true"
+      data-doenet-message-parent="true"
+    >
+      <div class="doenetml-loading" style="text-align: center">
+        <p>Loading activity&#8230;</p>
+      </div>
+    </div>
+    <!-- The DoenetML source is injected rather than written inline, so that a  -->
+    <!-- source containing "</script>" cannot terminate this element: every "<" -->
+    <!-- below is a unicode escape.  This runs during parsing, well before the  -->
+    <!-- deferred module script above fires onLoad() and renders the viewer.    -->
+    <script>
+      const doenetMLSource = {{DOENETML_JSON}};
+      const sourceScript = document.createElement("script");
+      sourceScript.type = "text/doenetml";
+      sourceScript.textContent = doenetMLSource;
+      document.querySelector(".doenetml-applet").appendChild(sourceScript);
+    </script>
+  </body>
+</html>

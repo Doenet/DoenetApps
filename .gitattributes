@@ -1,2 +1,7 @@
 # Shell scripts must keep LF endings (they run inside Linux containers).
 *.sh text eol=lf
+
+# Vendored schema files are stored byte-for-byte as published, so that a future
+# re-copy from upstream diffs cleanly instead of showing every line as changed.
+# See packages/scorm-export/vendor/VENDORED.md.
+packages/scorm-export/vendor/scorm/*.xsd -text
