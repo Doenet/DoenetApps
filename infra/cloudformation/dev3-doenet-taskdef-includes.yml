@@ -58,6 +58,11 @@ Secrets:
   - Name: MAGIC_LINK_SECRET
     ValueFrom:
       Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/MagicLinkSecret"
+  # Shared secret for POST /api/info/updateTrackedDoenetmlVersion (called by
+  # DoenetML's publish workflow). Create the SSM parameter before deploying.
+  - Name: DOENETML_VERSION_UPDATE_SECRET
+    ValueFrom:
+      Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/DoenetmlVersionUpdateSecret"
   # - Name: DISCOURSE_SSO_SECRET
   #   ValueFrom:
   #     Fn::Sub: "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/doenet/DiscourseSsoSecret"

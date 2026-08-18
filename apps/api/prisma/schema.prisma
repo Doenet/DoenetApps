@@ -289,6 +289,13 @@ model doenetmlVersions {
   id                 Int                @id @default(autoincrement())
   displayedVersion   String             @unique
   fullVersion        String
+  // The npm dist-tag (e.g. "latest" or "dev") of @doenet/standalone that this
+  // row tracks. When DoenetML publishes a new version to that tag, an external
+  // call to /api/info/updateTrackedDoenetmlVersion pins `fullVersion` to the
+  // concrete version so the jsDelivr URL is immutable and browser-cacheable.
+  // Null for rows pinned to a fixed version that should never auto-update.
+  // Unique so at most one row tracks a given tag (MySQL allows multiple NULLs).
+  trackingNpmTag     String?            @unique
   default            Boolean            @default(false)
   deprecated         Boolean            @default(false)
   removed            Boolean            @default(false)
