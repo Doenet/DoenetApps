@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { createTestUser } from "./utils";
+import { createTestUser, doc, fold, setupTestContent } from "./utils";
+import { updateVisibility } from "../access";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { getMyContent, getSharedContent } from "../query/content_list";
 import {
@@ -2157,4 +2158,51 @@ test("getSharedContent does not provide email", async () => {
   });
   expect(results.content.length).eqls(1);
   expect(results.content[0].owner).not.toHaveProperty("email");
+});
+
+test("getSharedContent hoists public content out of an unlisted folder", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const { userId: viewerId } = await createTestUser();
+
+  const [unlistedFolderId, publicDocId, unlistedDocId] = await setupTestContent(
+    ownerId,
+    {
+      "unlisted folder": fold({
+        "public doc": doc(""),
+        "unlisted doc": doc(""),
+      }),
+    },
+  );
+
+  await updateVisibility({
+    contentId: unlistedFolderId,
+    loggedInUserId: ownerId,
+    visibility: "unlisted",
+  });
+  await setContentIsPublic({
+    contentId: publicDocId,
+    loggedInUserId: ownerId,
+    isPublic: true,
+  });
+
+  // The unlisted folder itself is not listed at the base folder,
+  // so its public child must be hoisted there instead.
+  const baseContent = await getSharedContent({
+    ownerId,
+    parentId: null,
+    loggedInUserId: viewerId,
+  });
+  expect(baseContent.content.map((c) => c.contentId)).eqls([publicDocId]);
+
+  // The unlisted folder is still browsable by direct link, showing both children.
+  const folderContent = await getSharedContent({
+    ownerId,
+    parentId: unlistedFolderId,
+    loggedInUserId: viewerId,
+  });
+  expect(folderContent.parent?.contentId).eqls(unlistedFolderId);
+  expect(folderContent.content.map((c) => c.contentId)).eqls([
+    publicDocId,
+    unlistedDocId,
+  ]);
 });

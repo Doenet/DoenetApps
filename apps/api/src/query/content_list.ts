@@ -412,20 +412,18 @@ export async function getSharedContent({
 
   // If looking in the base folder,
   // also include orphaned shared content,
-  // i.e., shared content that is inside a non-shared parent.
+  // i.e., shared content whose parent is itself not listed at the base folder.
   // That way, users can navigate to all of the owner's shared content
-  // when start at the base folder
+  // when start at the base folder.
+  // The parent condition is the exact negation of `isDiscoverableSharedContent`,
+  // which is what determines whether the parent is listed here,
+  // so an unlisted parent (not listed itself) orphans its children.
   if (parentId === null) {
     const orphanedSharedContent = await prisma.content.findMany({
       where: {
         ownerId,
         parent: {
-          AND: [
-            { visibility: { notIn: ["public", "unlisted"] } },
-            {
-              sharedWith: { none: { userId: loggedInUserId } },
-            },
-          ],
+          NOT: isDiscoverableSharedContent(loggedInUserId),
         },
         // Note: don't use viewable filter, as we require it to be public/shared even if owned by loggedInUserId
         isDeletedOn: null,
