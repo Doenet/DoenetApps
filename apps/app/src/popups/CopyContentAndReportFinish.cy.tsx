@@ -536,5 +536,35 @@ describe(
         cy.checkAccessibility("body");
       });
     });
+
+    // `fetcher` is shared with the rest of the editor. Saving a per-document
+    // setting (e.g. the Repeat control) while this modal is mounted puts
+    // a foreign 200 on it — one with no `newContentIds`. Treating that as the
+    // copy's own result used to crash the render with
+    // "Cannot read properties of undefined (reading 'length')".
+    it("ignores a 200 on the shared fetcher that is not its own result", () => {
+      const foreignResponse = createMockFetcher({
+        status: 200,
+        data: { contentId: "some-doc", repeatInProblemSet: 2 },
+      });
+
+      cy.mount(
+        <CopyContentAndReportFinish
+          isOpen={true}
+          onClose={cy.spy().as("onClose")}
+          contentIds={["content1"]}
+          desiredParent={mockParentSequence}
+          action="Add"
+          fetcher={foreignResponse}
+          user={mockUser}
+          setAddTo={cy.spy().as("setAddTo")}
+          onNavigate={cy.spy().as("onNavigate")}
+        />,
+      );
+
+      // still waiting on its own result rather than crashing or claiming success
+      cy.get('[data-test="Copy Header"]').should("have.text", "Adding");
+      cy.contains("item added to").should("not.exist");
+    });
   },
 );

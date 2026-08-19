@@ -633,4 +633,53 @@ describe("MoveCopyContent component tests", { tags: ["@group2"] }, () => {
       cy.checkAccessibility("body");
     });
   });
+
+  // `fetcher` is shared with the rest of the page, so a settings save or any
+  // other submission can land a 200 on it while this modal is mounted. A move
+  // returns no payload, so the response cannot be recognized — the modal must
+  // only react to a result it actually asked for. Reacting to a foreign one
+  // used to report a completed action, and crash on the Copy path reading
+  // `data.newContentIds.length` of undefined.
+  it("ignores a result on the shared fetcher that it did not ask for", () => {
+    cy.intercept("/api/copyMove/getMoveCopyContentData/*", {
+      parent: null,
+      contents: contentList1,
+    }).as("getData");
+
+    const foreignResult = {
+      state: "idle",
+      formData: undefined,
+      data: {
+        status: 200,
+        data: { contentId: "some-doc", repeatInProblemSet: 2 },
+      },
+      Form: ({ children }: any) => <form>{children}</form>,
+      submit: () => {},
+      load: () => {},
+    } as unknown as FetcherWithComponents<any>;
+
+    cy.mount(
+      <MoveCopyContent
+        isOpen={true}
+        onClose={cy.spy().as("onClose")}
+        onNavigate={cy.spy().as("onNavigate")}
+        fetcher={foreignResult}
+        sourceContent={[{ contentId, name: contentName, type: contentType }]}
+        userId={"abc123"}
+        currentParentId={null}
+        allowedParentTypes={["folder"]}
+        action="Copy"
+      />,
+    );
+
+    cy.wait("@getData");
+
+    // still offering the action rather than claiming it finished
+    cy.get('[data-test="Execute MoveCopy Button"]').should("be.visible");
+    cy.get('[data-test="Go to Destination"]').should("not.exist");
+    cy.get('[data-test="MoveCopy Body"]').should(
+      "not.contain.text",
+      "copied to",
+    );
+  });
 });

@@ -57,7 +57,13 @@ export function CopyContentAndReportFinish({
   useEffect(() => {
     if (fetcher.data) {
       if (fetcher.data.status === 200) {
-        setNewContentIds(fetcher.data.data.newContentIds);
+        // `fetcher` is shared with the rest of the editor, so a 200 here is not
+        // necessarily this copy's result. Only a response actually carrying
+        // `newContentIds` is ours; anything else is another submission's.
+        const ids = fetcher.data.data?.newContentIds;
+        if (Array.isArray(ids)) {
+          setNewContentIds(ids);
+        }
       } else {
         const message = fetcher.data.message;
         setErrMsg(
