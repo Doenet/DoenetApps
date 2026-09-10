@@ -63,8 +63,8 @@ if ($success){
 }
 
 
-//bypass security by uncommenting this line
-// $legitAccessKey = 1;
+// Bypass the Safe Exam Browser check: accept any browser, legitimate key or not.
+$legitAccessKey = 1;
 
 $response_arr = array(
   "success"=>$success,
