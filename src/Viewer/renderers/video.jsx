@@ -399,7 +399,7 @@ export default React.memo(function Video(props) {
       let time = SVs.time;
       let duration = player.current.getDuration();
 
-      if (time > duration) {
+      if (duration > 0 && time > duration) {
         time = Math.floor(duration);
         callAction({
           action: actions.setTime,
@@ -410,17 +410,12 @@ export default React.memo(function Video(props) {
       }
       if (time !== Number(lastSetTimeAction.current)) {
         if (player.current.getPlayerState() === window.YT.PlayerState.CUED) {
-          // if cued, seeking will automatically start the video.
-          // Pausing it first doesn't seem to work
-          // so, instead pause it 200 ms after hitting play
-          // (If pause immediately, then always get a black screen with spinning arrow.
-          // Pausing after 200 ms sometimes prevents black screen, but it is imperfect.)
-          // TODO: find a better solution
-          // See also: https://issuetracker.google.com/issues/77752719
-
-          player.current.pauseVideo(); // doesn't seem to do anything!
-          player.current.seekTo(time, true);
-          setTimeout(() => player.current.pauseVideo(), 200);
+          // Seeking a cued player drops it to UNSTARTED: a black frame with
+          // no poster and no controls.  Cue it at the offset instead.
+          player.current.cueVideoById({
+            videoId: SVs.youtube,
+            startSeconds: time,
+          });
         } else {
           player.current.seekTo(time, true);
         }
