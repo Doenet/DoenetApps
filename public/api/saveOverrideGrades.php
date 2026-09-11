@@ -20,10 +20,10 @@ $doenetId = mysqli_real_escape_string($conn, $_POST['doenetId']);
 
 $emails = array_map(function ($item) use ($conn) {
     return mysqli_real_escape_string($conn, $item);
-}, $_POST['emails']);
+}, $_POST['emails'] ?? []);
 $scores = array_map(function ($item) use ($conn) {
     return mysqli_real_escape_string($conn, $item);
-}, $_POST['scores']);
+}, $_POST['scores'] ?? []);
 
 $success = true;
 $message = '';
@@ -52,6 +52,12 @@ if ($success) {
         $totalPointsOrPercent = $row['totalPointsOrPercent'];
         $attemptAggregation = $row['attemptAggregation'];
         $courseId = $row['courseId'];
+
+        if (!($totalPointsOrPercent > 0)) {
+            $success = false;
+            $message =
+                'Assignment is worth 0 points, so scores cannot be converted to credit.';
+        }
     } else {
         $success = false;
         $message = "No assignment with doenetId: $doenetId";
@@ -80,7 +86,22 @@ $failedEmails = [];
 
 if ($success) {
     foreach ($emails as $key => $email) {
-        $credit = $scores[$key] / $totalPointsOrPercent;
+        // A blank score means the student is not being graded; a non-numeric
+        // one is reported.  Either way, don't divide by it: that is fatal in
+        // PHP 8.
+        $score = $scores[$key] ?? '';
+        if (is_string($score)) {
+            $score = trim($score);
+        }
+        if ($score === '' || $score === null) {
+            continue;
+        }
+        if (!is_numeric($score)) {
+            array_push($failedEmails, $email);
+            continue;
+        }
+
+        $credit = $score / $totalPointsOrPercent;
 
         //Find userId
         $result = $conn->query(

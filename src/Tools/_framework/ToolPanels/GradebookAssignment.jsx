@@ -273,19 +273,30 @@ function UploadChoices({ doenetId, maxAttempts }) {
               };
               axios
                 .post("/api/saveOverrideGrades.php", payload)
-                .catch((e) => {
-                  addToast(e, toastType.ERROR);
-                  setProcess("Assignment Table");
-                })
                 .then(({ data }) => {
-                  // TODO: show warning from data.failedEmails
                   if (data.success) {
+                    if (data.failedEmails?.length > 0) {
+                      addToast(
+                        `Skipped ${
+                          data.failedEmails.length
+                        } row(s) with no enrolled student or an unreadable score: ${data.failedEmails.join(
+                          ", ",
+                        )}`,
+                        toastType.ERROR,
+                      );
+                    }
                     refreshGradebook({ doenetId, addToast });
-                    // addToast(`Updated scores!`);
-                    // setProcess('Assignment Table')
                   } else {
                     addToast(data.message, toastType.ERROR);
+                    setProcess("Assignment Table");
                   }
+                })
+                .catch((e) => {
+                  addToast(
+                    e?.message ?? "Error saving grades",
+                    toastType.ERROR,
+                  );
+                  setProcess("Assignment Table");
                 });
             }}
           />
