@@ -9,6 +9,7 @@ include 'db_connection.php';
 include 'permissionsAndSettingsForOneCourseFunction.php';
 include 'permissionsAndSettingsFunction.php';
 include 'mineActivityForIdsFunction.php';
+include 'cidFromSHA.php';
 
 $jwtArray = include 'jwtArray.php';
 $userId = $jwtArray['userId'];
@@ -648,6 +649,100 @@ if ($success) {
         }
 
         file_put_contents($destinationFile, $doenetML);
+    }
+}
+
+// The .doenet files that activities are assigned from are content addressed,
+// so a duplicated activity keeps serving the previous course's file until its
+// content is rewritten and stored under a new cid.  Rewrite the ids in that
+// content, store it under its new cid, and return that cid.
+function republishDuplicatedCid($cid, $prevToNextDoenetIds, &$cidMap)
+{
+    if (array_key_exists($cid, $cidMap)) {
+        return $cidMap[$cid];
+    }
+
+    $path = "../media/$cid.doenet";
+    if (!is_file($path)) {
+        return null;
+    }
+    $content = file_get_contents($path);
+    if ($content === false) {
+        return null;
+    }
+
+    // An activity document refers to its pages by cid, so rewrite those first
+    // and point the document at the rewritten pages.
+    if (preg_match_all('/cid="([A-Za-z0-9]+)"/', $content, $matches)) {
+        $childCids = [];
+        foreach (array_unique($matches[1]) as $childCid) {
+            $nextChildCid = republishDuplicatedCid(
+                $childCid,
+                $prevToNextDoenetIds,
+                $cidMap
+            );
+            if ($nextChildCid !== null) {
+                $childCids[$childCid] = $nextChildCid;
+            }
+        }
+        if (count($childCids) > 0) {
+            $content = strtr($content, $childCids);
+        }
+    }
+
+    $content = strtr($content, $prevToNextDoenetIds);
+
+    $nextCid = cidFromSHA(hash('sha256', $content));
+    $nextPath = "../media/$nextCid.doenet";
+    if (!is_file($nextPath)) {
+        file_put_contents($nextPath, $content);
+    }
+
+    $cidMap[$cid] = $nextCid;
+    return $nextCid;
+}
+
+//Point the duplicated activities and collections at the rewritten content
+if ($success) {
+    $cidMap = [];
+
+    foreach ($activity_and_collection_ids as $previousDoenetId) {
+        if (!array_key_exists($previousDoenetId, $prevToNextDoenetIds)) {
+            continue;
+        }
+        $nextDoenetId = $prevToNextDoenetIds[$previousDoenetId];
+
+        $result = $conn->query(
+            "SELECT CAST(jsonDefinition AS CHAR) AS json
+            FROM course_content
+            WHERE doenetId = '$nextDoenetId'"
+        );
+        if ($result === false || $result->num_rows < 1) {
+            continue;
+        }
+        $row = $result->fetch_assoc();
+        $json = json_decode($row['json'], true);
+
+        foreach (['draftCid', 'assignedCid'] as $cidKey) {
+            if (empty($json[$cidKey])) {
+                continue;
+            }
+            $nextCid = republishDuplicatedCid(
+                $json[$cidKey],
+                $prevToNextDoenetIds,
+                $cidMap
+            );
+            if ($nextCid === null || $nextCid === $json[$cidKey]) {
+                continue;
+            }
+
+            $jsonPath = '$.' . $cidKey;
+            $conn->query(
+                "UPDATE course_content
+                SET jsonDefinition = JSON_SET(jsonDefinition, '$jsonPath', '$nextCid')
+                WHERE doenetId = '$nextDoenetId'"
+            );
+        }
     }
 }
 
