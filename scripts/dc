@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# dc — use the dev container from the host as if it were a local toolchain.
+#
+#   ./scripts/dc dev            start the app (builds the container first if needed)
+#   ./scripts/dc shell          a shell inside the container
+#   ./scripts/dc claude [...]   Claude Code inside the container
+#   ./scripts/dc <command...>   run anything else inside the container
+#   ./scripts/dc up | down | rebuild | reset | status
+#
+# Only Docker is required on the host: this drives .devcontainer/docker-compose.yml
+# directly, so there is no Node, npx, or editor in the loop. It uses the same
+# compose project name VS Code does for this folder, so `dc shell` also reaches a
+# container started with "Reopen in Container".
+set -euo pipefail
+
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+compose_file="$root/.devcontainer/docker-compose.yml"
+# Same scheme as the devcontainer CLI / VS Code: <folder>_devcontainer.
+project="$(basename "$root" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]/_/g')_devcontainer"
+marker=/home/node/.dc-post-create-done
+
+# Ports come from apps/api/.env (a worktree gets an offset); compose cannot read
+# that file, so pass them through the environment it can.
+env_file="$root/apps/api/.env"
+api_port=3000
+if [ -f "$env_file" ]; then
+  api_port=$(sed -n 's/^PORT="\{0,1\}\([0-9]*\)"\{0,1\}.*/\1/p' "$env_file" | head -1)
+  api_port=${api_port:-3000}
+fi
+offset=$((api_port - 3000))
+export API_PORT="$api_port" APP_PORT="$((8000 + offset))" WEB_PORT="$((4321 + offset))"
+
+compose() { docker compose -p "$project" -f "$compose_file" "$@"; }
+
+running() { [ -n "$(compose ps -q --status running dev 2>/dev/null)" ]; }
+
+# exec inside the container; allocate a TTY only when we have one.
+run_in() {
+  local tty=()
+  [ -t 0 ] && [ -t 1 ] || tty=(-T)
+  compose exec "${tty[@]}" -w /home/node/workspace dev "$@"
+}
+
+post_create_if_needed() {
+  if run_in test -f "$marker" 2>/dev/null; then
+    return
+  fi
+  echo "🧰 First run for this container — installing and seeding (a few minutes)..."
+  run_in bash -lc "bash .devcontainer/post-create.sh && touch $marker"
+}
+
+up() {
+  # Docker creates missing volume mount points as root; pre-create them as us.
+  mkdir -p "$root"/{node_modules,apps/api/node_modules,apps/app/node_modules,apps/web/node_modules}
+  compose up -d --build --wait "$@"
+  post_create_if_needed
+}
+
+ensure_up() {
+  running || up
+}
+
+usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; }
+
+cmd=${1:-}
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  ""|-h|--help|help) usage ;;
+  up)
+    up
+    cat <<MSG
+
+✅ Dev container is up.
+   ./scripts/dc dev      # start the app, then open http://localhost:$APP_PORT
+   ./scripts/dc shell    # a terminal inside the container
+   ./scripts/dc claude   # Claude Code inside the container
+MSG
+    ;;
+  dev)     ensure_up; run_in bash .devcontainer/start-dev.sh ;;
+  shell)   ensure_up; run_in bash -l ;;
+  claude)  ensure_up; run_in claude "$@" ;;
+  status)  compose ps ;;
+  down)    compose down ;;            # stops everything; volumes (database, node_modules) survive
+  rebuild) compose down; compose build --no-cache dev; up ;;
+  reset)
+    echo "This removes the containers AND their volumes: database, node_modules, Cypress cache, Claude login."
+    read -r -p "Continue? [y/N] " ok
+    [ "${ok:-}" = y ] && compose down -v ;;
+  *)       ensure_up; run_in "$cmd" "$@" ;;
+esac

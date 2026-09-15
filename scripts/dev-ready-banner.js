@@ -1,6 +1,6 @@
 /* global process, console, setTimeout */
 import net from "net";
-import { apiPort, appPort } from "./worktree-env.js";
+import { apiPort, appUrl } from "./worktree-env.js";
 
 // Printed by `npm run dev` once the API is accepting connections, so the
 // one-click dev auto-login link is ready the moment it appears. Dev-only; not
@@ -10,7 +10,7 @@ import { apiPort, appPort } from "./worktree-env.js";
 
 const POLL_MS = 500;
 const GIVE_UP_MS = 90_000;
-const url = `http://localhost:${appPort}/?autologin=true`;
+const url = `${appUrl}/?autologin=true`;
 
 function apiIsUp() {
   return new Promise((resolve) => {

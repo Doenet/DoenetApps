@@ -11,6 +11,8 @@ Doenet is an educational technology platform — **npm workspace monorepo** (Nod
 
 ## Commands
 
+Environment setup — including the dev container — is in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ```bash
 npm ci                                              # install
 npm run dev                                         # shared watcher + api (3000) + app (8000) + web (4321)

@@ -1,58 +1,76 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/docker-existing-docker-compose
-// If you want to run as a non-root user in the container, see .devcontainer/docker-compose.yml.
+// See https://aka.ms/devcontainer.json for format details.
 {
-  "name": "DoenetTools",
-  "hostRequirements": {
-    "memory": "4gb"
-  },
-  // Update the 'dockerComposeFile' list if you have more compose files or use different names.
-  // The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.extend.yml"],
-
-  // The 'service' property is the name of the service for the container that VS Code should
-  // use. Update this value and .devcontainer/docker-compose.yml to the real service name.
+  "name": "Doenet Apps",
+  "dockerComposeFile": "docker-compose.yml",
   "service": "dev",
-
-  // The optional 'workspaceFolder' property is the path VS Code should open by default when
-  // connected. This is typically a file mount in .devcontainer/docker-compose.yml
   "workspaceFolder": "/home/node/workspace",
+  "remoteUser": "node",
 
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8000],
+  // The base image is a slim Node image with no SSH server, which the
+  // `gh codespace ssh|logs|cp` commands need. Harmless locally.
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
 
-  // Uncomment the next line if you want start specific services in your Docker Compose config.
-  // "runServices": [],
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
 
-  // Uncomment the next line if you want to keep your containers running after VS Code shuts down.
+  // api, app (open this one), blog
+  "forwardPorts": [3000, 8000, 4321],
+  // The app is the one to open: it proxies /api to the API and /blog to Astro,
+  // so it is the only port worth clicking. The other two are labelled for the
+  // Ports panel but stay quiet, since landing on the API's debug root instead
+  // of the app is a confusing first impression.
+  "portsAttributes": {
+    "8000": { "label": "app (open this one)", "onAutoForward": "openBrowser" },
+    "3000": { "label": "api", "onAutoForward": "silent" },
+    "4321": {
+      "label": "blog (served via the app at /blog)",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // Runs on the host before the container is created. Docker creates a missing
+  // volume mount point as root, which would leave root-owned directories in the
+  // checkout that host-side npm cannot write to; creating them first as the
+  // host user avoids that.
+  "initializeCommand": "mkdir -p node_modules apps/api/node_modules apps/app/node_modules apps/web/node_modules",
+
+  // Passes an API key through when the host has one set. Claude Code also
+  // signs in interactively with `claude`, and Codespaces exposes a repository
+  // or user secret of this name automatically.
+  "remoteEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  // Do not attach the editor until the database is seeded, so the first thing
+  // a newcomer sees is a working container rather than a half-built one.
+  "waitFor": "postCreateCommand",
+  // Every time VS Code (or a codespace) attaches, start the dev servers in a
+  // terminal. The script is a no-op when they are already running.
+  "postAttachCommand": "bash .devcontainer/start-dev.sh",
+
+  // Stop MySQL and s3mock along with the dev container.
   "shutdownAction": "stopCompose",
 
-  "initializeCommand": "docker compose -f docker-compose.yml -f .devcontainer/docker-compose.extend.yml pull --ignore-buildable",
-  // Uncomment the next line to run commands after the container is created - for example installing curl.
-  "postCreateCommand": "npm install && npx vite optimize",
-
-  "remoteEnv": { "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}" },
-
-  // Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
-  "remoteUser": "root",
   "customizations": {
     "vscode": {
       "extensions": [
-        "dbaeumer.vscode-eslint",
-        "ms-azuretools.vscode-docker",
+        "anthropic.claude-code",
         "esbenp.prettier-vscode",
-        "styled-components.vscode-styled-components",
-        "meganrogge.template-string-converter",
-        "GitHub.vscode-pull-request-github",
-        "eamodio.gitlens",
-        "DotJoshJohnson.xml",
-        "wix.vscode-import-cost",
-        "bmewburn.vscode-intelephense-client"
+        "dbaeumer.vscode-eslint",
+        "Prisma.prisma",
+        "vitest.explorer",
+        "astro-build.astro-vscode",
+        "eamodio.gitlens"
       ],
       "settings": {
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "extensions.verifySignature": false
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
       }
     }
   }

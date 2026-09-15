@@ -5,6 +5,7 @@ import nodePolyfills from "rollup-plugin-polyfill-node";
 import { defineConfig } from "vite";
 
 import { createRequire } from "module";
+import process from "node:process";
 const require = createRequire(import.meta.url);
 
 import { apiPort, appPort, webPort } from "../../scripts/worktree-env.js";
@@ -42,6 +43,9 @@ export default defineConfig(({ command }) => ({
   ],
   server: {
     port: appPort,
+    // Unset on a normal checkout, so the dev server stays on localhost. The
+    // dev container sets it to 0.0.0.0 so the published port reaches it.
+    host: process.env.DEV_SERVER_HOST,
     proxy: {
       // Route blog pages and Astro-generated assets through the same frontend
       // entry point used by the app in production.
