@@ -12,20 +12,27 @@ We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h
 
 ## Getting started
 
-Three ways to get a development environment, easiest first. Full instructions —
-including running the tests and opening a pull request — are in
+Three ways to get a development environment, easiest first. Each one ends with
+the app running at http://localhost:8000 and a link to sign in. Full details,
+including running the tests and opening a pull request, are in
 [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 **1. GitHub Codespaces.** Nothing to install; everything runs in the browser.
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Doenet/DoenetApps)
 
-**2. Dev container on your machine.** Docker is the only prerequisite — the
+Wait for the terminal to say `Dev container ready`, then run `npm run dev`.
+
+**2. Dev container on your machine.** Docker is the only prerequisite. The
 container brings its own Node, MySQL, S3 mock, and Chrome for the Cypress
-suites. Open the repository in VS Code and choose **Reopen in Container**, or:
+suites. Clone the repository, then either open it in VS Code and choose
+**Reopen in Container**, or use the CLI:
 
 ```bash
-npx @devcontainers/cli up --workspace-folder .
+git clone https://github.com/Doenet/DoenetApps.git
+cd DoenetApps
+npx @devcontainers/cli up --workspace-folder .        # builds and seeds; a few minutes
+npx @devcontainers/cli exec --workspace-folder . bash -lc 'npm run dev'
 ```
 
 **3. The toolchain on your machine.** Node 24 and Docker, for the fastest inner
@@ -39,8 +46,9 @@ npm run setup     # creates apps/api/.env, starts MySQL, migrates and seeds
 npm run dev       # app :8000, api :3000, blog :4321
 ```
 
-However you start it, the app is at http://localhost:8000 and the blog is at
-`/blog` on the same origin, matching production.
+However you start it, `npm run dev` prints a boxed **auto-login link** once the
+API is up. Open it to land in the app signed in as a development user. The
+blog is at `/blog` on the same origin, matching production.
 
 ---
 

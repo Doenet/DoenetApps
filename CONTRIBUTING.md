@@ -9,7 +9,9 @@ Questions are welcome on [Discord](https://discord.gg/PUduwtKJ5h).
 ## Setting up a development environment
 
 Three ways, in order of how much you have to install. They all end up in the
-same place, so pick whichever fits.
+same place: the app at http://localhost:8000, backed by a seeded database and
+ready to sign in. If you are unsure, start with Codespaces to look around and
+move to option 3 once you are editing code every day.
 
 | Option                                                  | What you need    | Setup                        |
 | ------------------------------------------------------- | ---------------- | ---------------------------- |
@@ -24,14 +26,16 @@ codespace on main**, or open
 [this link](https://codespaces.new/Doenet/DoenetApps).
 
 The first build takes several minutes: it builds the image, installs
-dependencies, and migrates and seeds the database. When the terminal is ready:
+dependencies, and migrates and seeds the database. The terminal prints
+`Dev container ready` when it is done. Then:
 
 ```bash
 npm run dev
 ```
 
-Codespaces forwards the ports automatically — click the app URL in the **Ports**
-panel, or open the notification that appears.
+Codespaces forwards the ports automatically and opens the app in a browser tab
+when it is up. To sign in, use the auto-login link `npm run dev` prints (see
+[Signing in](#signing-in)); it already points at your codespace's address.
 
 ### Option 2 — Dev container
 
@@ -39,21 +43,39 @@ The same environment on your own machine. Docker is the only prerequisite: the
 container brings its own Node, MySQL, S3 mock, and Chrome for the Cypress
 suites.
 
+Clone the repository first:
+
+```bash
+git clone https://github.com/Doenet/DoenetApps.git
+cd DoenetApps
+```
+
 With **VS Code**, install the
 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension, open the repository, and choose **Reopen in Container**.
+extension, open the folder, and choose **Reopen in Container**. The first build
+takes a few minutes; the terminal prints `Dev container ready` when the
+database is seeded. Then run `npm run dev` in the VS Code terminal.
 
 With the **CLI**, no editor involved:
 
 ```bash
-npx @devcontainers/cli up --workspace-folder .
+npx @devcontainers/cli up --workspace-folder .                       # build, install, seed
 npx @devcontainers/cli exec --workspace-folder . bash -lc 'npm run dev'
 ```
 
-Either way, open http://localhost:8000 when the dev servers are up.
+For a shell inside the container (to run tests, `claude`, and so on):
 
-[Claude Code](https://claude.com/claude-code) is installed in the container —
-run `claude` in any terminal there, or use the bundled VS Code extension.
+```bash
+npx @devcontainers/cli exec --workspace-folder . bash
+```
+
+Either way, `npm run dev` prints an auto-login link once the API is up; open it
+to sign in (see [Signing in](#signing-in)). Running the container again later is
+the same `up` command, which reuses everything it built the first time.
+
+[Claude Code](https://claude.com/claude-code) is installed in the container.
+Run `claude` in a terminal there and follow the sign-in prompt once; the login
+is kept in a volume and survives rebuilds. The VS Code extension is bundled too.
 
 Plain `docker compose` works too, and the container's internals — how the
 services fit together, rebuilding, cleaning up, and the arm64 caveat — are
@@ -108,6 +130,23 @@ npm run dev
 The MySQL container is shared across all worktrees — only the database and the
 ports differ.
 
+## Signing in
+
+There is no password. Once the API is up, `npm run dev` prints a box like this:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Dev auto-login ready - open this to sign in as dev@doenet.org: │
+│                                                                │
+│ http://localhost:8000/?autologin=true                          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+Open that link and you are signed in as a development user with authoring
+rights. The seeded database also contains other users and sample content; the
+regular sign-in page sends a magic link, which in development is printed to the
+API's terminal output instead of being emailed.
+
 ## What runs where
 
 `npm run dev` starts the shared-package watcher and three servers:
@@ -140,6 +179,23 @@ The e2e suite drives the running app, so start `npm run dev` first and let it
 come up. Append a filename to the Vitest commands to run a single file; the
 Cypress packages also expose grouped scripts (`test:group1` and friends) that
 mirror how CI splits them.
+
+## Troubleshooting
+
+- **`MySQL is not reachable`** when starting `npm run dev` on your own machine:
+  the database container is stopped. `npm run setup` starts it again.
+- **A port is already in use.** Something else on your machine holds 8000,
+  3000, or 4321. Stop it, or use a [worktree](#working-in-multiple-worktrees),
+  which gets its own ports. For the dev container, pass the ports to the `up`
+  command as described in
+  [.devcontainer/README.md](./.devcontainer/README.md#ports).
+- **The dev container seems stale** after a change to `.devcontainer/` or to
+  dependencies: rebuild it with
+  `npx @devcontainers/cli up --workspace-folder . --remove-existing-container`
+  (or **Rebuild Container** in VS Code). The database survives a rebuild.
+- **Type errors from `@doenet-tools/shared`** right after checking out a branch:
+  `npm run dev` rebuilds the shared package on start, so restart it.
+- **Something else?** Ask on [Discord](https://discord.gg/PUduwtKJ5h).
 
 ## Before you commit
 
