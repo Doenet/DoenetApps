@@ -52,7 +52,9 @@ name automatically. The VS Code extension is installed alongside it.
 `MEDIA_S3_LOCAL_ENDPOINT`. Both `dotenv` and the Prisma CLI leave already-set
 variables alone, so these win over the file — which means the checkout's `.env`,
 shared with the host through the bind mount, is never rewritten and the same
-checkout works on the host and in the container.
+checkout works on the host and in the container. (The one exception is a
+codespace, whose checkout is not shared with any host: there `post-create.sh`
+points `APP_URL` at the forwarded origin so sign-in links work — see below.)
 
 **The dev servers listen on all interfaces.** Vite and Astro otherwise bind to
 `127.0.0.1`, which published ports cannot reach, so the container sets
@@ -64,7 +66,9 @@ absolute links to the app from `PUBLIC_APP_URL`, which defaults to
 `http://localhost:8000` — meaningless in a browser pointed at
 `*.app.github.dev`. `post-create.sh` detects Codespaces and writes
 `apps/web/.env.local` with the forwarded URLs, the same override mechanism
-`npm run setup` uses for worktrees.
+`npm run setup` uses for worktrees. It also sets `APP_URL` in `apps/api/.env`
+to the forwarded origin, since the API builds magic-link sign-in URLs from it
+and `npm run dev` prints an auto-login link from the same value.
 
 **`node_modules` are named volumes**, so the container's Linux-native installs
 never collide with the host's. Only the workspaces npm actually populates get
