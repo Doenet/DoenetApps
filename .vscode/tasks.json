@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start dev servers",
+      "detail": "npm run dev \u2014 the API, app, and blog. No-op if already running.",
+      "type": "shell",
+      "command": "bash .devcontainer/start-dev.sh",
+      "windows": {
+        "command": "npm run dev"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Run API unit tests",
+      "type": "shell",
+      "command": "npm test --workspace @doenet-tools/api",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

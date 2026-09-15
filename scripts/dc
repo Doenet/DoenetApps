@@ -76,7 +76,7 @@ case "$cmd" in
    ./scripts/dc claude   # Claude Code inside the container
 MSG
     ;;
-  dev)     ensure_up; run_in npm run dev ;;
+  dev)     ensure_up; run_in bash .devcontainer/start-dev.sh ;;
   shell)   ensure_up; run_in bash -l ;;
   claude)  ensure_up; run_in claude "$@" ;;
   status)  compose ps ;;

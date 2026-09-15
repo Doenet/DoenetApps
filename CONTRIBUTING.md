@@ -26,16 +26,12 @@ codespace on main**, or open
 [this link](https://codespaces.new/Doenet/DoenetApps).
 
 The first build takes several minutes: it builds the image, installs
-dependencies, and migrates and seeds the database. The terminal prints
-`Dev container ready` when it is done. Then:
-
-```bash
-npm run dev
-```
-
-Codespaces forwards the ports automatically and opens the app in a browser tab
-when it is up. To sign in, use the auto-login link `npm run dev` prints (see
-[Signing in](#signing-in)); it already points at your codespace's address.
+dependencies, and migrates and seeds the database. The editor connects once
+that is done, starts the dev servers in a terminal, and opens the app in a
+browser tab when it is listening. To sign in, use the auto-login link printed
+in that terminal (see [Signing in](#signing-in)); it already points at your
+codespace's address. If you ever stop the servers, **Terminal → Run Build
+Task** (Ctrl/Cmd+Shift+B) starts them again.
 
 ### Option 2 — Dev container
 
@@ -66,14 +62,34 @@ Everything else you would do in a terminal goes through the same script:
 ./scripts/dc help                                   # the full list
 ```
 
-**Editing files.** The checkout is shared with the container, so edit with any
-editor on the host and the dev server picks the change up immediately. The one
-difference from option 3 is that `node_modules` lives inside the container, so
-a host editor cannot resolve imports for type hints. For a fully wired-up
-editor, open the folder in VS Code and choose **Reopen in Container** (with the
-[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension); it uses the same container, so `dc` commands keep working alongside
-it. Cursor and JetBrains support the same `.devcontainer` configuration.
+**With VS Code.** This is the smoothest way to use the container: the editor,
+terminal, Claude Code, and browser are all wired up for you.
+
+1. Open the cloned folder in VS Code. It offers to install the recommended
+   extensions; accept, or install
+   [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+   yourself.
+2. Accept the **Reopen in Container** prompt (or run it from the command
+   palette). The first time, this builds the image, installs dependencies, and
+   seeds the database — a few minutes. VS Code connects only when that is done.
+3. The dev servers start by themselves in a terminal, and the app opens in your
+   browser as soon as it is listening (otherwise, http://localhost:8000). The
+   auto-login link is in that terminal; see [Signing in](#signing-in).
+
+From there it behaves like option 3: edit, save, and the page reloads.
+**Terminal → Run Build Task** (Ctrl/Cmd+Shift+B) restarts the dev servers if
+you stop them, Claude Code is in the sidebar and as `claude` in the terminal,
+and any terminal you open is inside the container. Closing the window stops the
+whole stack; reopening the folder in the container brings it back in seconds.
+`./scripts/dc` commands from an outside terminal reach the same container. On
+Windows, clone inside WSL first. Cursor and JetBrains support the same
+`.devcontainer` configuration.
+
+**Editing files from the host.** With `dc` alone, the checkout is shared with
+the container, so any host editor works and the dev server picks changes up
+immediately. The one gap is that `node_modules` lives inside the container, so
+a host editor cannot resolve imports for type hints; VS Code in the container
+is the fix.
 
 The container's internals — how the services fit together, rebuilding, and the
 arm64 caveat — are in [.devcontainer/README.md](./.devcontainer/README.md).

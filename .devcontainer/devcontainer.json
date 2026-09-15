@@ -47,6 +47,12 @@
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  // Do not attach the editor until the database is seeded, so the first thing
+  // a newcomer sees is a working container rather than a half-built one.
+  "waitFor": "postCreateCommand",
+  // Every time VS Code (or a codespace) attaches, start the dev servers in a
+  // terminal. The script is a no-op when they are already running.
+  "postAttachCommand": "bash .devcontainer/start-dev.sh",
 
   // Stop MySQL and s3mock along with the dev container.
   "shutdownAction": "stopCompose",

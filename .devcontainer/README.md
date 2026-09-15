@@ -11,8 +11,12 @@ There are three ways to drive it, and they all share one container per checkout:
   `docker-compose.yml` directly, reads this checkout's ports from
   `apps/api/.env`, and runs `post-create.sh` the first time a container is
   created (it leaves a marker file in the container's home to know).
-- **VS Code** — **Reopen in Container**, which also installs the recommended
-  extensions.
+- **VS Code** — **Reopen in Container**. `devcontainer.json` also installs the
+  recommended extensions, waits for `post-create.sh` before connecting
+  (`waitFor`), and runs `start-dev.sh` on every attach (`postAttachCommand`),
+  which starts `npm run dev` unless the API port is already answering. The same
+  script is the default build task in `.vscode/tasks.json` and what `dc dev`
+  runs.
 - **The devcontainer CLI** — `npx @devcontainers/cli up --workspace-folder .`,
   which needs Node on the host. What Codespaces uses.
 

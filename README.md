@@ -27,9 +27,9 @@ cd DoenetApps
 ./scripts/dc claude   # Claude Code inside the container
 ```
 
-Edit files with whatever you like on the host; the container sees the same
-checkout. VS Code users can instead open the folder and choose **Reopen in
-Container** for an editor that runs inside it.
+Or open the folder in VS Code and accept **Reopen in Container**: it builds
+the same container, starts the dev servers, and opens the app for you. Either
+way, edit with whatever you like; the container sees the same checkout.
 
 **3. The toolchain on your machine.** Node 24 and Docker, for the fastest inner
 loop:
