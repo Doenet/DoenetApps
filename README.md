@@ -1,14 +1,6 @@
 # Welcome to Doenet!
 
-The Distributed Open Education Network (Doenet) is an open data-driven educational technology platform designed to measure and share student interactions with web pages. It includes tools for authoring interactive educational content, including our custom DoenetML markup language, and conducting educational research using the content. Our ultimate goal is to provide research-based tools to help instructors and learners discover the most effective content. Simply put, Doenet gives teachers complete flexibility over their educational content and gives them power of anonymized student data to track learning outcomes. With Doenet, we hope to help teachers teach better and students learn better.
-
-Although we are still in the early stages, we are excited to introduce Doenet and illustrate the richly interactive activities that one can author with it.
-
-For more background and information on the Doenet project, see this [MAA DUE Point](https://www.mathvalues.org/masterblog/reimagining-online-mathematics) article.
-
-We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h) to ask questions and stay updated on our progress!
-
----
+This repo is for the doenet.org website and tools around DoenetML. If you're looking for the DoenetML language, see github.com/Doenet/DoenetML.
 
 ## Getting started
 
@@ -24,16 +16,20 @@ including running the tests and opening a pull request, are in
 Wait for the terminal to say `Dev container ready`, then run `npm run dev`.
 
 **2. Dev container on your machine.** Docker is the only prerequisite. The
-container brings its own Node, MySQL, S3 mock, and Chrome for the Cypress
-suites. Clone the repository, then either open it in VS Code and choose
-**Reopen in Container**, or use the CLI:
+container brings its own Node, MySQL, S3 mock, Chrome, and Claude Code, and
+one script drives it from the host:
 
 ```bash
 git clone https://github.com/Doenet/DoenetApps.git
 cd DoenetApps
-npx @devcontainers/cli up --workspace-folder .        # builds and seeds; a few minutes
-npx @devcontainers/cli exec --workspace-folder . bash -lc 'npm run dev'
+./scripts/dc dev      # first run builds and seeds the container (a few minutes), then starts the app
+./scripts/dc shell    # a terminal inside the container, in another tab
+./scripts/dc claude   # Claude Code inside the container
 ```
+
+Edit files with whatever you like on the host; the container sees the same
+checkout. VS Code users can instead open the folder and choose **Reopen in
+Container** for an editor that runs inside it.
 
 **3. The toolchain on your machine.** Node 24 and Docker, for the fastest inner
 loop:

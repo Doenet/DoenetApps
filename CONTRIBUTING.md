@@ -2,9 +2,9 @@
 
 Thanks for helping build Doenet! This page covers getting a development
 environment running, the checks we expect to pass, and how changes are
-proposed. For the shape of the codebase itself, see [AGENTS.md](./AGENTS.md).
+proposed.
 
-Questions are welcome on [Discord](https://discord.gg/PUduwtKJ5h).
+Questions are welcome on Github discussions or [Discord](https://discord.gg/PUduwtKJ5h).
 
 ## Setting up a development environment
 
@@ -39,47 +39,44 @@ when it is up. To sign in, use the auto-login link `npm run dev` prints (see
 
 ### Option 2 — Dev container
 
-The same environment on your own machine. Docker is the only prerequisite: the
-container brings its own Node, MySQL, S3 mock, and Chrome for the Cypress
-suites.
-
-Clone the repository first:
+The same environment on your own machine, and the closest thing to option 3
+without installing a toolchain. Docker is the only prerequisite: the container
+brings its own Node, MySQL, S3 mock, Chrome for the Cypress suites, and Claude
+Code. On Windows, run the commands below from WSL.
 
 ```bash
 git clone https://github.com/Doenet/DoenetApps.git
 cd DoenetApps
+./scripts/dc dev
 ```
 
-With **VS Code**, install the
+The first run builds the image, installs dependencies, and migrates and seeds
+the database, which takes a few minutes; after that it starts in seconds.
+`dc dev` then runs `npm run dev` inside the container and prints the auto-login
+link (see [Signing in](#signing-in)). Open it in your normal browser: the ports
+are published on localhost exactly as in option 3.
+
+Everything else you would do in a terminal goes through the same script:
+
+```bash
+./scripts/dc shell                                  # a shell in the container
+./scripts/dc claude                                 # Claude Code (sign in once; it is remembered)
+./scripts/dc npm test --workspace @doenet-tools/api # any command, run inside
+./scripts/dc down                                   # stop; the database and installs survive
+./scripts/dc help                                   # the full list
+```
+
+**Editing files.** The checkout is shared with the container, so edit with any
+editor on the host and the dev server picks the change up immediately. The one
+difference from option 3 is that `node_modules` lives inside the container, so
+a host editor cannot resolve imports for type hints. For a fully wired-up
+editor, open the folder in VS Code and choose **Reopen in Container** (with the
 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension, open the folder, and choose **Reopen in Container**. The first build
-takes a few minutes; the terminal prints `Dev container ready` when the
-database is seeded. Then run `npm run dev` in the VS Code terminal.
+extension); it uses the same container, so `dc` commands keep working alongside
+it. Cursor and JetBrains support the same `.devcontainer` configuration.
 
-With the **CLI**, no editor involved:
-
-```bash
-npx @devcontainers/cli up --workspace-folder .                       # build, install, seed
-npx @devcontainers/cli exec --workspace-folder . bash -lc 'npm run dev'
-```
-
-For a shell inside the container (to run tests, `claude`, and so on):
-
-```bash
-npx @devcontainers/cli exec --workspace-folder . bash
-```
-
-Either way, `npm run dev` prints an auto-login link once the API is up; open it
-to sign in (see [Signing in](#signing-in)). Running the container again later is
-the same `up` command, which reuses everything it built the first time.
-
-[Claude Code](https://claude.com/claude-code) is installed in the container.
-Run `claude` in a terminal there and follow the sign-in prompt once; the login
-is kept in a volume and survives rebuilds. The VS Code extension is bundled too.
-
-Plain `docker compose` works too, and the container's internals — how the
-services fit together, rebuilding, cleaning up, and the arm64 caveat — are
-documented in [.devcontainer/README.md](./.devcontainer/README.md).
+The container's internals — how the services fit together, rebuilding, and the
+arm64 caveat — are in [.devcontainer/README.md](./.devcontainer/README.md).
 
 ### Option 3 — Local toolchain
 
@@ -186,13 +183,10 @@ mirror how CI splits them.
   the database container is stopped. `npm run setup` starts it again.
 - **A port is already in use.** Something else on your machine holds 8000,
   3000, or 4321. Stop it, or use a [worktree](#working-in-multiple-worktrees),
-  which gets its own ports. For the dev container, pass the ports to the `up`
-  command as described in
-  [.devcontainer/README.md](./.devcontainer/README.md#ports).
+  which gets its own ports (`./scripts/dc` picks those up automatically).
 - **The dev container seems stale** after a change to `.devcontainer/` or to
-  dependencies: rebuild it with
-  `npx @devcontainers/cli up --workspace-folder . --remove-existing-container`
-  (or **Rebuild Container** in VS Code). The database survives a rebuild.
+  dependencies: `./scripts/dc rebuild` (or **Rebuild Container** in VS Code).
+  The database survives a rebuild; `./scripts/dc reset` is the one that wipes it.
 - **Type errors from `@doenet-tools/shared`** right after checking out a branch:
   `npm run dev` rebuilds the shared package on start, so restart it.
 - **Something else?** Ask on [Discord](https://discord.gg/PUduwtKJ5h).

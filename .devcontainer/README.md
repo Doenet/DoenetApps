@@ -1,22 +1,25 @@
 # Dev container internals
 
 Reference for the container itself. For getting started, see
-[Setting up a development environment](../CONTRIBUTING.md#setting-up-a-development-environment)
-— in VS Code it is **Reopen in Container**, and with the CLI:
+[Setting up a development environment](../CONTRIBUTING.md#setting-up-a-development-environment).
 
-```bash
-npx @devcontainers/cli up --workspace-folder .
-npx @devcontainers/cli exec --workspace-folder . bash -lc 'npm run dev'
-```
+There are three ways to drive it, and they all share one container per checkout:
 
-Plain `docker compose` works as well, though it does not run the post-create
-step for you:
+- **`scripts/dc`** — from the host, with nothing but Docker installed.
+  `./scripts/dc dev`, `shell`, `claude`, or any command; `up`, `down`,
+  `rebuild`, `reset`, `status`. It runs `docker compose` on
+  `docker-compose.yml` directly, reads this checkout's ports from
+  `apps/api/.env`, and runs `post-create.sh` the first time a container is
+  created (it leaves a marker file in the container's home to know).
+- **VS Code** — **Reopen in Container**, which also installs the recommended
+  extensions.
+- **The devcontainer CLI** — `npx @devcontainers/cli up --workspace-folder .`,
+  which needs Node on the host. What Codespaces uses.
 
-```bash
-docker compose -p doenet-dev -f .devcontainer/docker-compose.yml up -d --build --wait
-docker compose -p doenet-dev -f .devcontainer/docker-compose.yml exec dev bash -lc 'bash .devcontainer/post-create.sh'
-docker compose -p doenet-dev -f .devcontainer/docker-compose.yml exec dev bash
-```
+All three name the compose project `<folder>_devcontainer`, so they see the
+same containers and volumes: `dc shell`, `dc claude`, and `dc dev` attach to a
+container VS Code started. `dc up` and `dc rebuild` create the container from
+the plain compose file, so run those only when VS Code is not attached.
 
 ## The stack
 
@@ -84,8 +87,9 @@ re-download them.
 
 Ports come from `apps/api/.env`: a fresh checkout gets app 8000, api 3000, blog
 4321, while a [worktree](../CONTRIBUTING.md#working-in-multiple-worktrees) is
-assigned an offset. Compose cannot read that file, so pass the ports when they
-are not the defaults — also the fix if something on the host already holds one:
+assigned an offset. `scripts/dc` reads that file for you. Compose and the
+devcontainer CLI cannot, so pass the ports to them when they are not the
+defaults — also the fix if something on the host already holds one:
 
 ```bash
 APP_PORT=8002 API_PORT=3002 WEB_PORT=4323 \
@@ -97,13 +101,15 @@ APP_PORT=8002 API_PORT=3002 WEB_PORT=4323 \
 `up` is idempotent; re-running it reuses the container. To force a fresh one:
 
 ```bash
+./scripts/dc rebuild
+# or, with the CLI:
 npx @devcontainers/cli up --workspace-folder . \
   --remove-existing-container --build-no-cache
 ```
 
-That keeps the named volumes, so the database and Cypress binary survive. To
-discard those too, remove the stack. The CLI names its compose project after the
-folder, so a checkout in `apps` gives `apps_devcontainer`:
+That keeps the named volumes, so the database, installs, and Cypress binary
+survive. To discard those too, remove the stack — `./scripts/dc reset`, or by
+hand (a checkout in `apps` is project `apps_devcontainer`):
 
 ```bash
 docker compose -p apps_devcontainer -f .devcontainer/docker-compose.yml down -v
