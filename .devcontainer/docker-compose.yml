@@ -64,7 +64,10 @@ services:
       # us a failed Codespaces build.
       s3mock:
         condition: service_started
-    # Keeps the container alive; VS Code attaches to it.
+    # Keeps the container alive; VS Code attaches to it. `init` puts a real
+    # PID 1 in front of it so processes left behind by a killed `npm run dev`
+    # are reaped instead of lingering as zombies.
+    init: true
     command: sleep infinity
 
   mysql:
