@@ -9,7 +9,17 @@ import {
 import { DoenetViewer } from "@doenet/doenetml-iframe";
 import { doenetImagesUrl } from "../utils/media";
 
-import { Box, Button, Grid, GridItem, Text, Tooltip } from "@chakra-ui/react";
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Box,
+  Button,
+  Grid,
+  GridItem,
+  Text,
+  Tooltip,
+} from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
 import {
   EnterClassCode,
@@ -248,6 +258,10 @@ export function AssignmentViewer() {
   if (!user) {
     throw Error("User should have been defined");
   }
+
+  const isAnonymous = user.isAnonymous === true;
+  const anonymousBannerHeight = "40px";
+  const headerHeight = isAnonymous ? "120px" : "80px";
 
   const [attemptNumber, setAttemptNumber] = useState<number>(
     loaderData.attemptNumber,
@@ -558,8 +572,6 @@ export function AssignmentViewer() {
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
-  const headerHeight = "80px";
-
   let viewer: ReactElement<any>;
   if (loaderData.type === "singleDoc") {
     const maxAttempts = assignment.assignmentInfo?.maxAttempts ?? 0;
@@ -657,9 +669,10 @@ export function AssignmentViewer() {
       background="viewerFrame"
       minHeight="calc(100vh - 40px)" //40px header height
       templateAreas={`"header"
+      ${isAnonymous ? `"banner"` : ``}
       "centerContent"
       `}
-      templateRows="40px auto"
+      templateRows={isAnonymous ? "40px 40px auto" : "40px auto"}
       position="relative"
     >
       <GridItem
@@ -699,6 +712,22 @@ export function AssignmentViewer() {
           ></GridItem>
         </Grid>
       </GridItem>
+
+      {isAnonymous && (
+        <GridItem
+          area="banner"
+          height={anonymousBannerHeight}
+          width="100%"
+          data-test="Anonymous User Banner"
+        >
+          <Alert status="info" height={anonymousBannerHeight}>
+            <AlertIcon />
+            <AlertDescription>
+              You are working on this assignment as an anonymous user.
+            </AlertDescription>
+          </Alert>
+        </GridItem>
+      )}
 
       <GridItem
         area="centerContent"
