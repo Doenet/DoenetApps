@@ -24,6 +24,9 @@ services:
       - npm_cache:/home/node/.npm
       # Claude Code's config, so you log in once rather than once per rebuild.
       - claude_config:/home/node/.claude
+      # gh's login, if you sign in inside the container rather than passing a
+      # token from the host.
+      - gh_config:/home/node/.config/gh
     # Published on the host's loopback only. The port numbers come from
     # apps/api/.env (a fresh checkout uses the defaults below); override them
     # in the shell if that file assigns this checkout an offset, or if
@@ -120,5 +123,6 @@ volumes:
   cypress_cache:
   npm_cache:
   claude_config:
+  gh_config:
   mysql_data:
   s3mock_data:

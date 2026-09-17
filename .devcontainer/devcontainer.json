@@ -42,8 +42,11 @@
   // Passes an API key through when the host has one set. Claude Code also
   // signs in interactively with `claude`, and Codespaces exposes a repository
   // or user secret of this name automatically.
+  // GH_TOKEN likewise lets gh and git push act as you; leave it unset to run
+  // `gh auth login` inside instead. Codespaces provides its own GITHUB_TOKEN.
   "remoteEnv": {
-    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",

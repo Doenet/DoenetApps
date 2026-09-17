@@ -34,6 +34,17 @@ RUN set -eux; \
     fi; \
     rm -rf /var/lib/apt/lists/*
 
+# GitHub CLI, so an agent (or a person) in the container can open pull
+# requests and so git can push over HTTPS using gh's credentials.
+RUN set -eux; \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /usr/share/keyrings/githubcli-archive-keyring.gpg; \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gh; \
+    rm -rf /var/lib/apt/lists/*
+
 # Claude Code, installed globally while we are still root. Its config directory
 # is a named volume (see docker-compose.yml), so a login survives rebuilds.
 RUN npm install -g @anthropic-ai/claude-code
@@ -52,6 +63,7 @@ RUN mkdir -p \
         /home/node/.cache/Cypress \
         /home/node/.npm \
         /home/node/.claude \
+        /home/node/.config/gh \
         /home/node/workspace/node_modules \
         /home/node/workspace/apps/api/node_modules \
         /home/node/workspace/apps/app/node_modules \

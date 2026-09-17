@@ -27,7 +27,8 @@ cd DoenetApps
 ./scripts/dc claude   # Claude Code inside the container
 ```
 
-Or open the folder in VS Code and accept **Reopen in Container**: it builds
+Git, `gh`, and Claude Code all work inside, with your host's identity and
+GitHub login. Or open the folder in VS Code and accept **Reopen in Container**: it builds
 the same container, starts the dev servers, and opens the app for you. Either
 way, edit with whatever you like; the container sees the same checkout.
 

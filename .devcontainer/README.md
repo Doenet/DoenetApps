@@ -77,6 +77,15 @@ absolute links to the app from `PUBLIC_APP_URL`, which defaults to
 to the forwarded origin, since the API builds magic-link sign-in URLs from it
 and `npm run dev` prints an auto-login link from the same value.
 
+**Git and GitHub work from inside.** `post-create.sh` marks every directory
+safe (the bind mount may not be owned by uid 1000), points git's credential
+helper at `gh`, and rewrites `git@github.com:` remotes to HTTPS, since the
+host's SSH keys are not in the container. `gh` gets a token from `GH_TOKEN` —
+`scripts/dc` passes the host's `gh auth token` per command, VS Code passes the
+host's environment variable, and Codespaces provides one — or from
+`gh auth login` inside, kept in the `gh_config` volume. Identity is copied by
+VS Code and Codespaces, and by `dc up`.
+
 **`node_modules` are named volumes**, so the container's Linux-native installs
 never collide with the host's. Only the workspaces npm actually populates get
 one; `initializeCommand` pre-creates those mount points as the host user,
@@ -121,9 +130,11 @@ docker compose -p apps_devcontainer -f .devcontainer/docker-compose.yml down -v
 
 ## Known limitations
 
-- **Linked git worktrees**: git does not work inside the container, because
-  `.git` is a file pointing outside the bind mount. Everything else works; use
-  the main checkout or a clone for committing.
+- **Linked git worktrees in VS Code**: `.git` is a file pointing at the main
+  repository outside the bind mount, so git cannot find it. `scripts/dc`
+  handles this by mounting that directory at the same path; VS Code does not,
+  so add the same mount to `devcontainer.json` (`"mounts"`) or open the main
+  checkout instead.
 - **arm64 hosts**: Google ships no arm64 Chrome build, so Chromium is installed
   instead and Cypress needs `-b chromium`. The package scripts hardcode
   `-b chrome`.

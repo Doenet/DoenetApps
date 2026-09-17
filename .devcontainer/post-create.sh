@@ -48,6 +48,17 @@ if [ "${CODESPACES:-}" = "true" ] && [ -f "$codespaces_env" ]; then
   fi
 fi
 
+# 1c. Git. The checkout is a bind mount owned by the host user, which may not
+# be uid 1000; tell git that is fine. Push over HTTPS with gh's credentials
+# (a GH_TOKEN passed from the host, or `gh auth login` in here), and rewrite
+# SSH remotes to HTTPS so a clone made over SSH works the same way — the host's
+# SSH keys are not in the container. Identity comes from the host: VS Code and
+# Codespaces copy it in themselves, and scripts/dc sets it on every `up`.
+git config --global --add safe.directory '*'
+gh auth setup-git 2>/dev/null || true
+git config --global url."https://github.com/".insteadOf "git@github.com:"
+echo "✅ Git configured (safe.directory, gh credential helper, SSH→HTTPS remotes)"
+
 # 2. Dependencies. `npm ci` also runs the postinstall `prisma generate`.
 echo "📦 Installing dependencies..."
 npm ci

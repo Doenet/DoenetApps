@@ -160,6 +160,25 @@ rights. The seeded database also contains other users and sample content; the
 regular sign-in page sends a magic link, which in development is printed to the
 API's terminal output instead of being emailed.
 
+## Git and GitHub inside the container
+
+Committing, pushing, and opening pull requests work from a terminal in the
+container — including from Claude Code running there — the same as on the
+host. What makes that true:
+
+- **Identity.** VS Code and Codespaces copy your git name and email in;
+  `./scripts/dc up` does the same from your host git config.
+- **Credentials.** `gh` is installed. `dc` passes your host's `gh` login in as
+  `GH_TOKEN` for each command, VS Code passes a `GH_TOKEN` from your
+  environment if you have one, and Codespaces provides its own token. Without
+  any of those, run `gh auth login` once inside; it is remembered in a volume.
+  `git push` uses the same credentials over HTTPS, and SSH remotes are
+  rewritten to HTTPS inside the container, so a clone made over SSH works too.
+- **Worktrees.** A [linked worktree](#working-in-multiple-worktrees) keeps its
+  repository outside the checkout; `dc` mounts it so git works there as well.
+  VS Code does not, so open the main checkout in the container or add the
+  mount yourself.
+
 ## What runs where
 
 `npm run dev` starts the shared-package watcher and three servers:

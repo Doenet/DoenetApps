@@ -30,7 +30,28 @@ fi
 offset=$((api_port - 3000))
 export API_PORT="$api_port" APP_PORT="$((8000 + offset))" WEB_PORT="$((4321 + offset))"
 
-compose() { docker compose -p "$project" -f "$compose_file" "$@"; }
+# A linked git worktree's .git is a file pointing at the main repository, which
+# is outside the bind mount; mount that directory at the same path so git works
+# inside. (A normal clone needs nothing.)
+extra_compose=()
+if command -v git >/dev/null && common=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
+   && [ "$common" != "$root/.git" ]; then
+  override=$(mktemp)
+  trap 'rm -f "$override"' EXIT
+  printf 'services:\n  dev:\n    volumes:\n      - "%s:%s"\n' "$common" "$common" > "$override"
+  extra_compose=(-f "$override")
+fi
+
+compose() { docker compose -p "$project" -f "$compose_file" "${extra_compose[@]}" "$@"; }
+
+# GitHub credentials for gh and git push, borrowed from the host's gh login
+# unless GH_TOKEN is already set. Passed per exec, so nothing is baked into the
+# container and a re-login on the host is picked up next time.
+gh_env=()
+if [ -z "${GH_TOKEN:-}" ] && command -v gh >/dev/null; then
+  GH_TOKEN=$(gh auth token 2>/dev/null || true)
+fi
+[ -n "${GH_TOKEN:-}" ] && gh_env=(-e "GH_TOKEN=$GH_TOKEN")
 
 running() { [ -n "$(compose ps -q --status running dev 2>/dev/null)" ]; }
 
@@ -38,7 +59,7 @@ running() { [ -n "$(compose ps -q --status running dev 2>/dev/null)" ]; }
 run_in() {
   local tty=()
   [ -t 0 ] && [ -t 1 ] || tty=(-T)
-  compose exec "${tty[@]}" -w /home/node/workspace dev "$@"
+  compose exec "${tty[@]}" "${gh_env[@]}" -w /home/node/workspace dev "$@"
 }
 
 post_create_if_needed() {
@@ -54,6 +75,17 @@ up() {
   mkdir -p "$root"/{node_modules,apps/api/node_modules,apps/app/node_modules,apps/web/node_modules}
   compose up -d --build --wait "$@"
   post_create_if_needed
+  copy_git_identity
+}
+
+# Commits made inside should carry the same name and email as on the host.
+copy_git_identity() {
+  command -v git >/dev/null || return 0
+  local name email
+  name=$(git config user.name || true); email=$(git config user.email || true)
+  [ -n "$name" ] && run_in git config --global user.name "$name"
+  [ -n "$email" ] && run_in git config --global user.email "$email"
+  return 0
 }
 
 ensure_up() {
