@@ -444,6 +444,85 @@ describe("MoveCopyContent component tests", { tags: ["@group2"] }, () => {
     cy.get('[data-test="Current destination"]').should("have.text", "Folder 1");
   });
 
+  it("Go to folder uses correct userId even when content is shared with others", () => {
+    // This test checks that the userId prop is not corrupted by the shareAlert computation
+    // when source content is shared with users and the destination folder also has shared users.
+    const sharedUserId = "sharedUser123";
+
+    const mockFetcherSuccess = {
+      state: "idle",
+      formData: undefined,
+      data: { status: 200 },
+      Form: ({ children }: any) => <form>{children}</form>,
+      submit: () => {},
+      load: () => {},
+    } as unknown as FetcherWithComponents<any>;
+
+    // The modal opens showing the shared folder as the destination
+    // (simulating the user having navigated to this folder before the move completed)
+    cy.intercept("/api/copyMove/getMoveCopyContentData/*", {
+      parent: {
+        id: "hij",
+        name: "Shared Folder",
+        type: "folder",
+        isPublic: false,
+        sharedWith: [{ userId: sharedUserId }],
+        parent: null,
+      },
+      contents: [],
+    }).as("getFolderData");
+
+    const onCloseSpy = cy.spy().as("onClose");
+    const onNavigateSpy = cy.spy().as("onNavigate");
+    cy.mount(
+      <MoveCopyContent
+        isOpen={true}
+        onClose={onCloseSpy}
+        onNavigate={onNavigateSpy}
+        fetcher={mockFetcherSuccess}
+        sourceContent={[
+          {
+            contentId,
+            name: contentName,
+            type: contentType,
+            isPublic: false,
+            isShared: true,
+            sharedWith: [
+              {
+                userId: sharedUserId,
+                firstNames: "Shared",
+                lastNames: "User",
+                email: "shared@example.com",
+              },
+            ],
+          },
+        ]}
+        userId={"abc123"}
+        currentParentId={null}
+        allowedParentTypes={["folder"]}
+        action="Move"
+      />,
+    );
+
+    // Wait for the API to return the shared folder data
+    cy.wait("@getFolderData");
+
+    // Verify the modal is in the success state showing the destination folder
+    cy.get('[data-test="MoveCopy Body"]').should(
+      "contain.text",
+      "Shared Folder",
+    );
+
+    // Click "Go to folder" and verify it uses the correct userId from the prop (abc123),
+    // not the shared user's ID (sharedUser123)
+    cy.get('[data-test="Go to Destination"]').click();
+
+    cy.get("@onNavigate").should(
+      "have.been.calledWith",
+      `/activities/abc123/hij`,
+    );
+  });
+
   it("different actions show correct heading text", () => {
     cy.intercept("/api/copyMove/getMoveCopyContentData/*", {
       parent: null,
