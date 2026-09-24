@@ -980,6 +980,105 @@ test("cannot copy into assigned problem set", async () => {
   ).rejects.toThrow("Cannot copy content into an assigned activity");
 });
 
+test("cannot copy an assignment", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [problemSetId] = await setupTestContent(ownerId, {
+    "problem set 1": pset({
+      "doc 1": doc(""),
+    }),
+  });
+  const { assignmentId } = await createAssignment({
+    contentId: problemSetId,
+    loggedInUserId: ownerId,
+    destinationParentId: null,
+    closedOn: DateTime.now(),
+  });
+
+  await expect(
+    copyContent({
+      contentIds: [assignmentId],
+      loggedInUserId: ownerId,
+      parentId: null,
+    }),
+  ).rejects.toThrow("Cannot copy an assignment");
+});
+
+test("cannot copy an assignment (singleDoc)", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [docId] = await setupTestContent(ownerId, {
+    "doc 1": doc(""),
+  });
+  const { assignmentId } = await createAssignment({
+    contentId: docId,
+    loggedInUserId: ownerId,
+    destinationParentId: null,
+    closedOn: DateTime.now(),
+  });
+
+  await expect(
+    copyContent({
+      contentIds: [assignmentId],
+      loggedInUserId: ownerId,
+      parentId: null,
+    }),
+  ).rejects.toThrow("Cannot copy an assignment");
+});
+
+// A folder is not itself an assignment, so copying it is allowed. Its
+// assignment descendants are copied as plain (unassigned) activities, since
+// `copySingleContent` omits the assignment fields.
+test("copying a folder containing an assignment drops the assignment data", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const [folderId] = await setupTestContent(ownerId, {
+    "folder 1": fold({}),
+  });
+  const [problemSetId] = await setupTestContent(ownerId, {
+    "problem set 1": pset({
+      "doc 1": doc(""),
+    }),
+  });
+  // creates the assignment as a copy of the problem set inside `folder 1`
+  const { assignmentId } = await createAssignment({
+    contentId: problemSetId,
+    loggedInUserId: ownerId,
+    destinationParentId: folderId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+  });
+
+  const { newContentIds } = await copyContent({
+    contentIds: [folderId],
+    loggedInUserId: ownerId,
+    parentId: null,
+  });
+
+  const folderResults = await getMyContent({
+    parentId: newContentIds[0],
+    ownerId,
+    loggedInUserId: ownerId,
+  });
+  if (folderResults.notMe) {
+    throw Error("shouldn't happen");
+  }
+  expect(folderResults.content.length).eq(1);
+  expect(folderResults.content[0].name).eq("problem set 1");
+
+  // the copy is a regular problem set, with no assignment data
+  const copiedAssignment = await getContent({
+    contentId: folderResults.content[0].contentId,
+    loggedInUserId: ownerId,
+    includeAssignInfo: true,
+  });
+  expect(copiedAssignment.assignmentInfo).eq(undefined);
+
+  // the original assignment is untouched
+  const originalAssignment = await getContent({
+    contentId: assignmentId,
+    loggedInUserId: ownerId,
+    includeAssignInfo: true,
+  });
+  expect(originalAssignment.assignmentInfo?.assignmentStatus).eq("Open");
+});
+
 test("MoveCopyContent does not allow singleDoc` as parent type", async () => {
   const { userId: loggedInUserId } = await createTestUser();
 
