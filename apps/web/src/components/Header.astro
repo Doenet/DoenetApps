@@ -10,17 +10,9 @@ const optimizedLogo = await getImage({ src: doenetLogo });
 <header>
   <nav>
     <div class="nav-left">
-      {
-        APP_URL ? (
-          <a class="logo-link" href={APP_URL}>
-            <img src={optimizedLogo.src} alt="Doenet" width="140" height="32" />
-          </a>
-        ) : (
-          <span class="logo-link">
-            <img src={optimizedLogo.src} alt="Doenet" width="140" height="32" />
-          </span>
-        )
-      }
+      <a class="logo-link" href={APP_URL || "/"}>
+        <img src={optimizedLogo.src} alt="Doenet" width="140" height="32" />
+      </a>
       <HeaderLink href={BLOG_BASE_URL}>Blog</HeaderLink>
     </div>
   </nav>

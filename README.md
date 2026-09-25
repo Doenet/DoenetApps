@@ -4,36 +4,8 @@ This repo is for the doenet.org website and tools around DoenetML. If you're loo
 
 ## Getting started
 
-Three ways to get a development environment, easiest first. Each one ends with
-the app running at http://localhost:8000 and a link to sign in. Full details,
-including running the tests and opening a pull request, are in
-[CONTRIBUTING.md](./CONTRIBUTING.md).
-
-**1. GitHub Codespaces.** Nothing to install; everything runs in the browser.
-
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Doenet/DoenetApps)
-
-Wait for the terminal to say `Dev container ready`, then run `npm run dev`.
-
-**2. Dev container on your machine.** Docker is the only prerequisite. The
-container brings its own Node, MySQL, S3 mock, Chrome, and Claude Code, and
-one script drives it from the host:
-
-```bash
-git clone https://github.com/Doenet/DoenetApps.git
-cd DoenetApps
-./scripts/dc dev      # first run builds and seeds the container (a few minutes), then starts the app
-./scripts/dc shell    # a terminal inside the container, in another tab
-./scripts/dc claude   # Claude Code inside the container
-```
-
-Git, `gh`, and Claude Code all work inside, with your host's identity and
-GitHub login. Or open the folder in VS Code and accept **Reopen in Container**: it builds
-the same container, starts the dev servers, and opens the app for you. Either
-way, edit with whatever you like; the container sees the same checkout.
-
-**3. The toolchain on your machine.** Node 24 and Docker, for the fastest inner
-loop:
+You need [Node.js](https://nodejs.org/) 24 (see [.nvmrc](./.nvmrc)) and
+[Docker](https://www.docker.com/) for the database.
 
 ```bash
 git clone https://github.com/Doenet/DoenetApps.git
@@ -43,9 +15,15 @@ npm run setup     # creates apps/api/.env, starts MySQL, migrates and seeds
 npm run dev       # app :8000, api :3000, blog :4321
 ```
 
-However you start it, `npm run dev` prints a boxed **auto-login link** once the
-API is up. Open it to land in the app signed in as a development user. The
-blog is at `/blog` on the same origin, matching production.
+Once the API is up it prints an **auto-login link**; open it to land in the
+app signed in as a development user. The blog is at `/blog` on the same origin.
+
+Prefer not to install anything? Open the repo in
+[GitHub Codespaces](https://codespaces.new/Doenet/DoenetApps) or accept
+VS Code's **Reopen in Container** prompt: the same setup runs inside a
+container that brings its own Node, MySQL, Chrome, and Claude Code. Details,
+tests, and how to open a pull request are in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 

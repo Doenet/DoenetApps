@@ -91,7 +91,16 @@ app.use(function (req, res, next) {
 const mockSigninEmail =
   process.env.MOCK_SIGNIN_EMAIL?.trim().toLowerCase() === "true";
 const awsSesArn = getEnvVar("EMAIL_SES_ARN");
-const appUrl = getEnvVar("APP_URL", true).replace(/\/$/, "");
+const appUrl = devAppUrl() || getEnvVar("APP_URL", true).replace(/\/$/, "");
+
+// In a GitHub codespace the browser reaches the app through a forwarded
+// *.app.github.dev address, not APP_URL. Development only.
+function devAppUrl(): string | undefined {
+  const name = process.env.CODESPACE_NAME;
+  const domain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
+  if (!name || !domain) return undefined;
+  return `https://${name}-${process.env.APP_PORT || 8000}.${domain}`;
+}
 
 let awsSesRegion: string | undefined;
 let sendingEmailAddress: string | undefined;
@@ -548,6 +557,20 @@ app.post(
 
 const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
+  if (isTestAuthBypassEnabled()) {
+    // Dev convenience: opening this signs in as dev@doenet.org (see
+    // apps/app/src/dev/autoLogin.ts).
+    const lines = [
+      "Dev auto-login ready - open this to sign in as dev@doenet.org:",
+      "",
+      `${appUrl}/?autologin=true`,
+    ];
+    const width = Math.max(...lines.map((l) => l.length));
+    const bar = "─".repeat(width + 2);
+    console.log(
+      `\n┌${bar}┐\n${lines.map((l) => `│ ${l.padEnd(width)} │`).join("\n")}\n└${bar}┘\n`,
+    );
+  }
 });
 
 // Must exceed the ALB's idle_timeout (30s, set in infra/cloudformation/service-common.yml)
