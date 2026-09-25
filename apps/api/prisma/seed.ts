@@ -33,7 +33,7 @@ async function seedDoenetMLVersions() {
     default: true,
   });
   await updateOrCreateDoenetMLVersion({
-    displayedVersion: "0.7dev",
+    displayedVersion: "0.8dev",
     fullVersion: "dev",
   });
 }
