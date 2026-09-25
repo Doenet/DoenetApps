@@ -1,64 +1,50 @@
 // See https://aka.ms/devcontainer.json for format details.
+//
+// The container is the repo-root compose stack plus a `dev` service to work
+// in (docker-compose.yml here). VS Code, the devcontainer CLI, and Codespaces
+// all read this file; they also forward git credentials and identity, and fix
+// file ownership, so nothing here does that by hand.
 {
   "name": "Doenet Apps",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
   "service": "dev",
-  "workspaceFolder": "/home/node/workspace",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "remoteUser": "node",
+  "shutdownAction": "stopCompose",
 
-  // The base image is a slim Node image with no SSH server, which the
-  // `gh codespace ssh|logs|cp` commands need. Harmless locally.
   "features": {
-    "ghcr.io/devcontainers/features/sshd:1": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/git:1": { "version": "os-provided" },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // `gh codespace ssh|logs|cp` need an SSH server. Harmless locally.
+    "ghcr.io/devcontainers/features/sshd:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
 
-  "hostRequirements": {
-    "cpus": 2,
-    "memory": "8gb",
-    "storage": "32gb"
-  },
+  "hostRequirements": { "cpus": 2, "memory": "8gb", "storage": "32gb" },
 
-  // api, app (open this one), blog
-  "forwardPorts": [3000, 8000, 4321],
-  // The app is the one to open: it proxies /api to the API and /blog to Astro,
-  // so it is the only port worth clicking. The other two are labelled for the
-  // Ports panel but stay quiet, since landing on the API's debug root instead
-  // of the app is a confusing first impression.
+  // The app proxies /api and /blog, so it is the only port worth opening.
+  "forwardPorts": [8000, 3000, 4321],
   "portsAttributes": {
-    "8000": { "label": "app (open this one)", "onAutoForward": "openBrowser" },
+    "8000": { "label": "app", "onAutoForward": "openBrowser" },
     "3000": { "label": "api", "onAutoForward": "silent" },
     "4321": {
-      "label": "blog (served via the app at /blog)",
+      "label": "blog (served by the app at /blog)",
       "onAutoForward": "silent"
     }
   },
 
-  // Runs on the host before the container is created. Docker creates a missing
-  // volume mount point as root, which would leave root-owned directories in the
-  // checkout that host-side npm cannot write to; creating them first as the
-  // host user avoids that.
-  "initializeCommand": "mkdir -p node_modules apps/api/node_modules apps/app/node_modules apps/web/node_modules",
+  // Codespaces exposes a repository or user secret of this name automatically;
+  // locally it is passed through from the host when set. `claude` also signs
+  // in interactively.
+  "remoteEnv": { "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}" },
 
-  // Passes an API key through when the host has one set. Claude Code also
-  // signs in interactively with `claude`, and Codespaces exposes a repository
-  // or user secret of this name automatically.
-  // GH_TOKEN likewise lets gh and git push act as you; leave it unset to run
-  // `gh auth login` inside instead. Codespaces provides its own GITHUB_TOKEN.
-  "remoteEnv": {
-    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
-    "GH_TOKEN": "${localEnv:GH_TOKEN}"
-  },
-
+  // Once, when the container is created: env file, install, seed.
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  // Do not attach the editor until the database is seeded, so the first thing
-  // a newcomer sees is a working container rather than a half-built one.
   "waitFor": "postCreateCommand",
-  // Every time VS Code (or a codespace) attaches, start the dev servers in a
-  // terminal. The script is a no-op when they are already running.
-  "postAttachCommand": "bash .devcontainer/start-dev.sh",
-
-  // Stop MySQL and s3mock along with the dev container.
-  "shutdownAction": "stopCompose",
+  // Every container start. A login shell so the Codespaces variables are set
+  // and the auto-login link the API prints has the forwarded address.
+  "postStartCommand": "bash -lc 'npm run dev'",
 
   "customizations": {
     "vscode": {

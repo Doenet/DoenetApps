@@ -1,128 +1,38 @@
-# Self-contained development stack: the dev container plus every backing
-# service the repo needs. Deliberately separate from the repo-root
-# docker-compose.yml (which exists for host-based development and publishes
-# MySQL/S3 on host ports) so the two can run side by side without colliding.
+# Overlay on the repo-root docker-compose.yml (devcontainer.json lists both).
+# Adds the container you work in; MySQL and s3mock come from the root file.
 services:
   dev:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
+    # Node 24.15 plus Chrome, maintained by the Cypress team. Everything else
+    # (git, gh, sshd, Claude Code) is a devcontainer feature.
+    image: cypress/browsers:node-24.15.0-chrome-148.0.7778.178-1-ff-151.0.2-edge-148.0.3967.83-1
     volumes:
-      - ../:/home/node/workspace:cached
-      # Linux-native installs, isolated from whatever the host has in
-      # node_modules. npm workspaces hoist nearly everything to the root; these
-      # three are the workspaces that also get a local node_modules, because
-      # they declare platform-specific optional deps. Keep this list minimal:
-      # every entry becomes a mount point that Docker creates on the host as
-      # root if it does not already exist (see initializeCommand).
-      - root_node_modules:/home/node/workspace/node_modules
-      - api_node_modules:/home/node/workspace/apps/api/node_modules
-      - app_node_modules:/home/node/workspace/apps/app/node_modules
-      - web_node_modules:/home/node/workspace/apps/web/node_modules
-      # Cypress binary and npm cache survive rebuilds.
-      - cypress_cache:/home/node/.cache
-      - npm_cache:/home/node/.npm
-      # Claude Code's config, so you log in once rather than once per rebuild.
-      - claude_config:/home/node/.claude
-      # gh's login, if you sign in inside the container rather than passing a
-      # token from the host.
-      - gh_config:/home/node/.config/gh
-    # Published on the host's loopback only. The port numbers come from
-    # apps/api/.env (a fresh checkout uses the defaults below); override them
-    # in the shell if that file assigns this checkout an offset, or if
-    # something on the host already holds one of these ports:
-    #   APP_PORT=8002 WEB_PORT=4323 API_PORT=3002 docker compose ... up -d
-    ports:
-      - "127.0.0.1:${APP_PORT:-8000}:${APP_PORT:-8000}"
-      - "127.0.0.1:${API_PORT:-3000}:${API_PORT:-3000}"
-      - "127.0.0.1:${WEB_PORT:-4321}:${WEB_PORT:-4321}"
+      # The parent directory, so a linked worktree kept beside the main clone
+      # can still find its repository.
+      - ..:/workspaces:cached
     environment:
-      # Makes Vite and Astro listen on all interfaces inside the container so
-      # the published ports above reach them. Both default to localhost-only
-      # when this is unset, which is what a normal checkout wants.
-      DEV_SERVER_HOST: 0.0.0.0
-      # Keeps Claude Code's credentials and settings inside the volume above,
-      # rather than in ~/.claude.json alongside it.
-      CLAUDE_CONFIG_DIR: /home/node/.claude
-      # These win over apps/api/.env: both dotenv and the Prisma CLI leave
-      # already-set variables alone. That keeps the checkout's .env file — which
-      # is shared with the host through the bind mount — untouched, while the
-      # container always talks to the services below.
+      # These win over apps/api/.env: dotenv and the Prisma CLI leave already
+      # set variables alone, so the same .env works on the host and in here.
       DATABASE_URL: mysql://myuser:mypassword@mysql:3306/doenet
       DATABASE_HOST: mysql
       DATABASE_PORT: "3306"
-      DATABASE_NAME: doenet
-      DATABASE_USER: myuser
-      DATABASE_PASSWORD: mypassword
       MEDIA_S3_LOCAL_ENDPOINT: http://s3mock:9090
-      # Vite/tsx watchers plus the API in a single container; the default heap
-      # is tight once Cypress is also running.
+      # The image caches Cypress under /root; use a path the node user owns.
+      CYPRESS_CACHE_FOLDER: /home/node/.cache/Cypress
       NODE_OPTIONS: --max-old-space-size=4096
     depends_on:
       mysql:
         condition: service_healthy
-      # Only "started": s3mock is a JVM service that can take a couple of
-      # minutes to answer on a small machine, and nothing needs it until the
-      # first image upload. Gating container creation on its health once cost
-      # us a failed Codespaces build.
+      # s3mock is a slow-starting JVM and nothing needs it until the first
+      # upload, so do not gate on its health.
       s3mock:
         condition: service_started
-    # Keeps the container alive; VS Code attaches to it. `init` puts a real
-    # PID 1 in front of it so processes left behind by a killed `npm run dev`
-    # are reaped instead of lingering as zombies.
     init: true
     command: sleep infinity
 
+  # Nothing is published on the host: the editor forwards ports from inside
+  # the container, and this keeps the stack from colliding with a root
+  # `docker compose up` in the same checkout.
   mysql:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: doenet
-      MYSQL_USER: myuser
-      MYSQL_PASSWORD: mypassword
-    volumes:
-      - mysql_data:/var/lib/mysql
-      # Grants myuser the global privileges Prisma Migrate needs for its
-      # shadow database. Shared with the root docker-compose.yml.
-      - ../configs/mysql:/docker-entrypoint-initdb.d
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'mysqladmin ping -h localhost -uroot -p"$$MYSQL_ROOT_PASSWORD"',
-        ]
-      interval: 5s
-      timeout: 5s
-      start_period: 30s
-      retries: 30
-
+    ports: !override []
   s3mock:
-    image: adobe/s3mock:latest
-    restart: unless-stopped
-    environment:
-      COM_ADOBE_TESTING_S3MOCK_STORE_INITIALBUCKETS: doenet-media
-      COM_ADOBE_TESTING_S3MOCK_STORE_RETAINFILESONEXIT: "true"
-      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3-data
-    volumes:
-      - s3mock_data:/s3-data
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9090/"]
-      interval: 5s
-      timeout: 5s
-      # Generous: the JVM start is slow on a 2-core machine, and failures
-      # during start_period do not count against retries.
-      start_period: 60s
-      retries: 30
-
-volumes:
-  root_node_modules:
-  api_node_modules:
-  app_node_modules:
-  web_node_modules:
-  cypress_cache:
-  npm_cache:
-  claude_config:
-  gh_config:
-  mysql_data:
-  s3mock_data:
+    ports: !override []

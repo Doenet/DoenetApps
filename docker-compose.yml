@@ -1,3 +1,8 @@
+# Backing services for development. Shared by the host toolchain (`npm run
+# setup`) and the dev container (.devcontainer/docker-compose.yml overlays this
+# file). The fixed project name means every worktree talks to the same MySQL.
+name: doenet
+
 services:
   mysql:
     image: mysql:8.0
