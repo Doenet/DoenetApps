@@ -1,78 +1,51 @@
 # Welcome to Doenet!
 
-The Distributed Open Education Network (Doenet) is an open data-driven educational technology platform designed to measure and share student interactions with web pages. It includes tools for authoring interactive educational content, including our custom DoenetML markup language, and conducting educational research using the content. Our ultimate goal is to provide research-based tools to help instructors and learners discover the most effective content. Simply put, Doenet gives teachers complete flexibility over their educational content and gives them power of anonymized student data to track learning outcomes. With Doenet, we hope to help teachers teach better and students learn better.
+This repo is for the doenet.org website and tools around DoenetML. If you're looking for the DoenetML language, see github.com/Doenet/DoenetML.
 
-Although we are still in the early stages, we are excited to introduce Doenet and illustrate the richly interactive activities that one can author with it.
+## Getting started
 
-For more background and information on the Doenet project, see this [MAA DUE Point](https://www.mathvalues.org/masterblog/reimagining-online-mathematics) article.
+Three ways to get a development environment, easiest first. Each one ends with
+the app running at http://localhost:8000 and a link to sign in. Full details,
+including running the tests and opening a pull request, are in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
-We would love to hear from you! Join our [Discord](https://discord.gg/PUduwtKJ5h) to ask questions and stay updated on our progress!
+**1. GitHub Codespaces.** Nothing to install; everything runs in the browser.
 
----
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Doenet/DoenetApps)
 
-## Dev Environment Setup
+Wait for the terminal to say `Dev container ready`, then run `npm run dev`.
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 24+
-- [Docker](https://www.docker.com/) with Compose v2 (for the MySQL database)
-
-### Steps
+**2. Dev container on your machine.** Docker is the only prerequisite. The
+container brings its own Node, MySQL, S3 mock, Chrome, and Claude Code, and
+one script drives it from the host:
 
 ```bash
-git clone https://github.com/Doenet/DoenetTools.git
-cd DoenetTools
+git clone https://github.com/Doenet/DoenetApps.git
+cd DoenetApps
+./scripts/dc dev      # first run builds and seeds the container (a few minutes), then starts the app
+./scripts/dc shell    # a terminal inside the container, in another tab
+./scripts/dc claude   # Claude Code inside the container
+```
+
+Git, `gh`, and Claude Code all work inside, with your host's identity and
+GitHub login. Or open the folder in VS Code and accept **Reopen in Container**: it builds
+the same container, starts the dev servers, and opens the app for you. Either
+way, edit with whatever you like; the container sees the same checkout.
+
+**3. The toolchain on your machine.** Node 24 and Docker, for the fastest inner
+loop:
+
+```bash
+git clone https://github.com/Doenet/DoenetApps.git
+cd DoenetApps
 npm install
-npm run setup
-npm run dev
+npm run setup     # creates apps/api/.env, starts MySQL, migrates and seeds
+npm run dev       # app :8000, api :3000, blog :4321
 ```
 
-`npm run setup` creates `apps/api/.env`, starts the MySQL container, and creates,
-migrates, and seeds the database. It is idempotent — safe to re-run at any time.
-
-`npm run dev` starts all dev processes:
-
-- Shared package watcher
-- Express API → http://localhost:3000
-- React SPA → http://localhost:8000 (proxies `/api/*` to the API and `/blog/*` to Astro)
-- Astro site → http://localhost:4321
-
-If you need to edit connection details, see the comments in `apps/api/.env`.
-If the database container is stopped later, re-run `npm run setup` to start it.
-
-Both frontends are reachable from the app origin, so local URLs match production:
-
-- app pages → `http://localhost:8000/...`
-- blog pages → `http://localhost:8000/blog/...`
-
-#### Running dev servers individually
-
-Instead of `npm run dev`, you can run each process in a separate terminal:
-
-```bash
-npm run dev --workspace @doenet-tools/shared   # Shared package watcher
-npm run dev --workspace @doenet-tools/api   # Express API
-npm run dev --workspace @doenet-tools/app   # React SPA
-npm run dev --workspace @doenet-tools/web   # Astro site
-```
-
-### Working in multiple worktrees
-
-Running `npm run dev` from several [git worktrees](https://git-scm.com/docs/git-worktree)
-at once would collide on ports and on the database. The same setup command
-handles this — it detects a linked worktree and assigns it the next free set
-of ports and a dedicated database:
-
-```bash
-git worktree add ../doenet-feature feature-branch
-cd ../doenet-feature
-npm install
-npm run setup
-npm run dev
-```
-
-The MySQL container is shared across all worktrees — only the database
-(and the ports) differ.
+However you start it, `npm run dev` prints a boxed **auto-login link** once the
+API is up. Open it to land in the app signed in as a development user. The
+blog is at `/blog` on the same origin, matching production.
 
 ---
 

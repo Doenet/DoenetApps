@@ -30,6 +30,7 @@ yarn-error.log*
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/tasks.json
 
 **/cypress/accessibility
 **/cypress/videos
