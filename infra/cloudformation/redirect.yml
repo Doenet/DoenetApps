@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Redirect distribution: permanently (301) redirects a legacy host (e.g.
+  beta.doenet.org and *.beta.doenet.org) to a new domain (e.g. doenet.org),
+  preserving the subdomain label, path, and query string. Must be deployed to
+  us-east-1 so the ACM certificate can attach to CloudFront (and, because SSM
+  parameters are regional, this stack takes its hosted-zone values as literals
+  rather than /prod/PublicHostedZone* SSM refs, which live in us-east-2).
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    MaxLength: 10
+
+  SourceHostedZoneName:
+    Type: String
+    Description: Legacy host to redirect FROM (e.g. beta.doenet.org)
+
+  SourceHostedZoneId:
+    Type: String
+    Description: Route 53 hosted zone ID that owns SourceHostedZoneName
+
+  TargetDomainName:
+    Type: String
+    Description: Domain to redirect TO (e.g. doenet.org)
+
+Resources:
+  # Covers the legacy host (e.g. beta.doenet.org) and every subdomain
+  # (*.beta.doenet.org) such as media.beta.doenet.org. The wildcard does not
+  # match the apex, so both names are listed explicitly.
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref SourceHostedZoneName
+      SubjectAlternativeNames:
+        - !Sub "*.${SourceHostedZoneName}"
+      ValidationMethod: DNS
+      # ACM uses one shared validation CNAME for a domain and its wildcard, so
+      # only the apex is listed here; listing the wildcard too would make
+      # CloudFormation write the identical Route 53 record twice in one change
+      # batch and fail with InvalidChangeBatch. The single record validates both.
+      DomainValidationOptions:
+        - DomainName: !Ref SourceHostedZoneName
+          HostedZoneId: !Ref SourceHostedZoneId
+
+  # Runs on viewer-request and returns the 301 before the request is ever
+  # proxied, so the distribution's origin is never contacted. Host-swaps the
+  # source apex for the target while keeping any subdomain label, e.g.
+  #   beta.doenet.org/foo?x=1        -> https://doenet.org/foo?x=1
+  #   media.beta.doenet.org/img.png  -> https://media.doenet.org/img.png
+  RedirectFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${EnvironmentName}-host-redirect"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: 301-redirect a legacy host to the target domain, preserving subdomain/path/query
+        Runtime: cloudfront-js-2.0
+      FunctionCode: !Sub |
+        function handler(event) {
+            var request = event.request;
+            var source = '${SourceHostedZoneName}';
+            var target = '${TargetDomainName}';
+            var host = request.headers.host ? request.headers.host.value : source;
+
+            // Default to the apex; if the host is a subdomain of the source,
+            // carry its label over to the target (media.beta.x -> media.<target>).
+            var targetHost = target;
+            var suffix = '.' + source;
+            if (host !== source &&
+                host.length > suffix.length &&
+                host.slice(host.length - suffix.length) === suffix) {
+                var label = host.slice(0, host.length - suffix.length);
+                targetHost = label + '.' + target;
+            }
+
+            // Rebuild the query string from the parsed map, re-encoding values.
+            var query = '';
+            var qs = request.querystring;
+            var keys = Object.keys(qs);
+            if (keys.length > 0) {
+                var parts = [];
+                for (var i = 0; i < keys.length; i++) {
+                    var key = keys[i];
+                    var encKey = encodeURIComponent(key);
+                    var value = qs[key];
+                    if (value.multiValue) {
+                        for (var j = 0; j < value.multiValue.length; j++) {
+                            parts.push(encKey + '=' + encodeURIComponent(value.multiValue[j].value));
+                        }
+                    } else if (value.value) {
+                        parts.push(encKey + '=' + encodeURIComponent(value.value));
+                    } else {
+                        parts.push(encKey);
+                    }
+                }
+                query = '?' + parts.join('&');
+            }
+
+            return {
+                statusCode: 301,
+                statusDescription: 'Moved Permanently',
+                headers: {
+                    'location': { value: 'https://' + targetHost + request.uri + query },
+                    'cache-control': { value: 'max-age=3600' }
+                }
+            };
+        }
+
+  RedirectDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Comment: !Sub "Redirect ${SourceHostedZoneName} -> ${TargetDomainName}"
+        Aliases:
+          - !Ref SourceHostedZoneName
+          - !Sub "*.${SourceHostedZoneName}"
+        Origins:
+          # Placeholder only: the viewer-request function returns a 301 before any
+          # request reaches an origin, so this is never contacted. Pointing it at
+          # the target keeps it valid and self-documenting.
+          - Id: PlaceholderOrigin
+            DomainName: !Ref TargetDomainName
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              HTTPSPort: 443
+        DefaultCacheBehavior:
+          TargetOriginId: PlaceholderOrigin
+          # allow-all so http requests are redirected straight to the https target
+          # in a single hop (the Location we emit is always https).
+          ViewerProtocolPolicy: allow-all
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt RedirectFunction.FunctionARN
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-host-redirect-cloudfront"
+
+  # Z2FDTNDATAQYW2 is CloudFront's fixed hosted zone ID for alias targets.
+  ApexRecordV4:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref SourceHostedZoneId
+      Name: !Sub "${SourceHostedZoneName}."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt RedirectDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  ApexRecordV6:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref SourceHostedZoneId
+      Name: !Sub "${SourceHostedZoneName}."
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt RedirectDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  WildcardRecordV4:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref SourceHostedZoneId
+      Name: !Sub "*.${SourceHostedZoneName}."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt RedirectDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  WildcardRecordV6:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref SourceHostedZoneId
+      Name: !Sub "*.${SourceHostedZoneName}."
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt RedirectDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  DistributionId:
+    Description: CloudFront distribution ID for the redirect
+    Value: !Ref RedirectDistribution
+
+  DistributionDomainName:
+    Description: CloudFront domain name for the redirect distribution
+    Value: !GetAtt RedirectDistribution.DomainName
+
+  CertificateArn:
+    Description: ACM certificate ARN (us-east-1)
+    Value: !Ref Certificate

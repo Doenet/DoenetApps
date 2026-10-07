@@ -15,6 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { NavItem, NavSection } from "./navbar.types";
 import { UserInfoWithEmail } from "../../types";
+import { ThemeSetting } from "../../utils/theme";
 import { useState } from "react";
 import { Link as RouterLink } from "react-router";
 import { AccountIconAndCard } from "./AccountIconAndCard";
@@ -30,9 +31,13 @@ const hoverBgColor = "doenet.lightGray";
 export function NavbarMobile({
   sections,
   user,
+  themeSetting,
+  setThemeSetting,
 }: {
   sections: NavSection[];
   user?: UserInfoWithEmail;
+  themeSetting: ThemeSetting;
+  setThemeSetting: (_: ThemeSetting) => void;
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [activeSubmenu, setActiveSubmenu] = useState<NavItem | null>(null);
@@ -54,7 +59,13 @@ export function NavbarMobile({
     setActiveSubmenu(null);
   };
 
-  const account = user && <AccountIconAndCard user={user} />;
+  const account = user && (
+    <AccountIconAndCard
+      user={user}
+      themeSetting={themeSetting}
+      setThemeSetting={setThemeSetting}
+    />
+  );
 
   const activePane = activeSubmenu ? (
     <VStack align="stretch" spacing={0}>
@@ -91,7 +102,7 @@ export function NavbarMobile({
               fontSize="xs"
               fontWeight="bold"
               textTransform="uppercase"
-              color="gray.600"
+              color="textMuted"
             >
               {section.heading}
             </Text>

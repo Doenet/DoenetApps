@@ -3,15 +3,23 @@ import { ReactNode } from "react";
 
 export function WithSideBanners({
   children,
-  bgColor = "white",
+  // Default to the mode-flipping page background (was hardcoded "white").
+  bgColor = "background",
   padding = "0px",
+  borderTopColor,
 }: {
   children: ReactNode;
   bgColor?: string;
   padding?: string;
+  borderTopColor?: string;
 }) {
   return (
-    <Box width="100%" bg={bgColor}>
+    <Box
+      width="100%"
+      bg={bgColor}
+      borderTopWidth={borderTopColor ? "1px" : undefined}
+      borderTopColor={borderTopColor}
+    >
       <Box
         maxW="75rem"
         paddingY={padding}

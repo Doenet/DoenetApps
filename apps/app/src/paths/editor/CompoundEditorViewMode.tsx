@@ -1,9 +1,11 @@
 import { useLoaderData, useOutletContext } from "react-router";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import axios from "axios";
+import { doenetImagesUrl } from "../../utils/media";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
 import { ActivitySource } from "@doenet-tools/shared";
 import { EditorContext } from "./EditorHeader";
+import { effectiveDarkMode, useThemeSettingContext } from "../../utils/theme";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -45,6 +47,7 @@ export function CompoundEditorViewMode() {
   };
 
   const { headerHeight } = useOutletContext<EditorContext>();
+  const { themeSetting } = useThemeSettingContext();
 
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
@@ -53,9 +56,12 @@ export function CompoundEditorViewMode() {
     <BlueBanner headerHeight={headerHeight}>
       <DoenetActivityViewer
         source={source}
+        // Compound activity: per-leaf version, so pass the raw setting.
+        darkMode={effectiveDarkMode(themeSetting)}
         requestedVariantIndex={1}
         userId={"hi"}
         doenetViewerUrl={doenetViewerUrl}
+        doenetImagesUrl={doenetImagesUrl}
         paginate={paginate}
         activityLevelAttempts={activityLevelAttempts}
         itemLevelAttempts={itemLevelAttempts}

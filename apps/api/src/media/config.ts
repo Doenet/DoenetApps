@@ -29,6 +29,7 @@ export function loadMediaConfig(): MediaConfig {
 
   const region = getEnvVar("MEDIA_S3_REGION", true);
   const bucket = getEnvVar("MEDIA_S3_BUCKET", true);
+  // Note that the CDN base url is not needed here. The api interacts directly with the S3 bucket.
 
   if (mode === "aws") {
     cached = { mode, region, bucket };

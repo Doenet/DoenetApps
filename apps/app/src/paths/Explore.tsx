@@ -45,6 +45,7 @@ import { clearQueryParameter } from "../utils/explore";
 import { FilterPanel } from "../widgets/FilterPanel";
 import { ExploreFilterDrawer } from "../drawers/ExploreFilterDrawer";
 import { menuIcons } from "../utils/activity";
+import { contentViewerUrl } from "../utils/url";
 import { SiteContext } from "./SiteHeader";
 import { AddContentToMenu } from "../popups/AddContentToMenu";
 import { CopyContentAndReportFinish } from "../popups/CopyContentAndReportFinish";
@@ -338,10 +339,7 @@ export function Explore() {
   ) {
     const cardContent: CardContent[] = matches.map((itemObj) => {
       const { contentId, owner, type: contentType } = itemObj;
-      const cardLink =
-        contentType === "folder" && owner != undefined
-          ? `/sharedActivities/${owner.userId}/${contentId}`
-          : `/activityViewer/${contentId}`;
+      const cardLink = contentViewerUrl(contentType, contentId, owner?.userId);
 
       const ownerAvatarName = createNameNoTag(owner!);
       const ownerName = createNameCheckCurateTag(owner!);
@@ -357,7 +355,7 @@ export function Explore() {
 
     return (
       <Box
-        background={"white"}
+        background="surface"
         paddingTop="16px"
         paddingBottom="16px"
         marginLeft={["0.1rem", "1rem"]}
@@ -772,7 +770,7 @@ export function Explore() {
             width="100%"
             alignContent="center"
             hidden={!cardSelections.areActive && addTo === null}
-            backgroundColor="gray.100"
+            backgroundColor="surfaceMuted"
             justifyContent="center"
           >
             {addTo !== null ? (
@@ -892,7 +890,7 @@ export function Explore() {
                 paddingLeft="10px"
                 paddingTop="10px"
                 paddingBottom="10px"
-                backgroundColor="gray.100"
+                backgroundColor="surfaceMuted"
               >
                 Trending
               </Heading>
@@ -906,7 +904,7 @@ export function Explore() {
                 paddingLeft="10px"
                 paddingTop="10px"
                 paddingBottom="10px"
-                backgroundColor="gray.100"
+                backgroundColor="surfaceMuted"
               >
                 Recent
               </Heading>

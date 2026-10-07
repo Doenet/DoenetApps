@@ -7,6 +7,7 @@ import {
   fold,
   getTestAssignment,
   pset,
+  qbank,
   setupTestContent,
 } from "./utils";
 import { DateTime } from "luxon";
@@ -622,6 +623,48 @@ test("cannot assign sub-part of problem set", async () => {
       destinationParentId: null,
     }),
   ).rejects.toThrow();
+});
+
+test("item names expand question banks and repeats", async () => {
+  const owner = await createTestUser();
+  const ownerId = owner.userId;
+
+  const [psId, problemId, _bankId] = await setupTestContent(ownerId, {
+    "A problem set": pset({
+      Problem: doc(`<selectFromSequence from="1" to="5"/>`),
+      Bank: qbank({
+        "Question A": doc("a"),
+        "Question B": doc("b"),
+      }),
+    }),
+  });
+
+  await updateContent({
+    contentId: problemId,
+    loggedInUserId: ownerId,
+    numVariants: 5,
+  });
+  await updateContent({
+    contentId: problemId,
+    loggedInUserId: ownerId,
+    repeatInProblemSet: 2,
+  });
+
+  const { assignmentId } = await createAssignment({
+    contentId: psId,
+    loggedInUserId: ownerId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+    destinationParentId: null,
+  });
+
+  // The item names label the gradebook columns, so they must line up one-to-one
+  // with the items of the compiled activity: the twice-repeated problem
+  // contributes two, and the question bank one per selection.
+  const { itemNames } = await getAssignmentResponseOverview({
+    contentId: assignmentId,
+    loggedInUserId: ownerId,
+  });
+  expect(itemNames).eqls(["Problem (1)", "Problem (2)", "Bank"]);
 });
 
 test("cannot change closedOn, maxAttempts, mode, individualizeByStudent of a non-root assignment activity", async () => {

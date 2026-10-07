@@ -4,8 +4,8 @@ import {
   Heading,
   Text,
   VStack,
-  Button,
   Link as ChakraLink,
+  Button,
 } from "@chakra-ui/react";
 import { WithSideBanners } from "../layout/WithSideBanners";
 
@@ -43,8 +43,7 @@ export function Events() {
                   Drop in anytime during the two hours.
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Dates:</strong> Tuesdays (no office hours Tuesday,
-                  June 2)
+                  <strong>Dates:</strong> Tuesdays
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Time:</strong> 2–4pm Eastern, 11am–1pm Pacific
@@ -68,50 +67,15 @@ export function Events() {
                 Virtual training workshops
               </Heading>
 
-              <VStack
-                align="start"
-                spacing={3}
-                mb={6}
-                pl={4}
-                borderLeft="3px solid"
-                borderColor="border"
-              >
-                <Heading size="md">
-                  <ChakraLink
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-                    isExternal
-                    textDecoration="underline"
-                  >
-                    June Doenet Virtual Workshop
-                  </ChakraLink>
-                </Heading>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  In this 4-day virtual workshop held on Zoom, participants will
-                  learn how to create accessible, dynamic and interactive
-                  activities in Doenet. The workshop will also provide guidance
-                  on using the available resources to learn more about Doenet,
-                  including how to connect with the supportive Doenet community
-                  of developers and experienced instructors.
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Monday June 15 through Thursday June
-                  18, 2026
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 1–4pm Eastern, 10am–1pm Pacific
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <Button
-                    as="a"
-                    href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-                    colorScheme="blue"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Details and registration at ScholarLattice
-                  </Button>
-                </Text>
-              </VStack>
+              <Text fontSize="1.3rem" lineHeight="1.3" mb={6}>
+                <ChakraLink
+                  href="https://www.youtube.com/playlist?list=PLjR3fTlPri1cApUaszZrRwmvl0UtsR_GU"
+                  isExternal
+                  textDecoration="underline"
+                >
+                  Watch our past workshops on YouTube
+                </ChakraLink>
+              </Text>
 
               <VStack
                 align="start"
@@ -123,24 +87,24 @@ export function Events() {
               >
                 <Heading size="md">
                   <ChakraLink
-                    href="https://scholarlattice.org/collections/2ed44057-3e32-43de-90af-ad1e3806175e"
+                    href="https://docs.google.com/forms/d/e/1FAIpQLSdSWVecpISTxnIkFbM0PZ3wtQ-q_ObBWlzJvS1iPf7wFAd58g/viewform"
                     isExternal
                     textDecoration="underline"
                   >
-                    July Doenet Virtual Workshop
+                    August Doenet Virtual Workshop
                   </ChakraLink>
                 </Heading>
                 <Text fontSize="1.3rem" lineHeight="1.3">
-                  In this 4-day virtual workshop held on Zoom, participants will
-                  learn how to create accessible, dynamic and interactive
+                  In this free 2-day virtual workshop held on Zoom, participants
+                  will learn how to create accessible, dynamic and interactive
                   activities in Doenet. The workshop will also provide guidance
                   on using the available resources to learn more about Doenet,
                   including how to connect with the supportive Doenet community
                   of developers and experienced instructors.
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Tuesday July 14 through Friday July 17,
-                  2026
+                  <strong>Date:</strong> Monday August 10 and Wednesday August
+                  12, 2026
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Time:</strong> 3–6pm Eastern, noon–3pm Pacific
@@ -148,15 +112,20 @@ export function Events() {
                 <Text fontSize="1rem" lineHeight="1.4">
                   <Button
                     as="a"
-                    href="https://scholarlattice.org/collections/2ed44057-3e32-43de-90af-ad1e3806175e"
+                    href="https://docs.google.com/forms/d/e/1FAIpQLSdSWVecpISTxnIkFbM0PZ3wtQ-q_ObBWlzJvS1iPf7wFAd58g/viewform"
                     colorScheme="blue"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Details and registration at ScholarLattice
+                    Registration form
                   </Button>
                 </Text>
               </VStack>
+
+              {/* <p>
+                Email <a href="mailto:info@doenet.org">info@doenet.org</a> to
+                inquire about any upcoming virtual training workshops.
+              </p> */}
             </Box>
 
             {/* In-person Workshops and Conferences Section */}
@@ -173,52 +142,11 @@ export function Events() {
               <VStack
                 align="start"
                 spacing={3}
-                mb={6}
-                pl={4}
-                borderLeft="3px solid"
-                borderColor="border"
-              >
-                <Heading size="md">Doenet Community Workshop</Heading>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Dates:</strong> June 1–5 2026
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Location:</strong> University of Minnesota
-                </Text>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  We invite you to participate in a five-day in-person workshop
-                  to learn how to create richly interactive classroom activities
-                  using the free and open-source Doenet platform. Not only is
-                  Doenet a fun way to create cool activities, it is also a
-                  community of STEM instructors and authors who strive to engage
-                  students' minds and spur active interaction with mathematical
-                  ideas. We welcome you to work together with us to develop an
-                  open-source community, resources, and tools that enable anyone
-                  to create exploratory activities with feedback.
-                </Text>
-
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <Button
-                    as="a"
-                    href="https://cse.umn.edu/math/events/doenet-community-workshop-2026"
-                    colorScheme="blue"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Details and registration at the University of Minnesota
-                  </Button>
-                </Text>
-              </VStack>
-
-              <VStack
-                align="start"
-                spacing={3}
                 pl={4}
                 borderLeft="3px solid"
                 borderColor="border"
               >
                 <Heading size="md">MathFest Minicourse</Heading>
-                Part B: Friday, August 7, 10:00 am – 11:50 am
                 <Text fontSize="1rem" lineHeight="1.4">
                   <strong>Title:</strong> Upgrading Online Assignments: Building
                   Scaffolded Activities for Conceptual Understanding

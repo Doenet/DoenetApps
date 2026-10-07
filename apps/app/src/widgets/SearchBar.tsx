@@ -26,12 +26,13 @@ export default function Searchbar({
     <>
       <InputGroup borderLeftRadius={5} size="sm">
         <InputLeftElement pointerEvents="none">
-          <Icon as={IoSearchSharp} color="gray.600" />
+          <Icon as={IoSearchSharp} color="textMuted" />
         </InputLeftElement>
         <Input
           type="search"
           placeholder="Search..."
-          border="1px solid #949494"
+          border="1px solid"
+          borderColor="border"
           borderLeftRadius={5}
           name={name}
           data-test={dataTest}

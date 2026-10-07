@@ -2,10 +2,12 @@ import { useRef } from "react";
 import { useLoaderData, useOutletContext } from "react-router";
 import { DoenetmlVersion } from "../../types";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
+import { doenetImagesUrl } from "../../utils/media";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import axios from "axios";
 import { Box } from "@chakra-ui/react";
 import { EditorContext } from "./EditorHeader";
+import { effectiveDarkMode, useThemeSettingContext } from "../../utils/theme";
 
 export async function loader({ params }: { params: any }) {
   const {
@@ -29,6 +31,7 @@ export function DocEditorViewMode() {
   };
 
   const { headerHeight } = useOutletContext<EditorContext>();
+  const { themeSetting } = useThemeSettingContext();
 
   const doenetViewerContainer = useRef<HTMLDivElement>(null);
   const scrollingContainer = useRef<HTMLDivElement>(null);
@@ -61,6 +64,10 @@ export function DocEditorViewMode() {
           <DoenetViewer
             doenetML={source}
             doenetmlVersion={doenetmlVersion!.fullVersion}
+            darkMode={effectiveDarkMode(
+              themeSetting,
+              doenetmlVersion!.fullVersion,
+            )}
             flags={{
               showCorrectness: true,
               solutionDisplayMode: "button",
@@ -74,6 +81,7 @@ export function DocEditorViewMode() {
             }}
             attemptNumber={1}
             doenetViewerUrl={doenetViewerUrl}
+            doenetImagesUrl={doenetImagesUrl}
             includeVariantSelector={true}
             requestScrollTo={requestScrollTo}
           />

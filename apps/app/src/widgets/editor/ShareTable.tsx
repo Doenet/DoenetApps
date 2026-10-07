@@ -107,7 +107,7 @@ function ShareTableRow({
   const closeLabel = `Stop sharing ${publicRow ? "publicly" : `with ${name}`}`;
   return (
     <Box as="li" px={0} py={0} listStyleType="none">
-      <Box borderBottomWidth="1px" borderColor="gray.100">
+      <Box borderBottomWidth="1px" borderColor="border">
         <Flex
           align="center"
           justify="space-between"
@@ -120,7 +120,7 @@ function ShareTableRow({
               <Text as="span" fontWeight="medium">
                 {name}
               </Text>
-              <Text as="span" color="gray.600" fontSize="sm">
+              <Text as="span" color="textMuted" fontSize="sm">
                 {` (${email})`}
               </Text>
             </Text>
@@ -136,7 +136,7 @@ function ShareTableRow({
               />
             </Tooltip>
           ) : (
-            <Text color="gray.700" fontSize="sm" flexShrink={0}>
+            <Text color="textMuted" fontSize="sm" flexShrink={0}>
               Inherited
             </Text>
           )}

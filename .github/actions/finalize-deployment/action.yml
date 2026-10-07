@@ -1,0 +1,74 @@
+name: Finalize GitHub deployment
+description: >-
+  Set the final status on a deployment record from the three component
+  deploy results. With lights-parameter set, a successful deploy while the
+  environment is scaled to zero is recorded as inactive instead of success.
+
+inputs:
+  deployment-id:
+    description: Deployment id returned by open-deployment
+    required: true
+  environment:
+    description: GitHub environment name (e.g. dev3, prod)
+    required: true
+  environment-url:
+    description: Public URL shown on the deployment record
+    required: true
+  backend-result:
+    description: Result of the backend deploy job
+    required: true
+  frontend-result:
+    description: Result of the frontend deploy job
+    required: true
+  site-result:
+    description: Result of the site deploy job
+    required: true
+  lights-parameter:
+    description: >-
+      SSM parameter holding the environment's lights state, for environments
+      that scale to zero. Requires AWS credentials to already be configured;
+      any read failure is treated as lights on. Empty disables the check.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set final deployment status
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        DEPLOYMENT_ID: ${{ inputs.deployment-id }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        ENVIRONMENT_URL: ${{ inputs.environment-url }}
+        LIGHTS_PARAMETER: ${{ inputs.lights-parameter }}
+        B: ${{ inputs.backend-result }}
+        F: ${{ inputs.frontend-result }}
+        S: ${{ inputs.site-result }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        if [[ "$B" == "success" && "$F" == "success" && "$S" == "success" ]]; then
+          lights=unknown
+          if [[ -n "$LIGHTS_PARAMETER" ]]; then
+            lights=$(aws ssm get-parameter --name "$LIGHTS_PARAMETER" \
+              --query Parameter.Value --output text 2>/dev/null || echo unknown)
+          fi
+          if [[ "$lights" == "off" ]]; then
+            state=inactive
+            desc="$ENVIRONMENT is asleep (lights off); this ref serves on next wake"
+          else
+            state=success
+            desc="deployed to $ENVIRONMENT"
+          fi
+        else
+          state=failure
+          desc="$ENVIRONMENT deploy failed (backend:$B frontend:$F site:$S)"
+        fi
+        # On a success status GitHub auto-inactivates the previous deployment
+        # for this environment, so the Environments tab reflects what is live.
+        gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses" \
+          -f state="$state" \
+          -f description="$desc" \
+          -f environment="$ENVIRONMENT" \
+          -f environment_url="$ENVIRONMENT_URL" \
+          -f log_url="$RUN_URL" >/dev/null

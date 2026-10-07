@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ACM certificate for a CDN subdomain — must be deployed to us-east-1 so CloudFront can attach it
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: The environment name (the SSM prefix path name)
+    MaxLength: 10
+
+  ServiceName:
+    Type: String
+    Description: Service name used in the SSM parameter path (e.g., "media", "images")
+
+  PublicHostedZoneName:
+    Type: String
+    Description: The hosted zone name (e.g., example.com)
+
+  PublicHostedZoneId:
+    Type: String
+    Description: The Route 53 hosted zone ID
+
+  Subdomain:
+    Type: String
+    Description: Subdomain label for the CDN (e.g., "media" -> media.example.com). Leave blank for the apex.
+    Default: ""
+
+Conditions:
+  HasSubdomain: !Not [!Equals [!Ref Subdomain, ""]]
+
+Resources:
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName:
+        !If [
+          HasSubdomain,
+          !Sub "${Subdomain}.${PublicHostedZoneName}",
+          !Ref PublicHostedZoneName,
+        ]
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName:
+            !If [
+              HasSubdomain,
+              !Sub "${Subdomain}.${PublicHostedZoneName}",
+              !Ref PublicHostedZoneName,
+            ]
+          HostedZoneId: !Ref PublicHostedZoneId
+
+  CertificateArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${EnvironmentName}/${ServiceName}/CertificateArn"
+      Type: String
+      Value: !Ref Certificate
+      Description: ACM certificate ARN for the CDN (us-east-1)
+
+Outputs:
+  CertificateArn:
+    Description: ACM certificate ARN
+    Value: !Ref Certificate

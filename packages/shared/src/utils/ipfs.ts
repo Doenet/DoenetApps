@@ -1,19 +1,10 @@
 // @ts-expect-error - no declaration file
 import Hash from "ipfs-only-hash";
 
-async function getTextEncoder() {
-  if (typeof TextEncoder !== "undefined") {
-    return TextEncoder;
-  }
-  const { TextEncoder: NodeTextEncoder } = await import("util");
-  return NodeTextEncoder;
-}
-
 export async function getCidV1FromString(text: string): Promise<string> {
-  // Convert the string to a Uint8Array using TextEncoder
-  const TextEncoderLib = await getTextEncoder();
-  const encoder = new TextEncoderLib();
-  const bytes = encoder.encode(text);
+  // TextEncoder is a global in browsers and in Node >= 11 (this repo requires
+  // Node 24), so no Node `util` fallback is needed.
+  const bytes = new TextEncoder().encode(text);
 
   return getCidV1FromBytes(bytes);
 }

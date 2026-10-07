@@ -5,11 +5,17 @@ import nodePolyfills from "rollup-plugin-polyfill-node";
 import { defineConfig } from "vite";
 
 import { createRequire } from "module";
+import process from "node:process";
 const require = createRequire(import.meta.url);
 
-import { apiPort, appPort } from "../../scripts/worktree-env.js";
+import { apiPort, appPort, webPort } from "../../scripts/worktree-env.js";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Quiet the dev server: `command === "serve"` suppresses info-level chatter
+  // (the `[vite] page reload` flood from the shared-package watcher and the
+  // startup "ready" line — we print our own URL banner). Warnings and errors
+  // still show, and `vite build` output is left untouched.
+  logLevel: command === "serve" ? "warn" : "info",
   // Node.js global to browser globalThis
   define: {
     global: "globalThis",
@@ -37,7 +43,15 @@ export default defineConfig({
   ],
   server: {
     port: appPort,
+    // Unset on a normal checkout, so the dev server stays on localhost. The
+    // dev container sets it to 0.0.0.0 so the published port reaches it.
+    host: process.env.DEV_SERVER_HOST,
     proxy: {
+      // Route blog pages and Astro-generated assets through the same frontend
+      // entry point used by the app in production.
+      "/blog": `http://localhost:${webPort}`,
+      "/_astro": `http://localhost:${webPort}`,
+      "/_image": `http://localhost:${webPort}`,
       "/cyapi": "http://apache",
       //"/media": "http://apache",
       "/api": `http://localhost:${apiPort}`,
@@ -69,4 +83,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

@@ -10,3 +10,22 @@ export function getEnvVar(name: string, required = false): string | undefined {
   }
   return undefined;
 }
+
+/**
+ * Whether the test-auth bypass (anonymous-strategy login as an arbitrary
+ * user via `/api/login/createOrLoginAsTest`) is enabled.
+ *
+ * This is a full authentication bypass, so it is guarded with defense in
+ * depth:
+ *   1. It is *never* enabled when NODE_ENV === "production", regardless of
+ *      the flag, so a misconfigured deploy cannot expose it.
+ *   2. It requires an explicit opt-in — the flag must equal "true". Any other
+ *      value (including typos like "fasle", or "0"/"no") leaves it disabled,
+ *      i.e. fail-closed.
+ */
+export function isTestAuthBypassEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+  return process.env.ENABLE_TEST_AUTH_BYPASS?.trim().toLowerCase() === "true";
+}

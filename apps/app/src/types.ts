@@ -19,6 +19,7 @@ import {
   type UserInfo,
   type Uuid,
 } from "@doenet-tools/shared";
+import type { ThemeSetting } from "./utils/theme";
 
 // Here we re-export types from the shared module
 export type { ContentType, DoenetDateTime, UserInfo, Uuid };
@@ -86,6 +87,7 @@ export type UserInfoWithEmail = UserInfo & {
   isAuthor?: boolean;
   isEditor?: boolean;
   canUploadImages?: boolean;
+  theme?: ThemeSetting;
 };
 
 export type ContentClassification = {
@@ -192,7 +194,6 @@ export type Doc = ContentBase & {
 
 export type QuestionBank = ContentBase & {
   type: "select";
-  activityJson?: string;
   revisionNum?: number;
   numToSelect: number;
   selectByVariant: boolean;
@@ -201,7 +202,6 @@ export type QuestionBank = ContentBase & {
 
 export type ProblemSet = ContentBase & {
   type: "sequence";
-  activityJson?: string;
   revisionNum?: number;
   shuffle: boolean;
   paginate: boolean;
@@ -216,10 +216,20 @@ export type Folder = ContentBase & {
 
 export type ImageItem = ContentBase & {
   type: "image";
-  mimeType?: string;
-  sizeBytes?: number;
-  imageWidth?: number;
-  imageHeight?: number;
+  // Domain-independent reference to the image bytes: `doenet:<short-uuid>`.
+  // The DoenetML viewer resolves it against `doenetImagesUrl` at render time.
+  // Null before the S3 PUT completes; otherwise populated by `processContent`.
+  imageSource?: string | null;
+  // DoenetML `<image>` attribution/licensing. Uploaded images carry their own
+  // author/title/source/license here instead of the activity-level
+  // `licenseCode`. `imageLicenseCodes` is one or two space-separated DoenetML
+  // media-license codes (e.g. `CC-BY-SA` or `CC-BY-SA GFDL`).
+  imageAuthorName?: string | null;
+  imageAuthorUrl?: string | null;
+  imageTitle?: string | null;
+  imageOriginalUrl?: string | null;
+  imageLicenseCodes?: string | null;
+  imageLicenseVersion?: string | null;
 };
 
 export type Activity = Doc | QuestionBank | ProblemSet;

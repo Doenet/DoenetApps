@@ -14,9 +14,9 @@
   </part>
 
   <part>
-    <title>Adding a short description or label</title>
+    <title>Adding a label</title>
 
-    <p>The simplest answer triggers a warning, as there is no information for screen readers to give about the answer blank. You can fix that by adding either a <tag>shortDescription</tag> (accessed only by screen readers) or a <tag>label</tag> (both visible and accessed by screen readers).</p>
+    <p>The simplest answer triggers a warning, as there is no information for screen readers to give about the answer blank. You can fix that by adding a <tag>label</tag>. (You could also add a <tag>shortDescription></tag>, which can be accessed by screen readers but is not visible; see <ref to="https://docs.doenet.org/guides/accessible-activities#label-every-input">the accessibility documentation</ref>.)</p>
 
     <p>
       <answer>
@@ -27,18 +27,13 @@
       </answer>
     </p>
 
-    <p>What is <math>x+x</math>?
-      <answer>
-        <shortDescription>x+x</shortDescription>
-        2x
-      </answer>
-    </p>
+    <p>This is equivalent, but just adds an <tag>award</tag> for clarity.</p>
 
-    <p>This is equivalent to the last one, but just adds an <tag>award</tag> for clarity.</p>
-
-    <p>What is <math>x+x</math>?
+    <p>
       <answer>
-        <shortDescription>x+x</shortDescription>
+        <label>
+          What is <math>x+x</math>?
+        </label>
         <award>2x</award>
       </answer>
     </p>
@@ -53,9 +48,11 @@
     <p>The above answers actually accept <math>x+x</math>
       as a correct answer, as it is mathematical equivalent to <math>2x</math>. To require exact answers, specify the <attr>symbolicEquality</attr> attribute.</p>
     
-    <p>What is <math>x+x</math>?
+    <p>
       <answer symbolicEquality>
-        <shortDescription>x+x</shortDescription>
+        <label>
+          What is <math>x+x</math>?
+        </label>
         <award>2x</award>
       </answer>
     </p>
@@ -66,11 +63,10 @@
     <title>Specifying partial credit options</title>
 
     <p>
-      Compute the integral <m>\int x^2\, dx</m>
+      <label for="$ans">Compute the integral <m>\int x^2\, dx</m></label>
     </p>
     <p>
-      <answer>
-        <shortDescription>integral of x-squared</shortDescription>
+      <answer name="ans">
         <award>x^3/3 + c</award>
         <award>x^3/3 + C</award>
         <award credit="0.5">x^3/3</award>
@@ -84,9 +80,9 @@
 
     <p>Let <m>f(x) = (x-2)(x+5)</m>. Solve <math>f(x) = 0</math>. If more than one answer, separate by commas.</p>
 
-    <p><m>x=</m> 
+    <p> 
       <answer unorderedCompare matchPartial>
-        <shortDescription>solve f(x)=0</shortDescription>
+        <label><m>x=</m></label>
         <award>2, -5</award>
       </answer>
     </p>
@@ -120,10 +116,10 @@
       <endpoint fixed open="false">(5,0)</endpoint>
     </graph>
 
-    <p>What is the interval shown above?
+    <p>
       <answer>
         <mathInput name="interval">
-          <shortDescription>Enter interval</shortDescription>
+          <label>What is the interval shown above?</label>
         </mathInput>
         <award><when>
           <subsetOfReals>$interval</subsetOfReals> =
@@ -148,9 +144,9 @@
 
     <p>Let <m>f(x) = (x-2)(x+5)</m>. Solve <math>f(x) = 0</math>.</p>
 
-    <p>How many solutions are there? 
+    <p>
       <mathInput name="n">
-        <shortDescription>number of solutions</shortDescription>
+        <label>How many solutions are there? </label>
       </mathInput>
     </p>
 

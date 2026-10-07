@@ -140,7 +140,8 @@ export function NameBar({
           lineHeight="1.2"
           pl={{ base: "0rem", md: "1.8rem" }}
           rounded="none"
-          outline="1px solid gray"
+          outline="1px solid"
+          outlineColor="border"
         />
         <Box
           as={EditableInput}
@@ -150,7 +151,8 @@ export function NameBar({
           lineHeight="1.2"
           pl={{ base: "0rem", md: "1.8rem" }}
           rounded="none"
-          outline="1px solid gray"
+          outline="1px solid"
+          outlineColor="border"
         />
       </Editable>
     </Box>

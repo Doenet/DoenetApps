@@ -1,6 +1,5 @@
 import { ReactElement, useState } from "react";
 import {
-  Badge,
   Text,
   Card as ChakraCard,
   CardBody,
@@ -27,7 +26,7 @@ import {
 import { Link as ReactRouterLink, useOutletContext } from "react-router";
 import { Content } from "../types";
 import { FaEllipsisVertical } from "react-icons/fa6";
-import { FiGlobe, FiLink2, FiLock } from "react-icons/fi";
+import { VisibilityPill } from "./VisibilityPill";
 import {
   activityCategoryIcons,
   contentTypeToName,
@@ -202,7 +201,7 @@ export default function Card({
             <Flex alignItems="center">
               <Icon
                 as={categoryIcon}
-                color="#666699"
+                color="iconAccent"
                 width={categoryIconSize}
                 height={categoryIconSize}
               />
@@ -213,25 +212,8 @@ export default function Card({
     }
   }
 
-  const visibilityPillConfig = getVisibilityPillConfig(visibility);
   const visibilityBadge = showPublicStatus ? (
-    <Badge
-      marginLeft="0.5rem"
-      px="0.45rem"
-      py="0.15rem"
-      borderRadius="full"
-      borderWidth="1px"
-      borderColor={visibilityPillConfig.borderColor}
-      bg={visibilityPillConfig.bg}
-      color={visibilityPillConfig.color}
-      fontWeight="medium"
-      textTransform="none"
-    >
-      <HStack spacing="0.25rem">
-        <Icon as={visibilityPillConfig.icon} boxSize="0.75rem" />
-        <Text fontSize="xs">{visibilityPillConfig.label}</Text>
-      </HStack>
-    </Badge>
+    <VisibilityPill visibility={visibility} />
   ) : null;
 
   // Title
@@ -305,7 +287,7 @@ export default function Card({
         <Flex alignItems="center" width={variantsBadgeWidth}>
           <Icon
             as={IoDiceOutline}
-            color="#666699"
+            color="iconAccent"
             width={variantsIconHeight}
             height={variantsIconHeight}
           />
@@ -433,7 +415,7 @@ export default function Card({
             aria-label={`Options menu for item ${idx + 1}: ${title}`}
           >
             <Flex alignItems="center">
-              <Icon color="#949494" as={FaEllipsisVertical} />
+              <Icon color="textMuted" as={FaEllipsisVertical} />
             </Flex>
           </MenuButton>
           <MenuList zIndex="1000">{menuItems}</MenuList>
@@ -449,9 +431,13 @@ export default function Card({
       marginLeft={`${indentLevel * indentWidth}rem`}
       data-test="Content Card"
       variant="unstyled"
-      borderBottom="2px solid gray"
+      borderBottom="2px solid"
+      borderBottomColor="border"
       borderRadius={0}
-      _hover={{ backgroundColor: cardLink ? "#eeeeee" : "ffffff" }}
+      // Theme-aware hover: the old fixed light values (#eeeeee / "ffffff", the
+      // latter also missing its #) became white-on-white in dark mode. Semantic
+      // tokens flip: interact #EFEFEF/#31353f, surface #FFFFFF/#20232b.
+      _hover={{ backgroundColor: cardLink ? "interact" : "surface" }}
     >
       <CardBody>
         <Flex height={itemHeight} alignItems="center">
@@ -508,35 +494,4 @@ export default function Card({
       </CardBody>
     </ChakraCard>
   );
-}
-
-function getVisibilityPillConfig(
-  visibility: "private" | "unlisted" | "public",
-) {
-  switch (visibility) {
-    case "private":
-      return {
-        icon: FiLock,
-        label: "Private",
-        borderColor: "gray.300",
-        bg: "white",
-        color: "gray.700",
-      };
-    case "unlisted":
-      return {
-        icon: FiLink2,
-        label: "Unlisted",
-        borderColor: "blue.300",
-        bg: "blue.50",
-        color: "blue.700",
-      };
-    case "public":
-      return {
-        icon: FiGlobe,
-        label: "Public",
-        borderColor: "green.300",
-        bg: "green.50",
-        color: "green.700",
-      };
-  }
 }

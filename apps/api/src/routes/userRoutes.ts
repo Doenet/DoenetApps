@@ -4,11 +4,13 @@ import {
   getUser,
   getUserInfoIfLoggedIn,
   setIsAuthor,
+  setTheme,
   updateUser,
 } from "../query/user";
 import {
   createHandleSchema,
   setIsAuthorSchema,
+  setThemeSchema,
   userIdSchema,
   userNamesSchema,
 } from "../schemas/userSchemas";
@@ -33,6 +35,8 @@ userRouter.get(
 );
 
 userRouter.post("/setIsAuthor", queryLoggedIn(setIsAuthor, setIsAuthorSchema));
+
+userRouter.post("/setTheme", queryLoggedIn(setTheme, setThemeSchema));
 
 userRouter.post(
   "/handles",

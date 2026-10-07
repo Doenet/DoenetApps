@@ -24,7 +24,13 @@ import {
   Icon,
   Divider,
 } from "@chakra-ui/react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  Fragment,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { contentTypeToName } from "../../../utils/activity";
 import { ContentType, UserInfoWithEmail, Visibility } from "../../../types";
 import { Link as ReactRouterLink, useFetcher } from "react-router";
@@ -34,6 +40,7 @@ import { IoMdLink, IoMdCheckmark } from "react-icons/io";
 import {
   FiCheckCircle,
   FiChevronRight,
+  FiClock,
   FiCode,
   FiGlobe,
   FiLink2,
@@ -42,10 +49,19 @@ import {
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
 
-import { editorDiagnosticsUrl, editorUrl } from "../../../utils/url";
+import {
+  contentViewerUrl,
+  editorDiagnosticsUrl,
+  editorUrl,
+  type EditorDiagnosticsTab,
+} from "../../../utils/url";
 import type { ShareController } from "../hooks/useShareController";
 import { loadShareStatus } from "../loaders";
-import type { PublicShareIssue, SharingData } from "../types";
+import type {
+  PublicShareBlocker,
+  PublicShareIssue,
+  SharingData,
+} from "../types";
 
 type ShareModalProps = Pick<ShareController, "modalIsOpen" | "closeModal"> &
   Partial<Pick<ShareController, "groundTruth" | "refetchGroundTruth">> & {
@@ -214,8 +230,10 @@ function ShareModalBody({
         parentVisibility={shareStatus.parentVisibility}
         canSharePublicly={shareStatus.canSharePublicly}
         publicShareIssues={shareStatus.publicShareIssues}
+        publicShareBlockers={shareStatus.publicShareBlockers}
         contentId={contentId}
         contentType={contentType}
+        ownerId={shareStatus.ownerId}
         closeModal={onClose}
         onVisibilityChange={onVisibilityChange}
         reloadShareStatus={reloadShareStatus}
@@ -285,7 +303,7 @@ function ShareWithPeople({
         parentSharedWith={parentSharedWith}
         footerRow={
           <Box as="li" listStyleType="none" data-test="Invite People Row">
-            <Divider borderColor="gray.100" />
+            <Divider borderColor="border" />
             <FormControl isInvalid={addEmailError ? true : false} px="0.75rem">
               <Flex
                 align="center"
@@ -341,8 +359,10 @@ function SharePublicly({
   parentVisibility,
   canSharePublicly,
   publicShareIssues,
+  publicShareBlockers,
   contentId,
   contentType,
+  ownerId,
   closeModal,
   onVisibilityChange,
   reloadShareStatus,
@@ -352,8 +372,10 @@ function SharePublicly({
   parentVisibility: Visibility;
   canSharePublicly: boolean;
   publicShareIssues: PublicShareIssue[];
+  publicShareBlockers: PublicShareBlocker[];
   contentId: string;
   contentType: ContentType;
+  ownerId: string;
   closeModal: () => void;
   onVisibilityChange?: (visibility: Visibility) => void;
   reloadShareStatus?: () => void;
@@ -365,7 +387,11 @@ function SharePublicly({
   const [pendingVisibilityUpdate, setPendingVisibilityUpdate] =
     useState<Visibility | null>(null);
 
-  const shareableLink = `${window.location.origin}/activityViewer/${contentId}`;
+  const shareableLink = `${window.location.origin}${contentViewerUrl(
+    contentType,
+    contentId,
+    ownerId,
+  )}`;
   const embedCode = `<iframe src="${window.location.origin}/embed/${contentId}" width="100%" height="800" style="border: 0"></iframe>`;
 
   const [copiedShareLink, setCopiedShareLink] = useState(false);
@@ -438,6 +464,11 @@ function SharePublicly({
     dataTest: string;
     actionLabel: string;
     actionTo: string;
+    // Audit criteria live in individual documents; a compound item lists the
+    // specific blocking documents and deep-links each to this diagnostics tab.
+    diagnosticsTab?: EditorDiagnosticsTab;
+    failedNoun?: string;
+    pendingNoun?: string;
   }> = [
     {
       issue: "errorsCheck",
@@ -448,6 +479,9 @@ function SharePublicly({
       dataTest: "Public Criteria Errors",
       actionLabel: "Open syntax errors",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "errors"),
+      diagnosticsTab: "errors",
+      failedNoun: "syntax errors",
+      pendingNoun: "syntax check",
     },
     {
       issue: "missingRequiredCategories",
@@ -469,6 +503,9 @@ function SharePublicly({
       dataTest: "Public Criteria Accessibility",
       actionLabel: "Open accessibility violations",
       actionTo: editorDiagnosticsUrl(contentId, contentType, "accessibility"),
+      diagnosticsTab: "accessibility",
+      failedNoun: "accessibility violations",
+      pendingNoun: "accessibility check",
     },
   ];
   const completedRequirements = publicCriteria.filter(
@@ -544,7 +581,7 @@ function SharePublicly({
           </Heading>
           <Text
             data-test="Current Access Helper"
-            color="gray.900"
+            color="text"
             fontSize="md"
             fontWeight="medium"
             lineHeight="1.45"
@@ -571,6 +608,7 @@ function SharePublicly({
             <Text
               data-test="Access Unsaved Note"
               color="blue.700"
+              _dark={{ color: "blue.300" }}
               fontSize="sm"
             >
               {`Saving will make it ${selectedVisibility}.`}
@@ -643,8 +681,8 @@ function SharePublicly({
                 width="100%"
                 borderWidth="1px"
                 borderRadius="lg"
-                borderColor="gray.200"
-                bg="gray.50"
+                borderColor="border"
+                bg="surfaceMuted"
                 p="1rem"
                 data-test="Public Requirements Card"
               >
@@ -653,6 +691,10 @@ function SharePublicly({
                     color={
                       remainingRequirements === 0 ? "green.800" : "gray.800"
                     }
+                    _dark={{
+                      color:
+                        remainingRequirements === 0 ? "green.200" : "gray.200",
+                    }}
                     fontWeight="medium"
                   >
                     {isCurrentlyPublicButFailing
@@ -663,7 +705,7 @@ function SharePublicly({
                         ? "All requirements complete"
                         : `${remainingRequirements} requirement${
                             remainingRequirements === 1 ? "" : "s"
-                          } remaining before this document can be listed publicly`}
+                          } remaining before this ${contentTypeLabel} can be listed publicly`}
                   </Text>
 
                   <VStack align="stretch" spacing="0.6rem">
@@ -674,6 +716,70 @@ function SharePublicly({
                       const passed =
                         !publicShareIssues.includes(criterion.issue) &&
                         !isPending;
+
+                      // Compound content (problem sets, question banks) has no
+                      // diagnostics of its own: every audit failure — and every
+                      // not-yet-run check — belongs to a specific descendant
+                      // document (or the item itself). List those documents and
+                      // deep-link each to where it is fixed or run, instead of
+                      // pointing at the compound editor, which has no
+                      // diagnostics view. Pending documents are listed too: the
+                      // check runs on the frontend, so the user has to open and
+                      // save each one for it to complete.
+                      const isCompoundDiagnostic =
+                        contentType !== "singleDoc" &&
+                        criterion.diagnosticsTab !== undefined;
+                      if (isCompoundDiagnostic) {
+                        const diagnosticsTab = criterion.diagnosticsTab!;
+                        const failingDocuments = publicShareBlockers.filter(
+                          (blocker) => blocker.issues.includes(criterion.issue),
+                        );
+                        const pendingDocuments = criterion.pendingIssue
+                          ? publicShareBlockers.filter((blocker) =>
+                              blocker.issues.includes(criterion.pendingIssue!),
+                            )
+                          : [];
+                        if (
+                          failingDocuments.length > 0 ||
+                          pendingDocuments.length > 0
+                        ) {
+                          return (
+                            <Fragment key={criterion.issue}>
+                              {failingDocuments.length > 0 ? (
+                                <PublicCriterionDocuments
+                                  dataTest={criterion.dataTest}
+                                  headline={documentCountLabel(
+                                    failingDocuments.length,
+                                    criterion.failedNoun ??
+                                      criterion.failedLabel,
+                                    "failing",
+                                  )}
+                                  diagnosticsTab={diagnosticsTab}
+                                  documents={failingDocuments}
+                                  closeModal={closeModal}
+                                />
+                              ) : null}
+                              {pendingDocuments.length > 0 ? (
+                                <PublicCriterionDocuments
+                                  dataTest={`${criterion.dataTest} Pending`}
+                                  headline={documentCountLabel(
+                                    pendingDocuments.length,
+                                    criterion.pendingNoun ??
+                                      criterion.pendingLabel ??
+                                      criterion.failedLabel,
+                                    "pending",
+                                  )}
+                                  diagnosticsTab={diagnosticsTab}
+                                  documents={pendingDocuments}
+                                  closeModal={closeModal}
+                                  pending
+                                />
+                              ) : null}
+                            </Fragment>
+                          );
+                        }
+                      }
+
                       const label = passed
                         ? criterion.label
                         : isPending
@@ -684,6 +790,12 @@ function SharePublicly({
                           key={criterion.issue}
                           label={label}
                           passed={passed}
+                          // A compound item's own diagnostics link resolves to
+                          // the bare editor (it has no diagnostics view), so
+                          // never offer it. Such criteria normally render as a
+                          // document list above; this only guards the rare
+                          // fall-through where no specific blocker is known.
+                          showAction={!isCompoundDiagnostic}
                           dataTest={criterion.dataTest}
                           actionLabel={criterion.actionLabel}
                           actionTo={criterion.actionTo}
@@ -723,12 +835,12 @@ function SharePublicly({
             <Text
               fontSize="sm"
               fontWeight="semibold"
-              color="gray.800"
+              color="textMuted"
               mb="0.35rem"
             >
               {`${contentTypeToName[contentType]} link`}
             </Text>
-            <Text color="gray.700" fontSize="sm" mb="0.65rem">
+            <Text color="textMuted" fontSize="sm" mb="0.65rem">
               {contentLinkHelperText}
             </Text>
             <Tooltip
@@ -739,15 +851,15 @@ function SharePublicly({
               <Button
                 size="sm"
                 variant="outline"
-                borderColor="gray.300"
-                bg="white"
-                color="gray.800"
+                borderColor="border"
+                bg="surface"
+                color="textMuted"
                 onClick={() => {
                   navigator.clipboard.writeText(shareableLink);
                   setCopiedShareLink(true);
                   setCopiedEmbedCode(false);
                 }}
-                _hover={{ bg: "gray.50" }}
+                _hover={{ bg: "surfaceMuted" }}
               >
                 {copiedShareLink ? (
                   <IoMdCheckmark fontSize="1.1rem" />
@@ -764,12 +876,12 @@ function SharePublicly({
               <Text
                 fontSize="sm"
                 fontWeight="semibold"
-                color="gray.800"
+                color="textMuted"
                 mb="0.35rem"
               >
                 Embed code
               </Text>
-              <Text color="gray.700" fontSize="sm" mb="0.65rem">
+              <Text color="textMuted" fontSize="sm" mb="0.65rem">
                 Use this code to embed the document on another site or LMS.
               </Text>
               <Tooltip
@@ -780,15 +892,15 @@ function SharePublicly({
                 <Button
                   size="sm"
                   variant="outline"
-                  borderColor="gray.300"
-                  bg="white"
-                  color="gray.800"
+                  borderColor="border"
+                  bg="surface"
+                  color="textMuted"
                   onClick={() => {
                     navigator.clipboard.writeText(embedCode);
                     setCopiedEmbedCode(true);
                     setCopiedShareLink(false);
                   }}
-                  _hover={{ bg: "gray.50" }}
+                  _hover={{ bg: "surfaceMuted" }}
                 >
                   {copiedEmbedCode ? (
                     <IoMdCheckmark fontSize="1.1rem" />
@@ -837,6 +949,10 @@ function VisibilityOptionCard({
       borderRadius="lg"
       borderColor={isSelected ? "blue.600" : "gray.300"}
       bg={isSelected ? "blue.100" : "white"}
+      _dark={{
+        borderColor: isSelected ? "blue.400" : "border",
+        bg: isSelected ? "blue.900" : "surface",
+      }}
       boxShadow={isSelected ? "sm" : "none"}
       px="0.85rem"
       py="0.8rem"
@@ -871,17 +987,23 @@ function VisibilityOptionCard({
               as={icon}
               boxSize="1rem"
               color={isSelected ? "blue.800" : "gray.700"}
+              _dark={{ color: isSelected ? "blue.200" : "gray.300" }}
               mt="0.1rem"
             />
             <Box>
               <Text
                 color={isSelected ? "blue.900" : "gray.900"}
+                _dark={{ color: isSelected ? "blue.100" : "gray.100" }}
                 fontWeight="semibold"
                 fontSize="sm"
               >
                 {title}
               </Text>
-              <Text color={isSelected ? "blue.800" : "gray.700"} fontSize="xs">
+              <Text
+                color={isSelected ? "blue.800" : "gray.700"}
+                _dark={{ color: isSelected ? "blue.200" : "gray.300" }}
+                fontSize="xs"
+              >
                 {description}
               </Text>
             </Box>
@@ -895,6 +1017,7 @@ function VisibilityOptionCard({
 function PublicCriterion({
   label,
   passed,
+  showAction = true,
   dataTest,
   actionLabel,
   actionTo,
@@ -902,6 +1025,9 @@ function PublicCriterion({
 }: {
   label: string;
   passed: boolean;
+  // Whether to offer the "Open …" action link when the criterion is unmet.
+  // A pending check is unmet but has nothing to open yet, so it sets this false.
+  showAction?: boolean;
   dataTest: string;
   actionLabel: string;
   actionTo: string;
@@ -922,17 +1048,24 @@ function PublicCriterion({
           color={passed ? "green.500" : "red.500"}
           boxSize="1rem"
         />
-        <Text color={passed ? "gray.800" : "red.700"} noOfLines={1}>
+        <Text
+          color={passed ? "gray.800" : "red.700"}
+          _dark={{ color: passed ? "gray.200" : "red.300" }}
+          noOfLines={1}
+        >
           {label}
         </Text>
       </HStack>
-      {!passed ? (
+      {!passed && showAction ? (
         <Button
           as={ReactRouterLink}
           to={actionTo}
           variant="link"
           size="sm"
-          colorScheme="blue"
+          // blue.500 (default link) is too light on the muted card surface; pin
+          // a readable blue in each mode.
+          color="blue.600"
+          _dark={{ color: "blue.300" }}
           rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
           onClick={closeModal}
           flexShrink={0}
@@ -941,6 +1074,132 @@ function PublicCriterion({
         </Button>
       ) : null}
     </Flex>
+  );
+}
+
+/**
+ * Builds the summary line above a document list for a compound criterion.
+ * "failing" documents already have confirmed violations; "pending" documents
+ * still need their frontend check run (the user opens and saves each one).
+ */
+function documentCountLabel(
+  count: number,
+  noun: string,
+  variant: "failing" | "pending",
+): string {
+  const plural = count === 1 ? "" : "s";
+  return variant === "failing"
+    ? `${count} document${plural} ${count === 1 ? "has" : "have"} ${noun}`
+    : `${count} document${plural} ${
+        count === 1 ? "needs" : "need"
+      } to be opened to run the ${noun}`;
+}
+
+/**
+ * An unmet audit criterion for a compound item (problem set / question bank),
+ * listing each descendant document that is blocking public sharing with a link
+ * into that document's own diagnostics. Used for both confirmed failures and
+ * still-pending checks (`pending`), which the user must open and save to run.
+ */
+function PublicCriterionDocuments({
+  dataTest,
+  headline,
+  diagnosticsTab,
+  documents,
+  closeModal,
+  pending = false,
+}: {
+  dataTest: string;
+  headline: string;
+  diagnosticsTab: EditorDiagnosticsTab;
+  documents: PublicShareBlocker[];
+  closeModal: () => void;
+  pending?: boolean;
+}) {
+  return (
+    <Box
+      data-test={dataTest}
+      bg={pending ? "orange.50" : "red.50"}
+      borderWidth="1px"
+      borderColor={pending ? "orange.200" : "red.200"}
+      borderRadius="md"
+      px="0.8rem"
+      py="0.6rem"
+      _dark={{
+        bg: pending ? "orange.900" : "red.900",
+        borderColor: pending ? "orange.700" : "red.700",
+      }}
+    >
+      <HStack align="center" spacing="0.55rem">
+        <Icon
+          as={pending ? FiClock : FiXCircle}
+          color={pending ? "orange.500" : "red.500"}
+          _dark={{ color: pending ? "orange.300" : "red.300" }}
+          boxSize="1rem"
+        />
+        <Text
+          fontWeight="medium"
+          color={pending ? "orange.800" : "red.800"}
+          _dark={{ color: pending ? "orange.200" : "red.200" }}
+        >
+          {headline}
+        </Text>
+      </HStack>
+      {/* The nested rule + indent visually binds each document to the criterion
+          above it, so the list reads as "these documents are the problem". */}
+      <VStack
+        align="stretch"
+        spacing="0.1rem"
+        mt="0.45rem"
+        ml="0.5rem"
+        pl="1.05rem"
+        borderLeftWidth="2px"
+        borderColor={pending ? "orange.200" : "red.200"}
+        _dark={{ borderColor: pending ? "orange.700" : "red.700" }}
+      >
+        {documents.map((doc) => (
+          <Flex
+            key={doc.contentId}
+            data-test={`${dataTest} Document`}
+            align="center"
+            justify="space-between"
+            gap="0.75rem"
+            wrap="nowrap"
+            py="0.15rem"
+          >
+            <Text
+              color="textMuted"
+              fontSize="sm"
+              noOfLines={1}
+              flex="1"
+              minWidth={0}
+            >
+              {doc.name || "Untitled"}
+            </Text>
+            <Button
+              as={ReactRouterLink}
+              to={editorDiagnosticsUrl(
+                doc.contentId,
+                doc.contentType,
+                diagnosticsTab,
+              )}
+              aria-label={`Open ${doc.name || "Untitled"}`}
+              variant="link"
+              size="sm"
+              // blue.500 (default link) is only 3.76:1 on the red.50 box; pin a
+              // darker blue in light mode and a light blue on the dark box.
+              color="blue.600"
+              _dark={{ color: "blue.300" }}
+              rightIcon={<Icon as={FiChevronRight} boxSize="0.9rem" />}
+              onClick={closeModal}
+              flexShrink={0}
+            >
+              Open
+            </Button>
+          </Flex>
+        ))}
+      </VStack>
+    </Box>
   );
 }
 
@@ -976,8 +1235,8 @@ function AccessSaveButton({
         bg: "blue.700",
       }}
       _disabled={{
-        bg: "gray.200",
-        color: "gray.500",
+        bg: "interact",
+        color: "textMuted",
         boxShadow: "none",
         cursor: "not-allowed",
       }}
@@ -1003,17 +1262,17 @@ function AccessCancelButton({
       variant="outline"
       borderRadius="lg"
       px="1rem"
-      borderColor="gray.300"
-      bg="white"
-      color="gray.700"
+      borderColor="border"
+      bg="surface"
+      color="textMuted"
       boxShadow="sm"
       onClick={onClick}
       isDisabled={isDisabled}
-      _hover={{ bg: "gray.50", borderColor: "gray.400" }}
+      _hover={{ bg: "surfaceMuted", borderColor: "border" }}
       _disabled={{
         color: "gray.400",
-        bg: "gray.100",
-        borderColor: "gray.200",
+        bg: "surfaceMuted",
+        borderColor: "border",
         boxShadow: "none",
         cursor: "not-allowed",
       }}

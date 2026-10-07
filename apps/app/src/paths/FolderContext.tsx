@@ -21,7 +21,11 @@ export function FolderContext() {
       width={{ base: "100%", md: "8rem", lg: "12rem" }}
       flexShrink={0}
       align="flex-start"
-      borderRight={{ base: "none", md: "solid 2px black" }}
+      // A hardcoded black divider is invisible on the dark background; use the
+      // mode-flipping border token.
+      borderRightWidth={{ base: "0", md: "2px" }}
+      borderRightStyle="solid"
+      borderRightColor="border"
       p={{ base: "0px", xl: "10px" }}
       minHeight={{ base: "fit-content", md: "100%" }}
       flexDir={{ base: "row", md: "column" }}
@@ -32,13 +36,14 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isActivitiesActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={
-          isActivitiesActive ? "doenet.lightBlue" : "transparent"
-        }
+        backgroundColor={isActivitiesActive ? "viewerFrame" : "transparent"}
+        // Active bg (viewerFrame) flips with the mode, so pair it with the
+        // flipping text token for a readable label in both modes.
+        color={isActivitiesActive ? "text" : undefined}
         _hover={
           isActivitiesActive
-            ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            ? { backgroundColor: "viewerFrame" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isActivitiesActive ? "4px" : "0"}
         marginLeft={isActivitiesActive ? "0" : "4px"}
@@ -55,13 +60,12 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isSharedWithMeActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={
-          isSharedWithMeActive ? "doenet.lightBlue" : "transparent"
-        }
+        backgroundColor={isSharedWithMeActive ? "viewerFrame" : "transparent"}
+        color={isSharedWithMeActive ? "text" : undefined}
         _hover={
           isSharedWithMeActive
-            ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            ? { backgroundColor: "viewerFrame" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isSharedWithMeActive ? "4px" : "0"}
         marginLeft={isSharedWithMeActive ? "0" : "4px"}
@@ -83,11 +87,12 @@ export function FolderContext() {
         variant="ghost"
         justifyContent="flex-start"
         width={isTrashActive ? "100%" : "calc(100% - 4px)"}
-        backgroundColor={isTrashActive ? "doenet.lightBlue" : "transparent"}
+        backgroundColor={isTrashActive ? "viewerFrame" : "transparent"}
+        color={isTrashActive ? "text" : undefined}
         _hover={
           isTrashActive
-            ? { backgroundColor: "doenet.lightBlue" }
-            : { backgroundColor: "gray.50" }
+            ? { backgroundColor: "viewerFrame" }
+            : { backgroundColor: "surfaceMuted" }
         }
         borderLeftWidth={isTrashActive ? "4px" : "0"}
         marginLeft={isTrashActive ? "0" : "4px"}

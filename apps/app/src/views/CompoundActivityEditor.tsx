@@ -48,6 +48,19 @@ import {
 } from "../utils/actionBarConfig";
 import { CreateContentMenu } from "../dropdowns/CreateContentMenu";
 
+/**
+ * Background token for the compound-activity editor body.
+ *
+ * An empty activity uses the mode-flipping `viewerFrame` token (light blue in
+ * light mode, dark blue-gray in dark mode) rather than a fixed brand color: the
+ * previous `var(--lightBlue)` did not flip and painted a light-blue panel with
+ * light text on the dark page. A non-empty body uses the page `background`.
+ * (That `viewerFrame` flips per color mode is covered by WelcomeBanner.cy.tsx.)
+ */
+export function compoundEditorBodyBackground(numCards: number) {
+  return numCards > 0 ? "background" : "viewerFrame";
+}
+
 export function CompoundActivityEditor({
   activity,
   asViewer = false,
@@ -192,18 +205,18 @@ export function CompoundActivityEditor({
     onClose: authorModePromptOnClose,
   } = useDisclosure();
 
-  const authorModeModal = (
+  const authorModeModal = user ? (
     <ActivateAuthorMode
       isOpen={authorModePromptIsOpen}
       onClose={authorModePromptOnClose}
       desiredAction="create doc"
-      user={user!}
+      user={user}
       proceedCallback={() => {
         createNewDocument(createDocumentParentId);
       }}
       fetcher={fetcher}
     />
-  );
+  ) : null;
 
   // TODO: figure out functions inside hooks
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,7 +326,10 @@ export function CompoundActivityEditor({
     <CardList
       showOwnerName={false}
       showBlurb={false}
-      showPublicStatus={true}
+      // A problem set defines the access of its documents, so per-document
+      // visibility pills would be misleading here. Question banks still show
+      // them.
+      showPublicStatus={activity.type !== "sequence"}
       showActivityCategories={true}
       showAddButton={!readOnlyStructure}
       emptyMessage={`${contentTypeName} is empty. Add documents here to begin.`}
@@ -466,8 +482,8 @@ export function CompoundActivityEditor({
 
   const heading = (
     <Flex
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height={cardListHeaderHieght}
       width="100%"
       textAlign="center"
@@ -478,52 +494,53 @@ export function CompoundActivityEditor({
       {selectedItemsActions}
 
       <Spacer />
-      <Menu>
-        <MenuButton
-          hidden={readOnlyStructure}
-          as={Button}
-          size="sm"
-          colorScheme="blue"
-          data-test="New Button"
-        >
-          {haveContentSpinner ? <Spinner size="sm" /> : "Add"}
-        </MenuButton>
-        <MenuList>
-          <MenuItem
-            as={ReactRouterLink}
-            data-test="Add Explore Items"
-            to={`/explore`}
-            onClick={() => {
-              setAddTo(activity);
-            }}
+      {!readOnlyStructure && (
+        <Menu>
+          <MenuButton
+            as={Button}
+            size="sm"
+            colorScheme="blue"
+            data-test="New Button"
           >
-            Items from Explore
-          </MenuItem>
-          <MenuItem
-            as={ReactRouterLink}
-            data-test="Add My Activities Items"
-            to={`/activities/${user!.userId}`}
-            onClick={() => {
-              setAddTo(activity);
-            }}
-          >
-            Items from My Activities
-          </MenuItem>
-          <MenuItem
-            data-test="Add Document Button"
-            onClick={() => {
-              if (user?.isAuthor) {
-                createNewDocument();
-              } else {
-                setCreateDocumentParentId(activity.contentId);
-                authorModePromptOnOpen();
-              }
-            }}
-          >
-            Blank Document {!user?.isAuthor && <>(with source code)</>}
-          </MenuItem>
-        </MenuList>
-      </Menu>
+            {haveContentSpinner ? <Spinner size="sm" /> : "Add"}
+          </MenuButton>
+          <MenuList>
+            <MenuItem
+              as={ReactRouterLink}
+              data-test="Add Explore Items"
+              to={`/explore`}
+              onClick={() => {
+                setAddTo(activity);
+              }}
+            >
+              Items from Explore
+            </MenuItem>
+            <MenuItem
+              as={ReactRouterLink}
+              data-test="Add My Activities Items"
+              to={`/activities/${user!.userId}`}
+              onClick={() => {
+                setAddTo(activity);
+              }}
+            >
+              Items from My Activities
+            </MenuItem>
+            <MenuItem
+              data-test="Add Document Button"
+              onClick={() => {
+                if (user?.isAuthor) {
+                  createNewDocument();
+                } else {
+                  setCreateDocumentParentId(activity.contentId);
+                  authorModePromptOnOpen();
+                }
+              }}
+            >
+              Blank Document {!user?.isAuthor && <>(with source code)</>}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      )}
     </Flex>
   );
 
@@ -540,7 +557,7 @@ export function CompoundActivityEditor({
         margin="0px"
         width="100%"
         minHeight={`calc(100vh - ${headerHeight} - ${cardListHeaderHieght})`}
-        background={numCards > 0 ? "white" : "var(--lightBlue)"}
+        background={compoundEditorBodyBackground(numCards)}
         direction="column"
       >
         {cardList}

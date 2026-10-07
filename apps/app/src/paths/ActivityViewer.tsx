@@ -66,9 +66,11 @@ import {
   getIconInfo,
   menuIcons,
 } from "../utils/activity";
-import { ActivitySource, isActivitySource } from "@doenet-tools/shared";
+import { ActivitySource } from "@doenet-tools/shared";
 import { DoenetEditor, DoenetViewer } from "@doenet/doenetml-iframe";
+import { doenetImagesUrl } from "../utils/media";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 import { processRemixes } from "../utils/processRemixes";
 import ContributorsMenu from "../dropdowns/ContributorsMenu";
 import { ContentInfoDrawer } from "../drawers/ContentInfoDrawer";
@@ -112,13 +114,7 @@ export async function loader({ params }: { params: any }) {
       libraryRelations,
     };
   } else {
-    const activityJsonFromRevision = activityData.activityJson
-      ? JSON.parse(activityData.activityJson)
-      : null;
-
-    const activityJson = isActivitySource(activityJsonFromRevision)
-      ? activityJsonFromRevision
-      : compileActivityFromContent(activityData);
+    const activityJson = compileActivityFromContent(activityData);
 
     return {
       type: activityData.type,
@@ -154,6 +150,7 @@ export function ActivityViewer() {
 
   const { user, addTo, setAddTo, allLicenses } =
     useOutletContext<SiteContext>();
+  const { themeSetting } = useThemeSettingContext();
   const canManageVisibility = user?.userId === activityData.ownerId;
 
   const license =
@@ -301,6 +298,7 @@ export function ActivityViewer() {
         borderTop="1px solid"
         borderBottom="1px solid"
         borderColor="orange.300"
+        _dark={{ backgroundColor: "orange.900", borderColor: "orange.700" }}
         justifyContent="center"
       >
         <HStack
@@ -362,10 +360,15 @@ export function ActivityViewer() {
             width="100%"
             doenetML={data.doenetML}
             doenetmlVersion={data.doenetmlVersion.fullVersion}
+            darkMode={effectiveDarkMode(
+              themeSetting,
+              data.doenetmlVersion.fullVersion,
+            )}
             initialWarnings={initialWarnings}
             border="none"
             readOnly={true}
             doenetViewerUrl={doenetViewerUrl}
+            doenetImagesUrl={doenetImagesUrl}
           />
         </>
       );
@@ -378,6 +381,10 @@ export function ActivityViewer() {
               <DoenetViewer
                 doenetML={data.doenetML}
                 doenetmlVersion={data.doenetmlVersion.fullVersion}
+                darkMode={effectiveDarkMode(
+                  themeSetting,
+                  data.doenetmlVersion.fullVersion,
+                )}
                 flags={{
                   showCorrectness: true,
                   solutionDisplayMode: "button",
@@ -391,6 +398,7 @@ export function ActivityViewer() {
                 }}
                 attemptNumber={1}
                 doenetViewerUrl={doenetViewerUrl}
+                doenetImagesUrl={doenetImagesUrl}
                 includeVariantSelector={true}
                 requestScrollTo={requestScrollTo}
               />
@@ -421,6 +429,8 @@ export function ActivityViewer() {
           <BlueBanner headerHeight={headerHeight}>
             <DoenetActivityViewer
               source={data.activityJson}
+              // Compound activity: per-leaf version, so pass the raw setting.
+              darkMode={effectiveDarkMode(themeSetting)}
               requestedVariantIndex={1}
               userId={"hi"}
               paginate={
@@ -435,6 +445,7 @@ export function ActivityViewer() {
               maxAttemptsAllowed={activityData.assignmentInfo?.maxAttempts}
               showTitle={false}
               doenetViewerUrl={doenetViewerUrl}
+              doenetImagesUrl={doenetImagesUrl}
             />
           </BlueBanner>
         </>
@@ -545,7 +556,7 @@ export function ActivityViewer() {
       {infoDrawer}
       {copyContentModal}
       <Grid
-        background="doenet.lightBlue"
+        background="viewerFrame"
         height="calc(100vh - 40px)" //40px header height
         templateAreas={`"header"
       "centerContent"
@@ -801,7 +812,9 @@ export function ActivityViewer() {
             />
             <Flex
               hidden={mode === "Edit"}
-              background="gray.600"
+              // Inverted info panel: textMuted flips opposite to the --canvas
+              // text, keeping contrast readable in both light and dark modes.
+              background="textMuted"
               maxWidth="850px"
               width="100%"
               color="var(--canvas)"

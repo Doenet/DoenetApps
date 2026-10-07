@@ -1,0 +1,463 @@
+// Stage 01: read the legacy scratch DB + media tree and produce the
+// intermediate model (build/model.json) plus a human-readable report
+// (build/extract-report.md).
+//
+//   npx tsx scripts/legacy-migration/01-extract.ts
+import fs from "node:fs";
+import path from "node:path";
+import { loadConfig } from "./config";
+import {
+  openLegacyDb,
+  LegacyCourseContentRow,
+  LegacyUserRow,
+} from "./legacyDb";
+import {
+  classifyShape,
+  entriesFromJsonDefinition,
+  flattenEntries,
+  scanImageCids,
+} from "./flatten";
+import {
+  ActivityNode,
+  CourseModel,
+  Model,
+  PageRef,
+  SectionNode,
+  SupportFileInfo,
+  TreeNode,
+  UserModel,
+} from "./model";
+
+const EXT_FROM_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "text/csv": "csv",
+};
+
+interface Issue {
+  category: string;
+  detail: string;
+}
+
+async function main() {
+  const config = loadConfig();
+  const db = openLegacyDb(config.legacyScratchUrl);
+  const issues: Issue[] = [];
+  const stats: Record<string, number> = {};
+  const bump = (key: string, by = 1) => {
+    stats[key] = (stats[key] ?? 0) + by;
+  };
+
+  // ---- reference data ----------------------------------------------------
+  console.log("Loading pages, link_pages, support_files ...");
+  // label per (containingDoenetId, pageId), plus a fallback by pageId alone
+  const pageLabels = new Map<string, string>();
+  const pageLabelFallback = new Map<string, string>();
+  const deletedPages = new Set<string>();
+  for (const row of await db.allPages()) {
+    if (Number(row.isDeleted) === 1) {
+      deletedPages.add(row.doenetId);
+      continue;
+    }
+    pageLabels.set(`${row.containingDoenetId} ${row.doenetId}`, row.label);
+    if (!pageLabelFallback.has(row.doenetId)) {
+      pageLabelFallback.set(row.doenetId, row.label);
+    }
+  }
+  for (const row of await db.allLinkPages()) {
+    if (!pageLabelFallback.has(row.doenetId)) {
+      pageLabelFallback.set(row.doenetId, row.label);
+    }
+  }
+
+  const supportByCid = new Map<
+    string,
+    {
+      mimeType: string;
+      description: string | null;
+      asFileName: string | null;
+      userId: string;
+    }
+  >();
+  for (const row of await db.allSupportFiles()) {
+    if (!supportByCid.has(row.cid)) {
+      supportByCid.set(row.cid, {
+        mimeType: row.fileType,
+        description: row.description,
+        asFileName: row.asFileName,
+        userId: row.userId,
+      });
+    }
+  }
+
+  // ---- in-scope users ----------------------------------------------------
+  console.log("Determining in-scope users ...");
+  const portfolioUsers = await db.portfolioUsers();
+  const ownerPairs = await db.courseOwners();
+
+  const ownersByUser = new Map<string, string[]>();
+  for (const { courseId, userId } of ownerPairs) {
+    const list = ownersByUser.get(userId) ?? [];
+    list.push(courseId);
+    ownersByUser.set(userId, list);
+  }
+  const ownersByCourse = new Map<string, string[]>();
+  for (const { courseId, userId } of ownerPairs) {
+    const list = ownersByCourse.get(courseId) ?? [];
+    list.push(userId);
+    ownersByCourse.set(courseId, list);
+  }
+
+  const userIds = new Set<string>([
+    ...portfolioUsers.map((u) => u.userId),
+    ...ownersByUser.keys(),
+  ]);
+  const userRows = new Map<string, LegacyUserRow>();
+  for (const row of await db.usersByIds([...userIds])) {
+    userRows.set(row.userId, row);
+  }
+  bump("usersInScope", userIds.size);
+
+  // ---- page resolution (shared by portfolio + courses) --------------------
+  const referencedCids = new Set<string>();
+
+  function resolvePage(activityDoenetId: string, pageId: string): PageRef {
+    const label =
+      pageLabels.get(`${activityDoenetId} ${pageId}`) ??
+      pageLabelFallback.get(pageId) ??
+      "Untitled";
+    if (deletedPages.has(pageId)) {
+      bump("pagesMarkedDeleted");
+    }
+    const relative = path.join("byPageId", `${pageId}.doenet`);
+    const absolute = path.join(config.legacyMediaDir, relative);
+    let sourceFile: string | null = null;
+    let bytes = 0;
+    let cids: string[] = [];
+    if (fs.existsSync(absolute)) {
+      sourceFile = relative;
+      bytes = fs.statSync(absolute).size;
+      if (bytes > 0) {
+        cids = scanImageCids(fs.readFileSync(absolute, "utf8"));
+        for (const cid of cids) {
+          referencedCids.add(cid);
+        }
+      } else {
+        bump("pagesEmptyFile");
+      }
+    } else {
+      bump("pagesMissingFile");
+      issues.push({
+        category: "missing-page-file",
+        detail: `${pageId} (in ${activityDoenetId})`,
+      });
+    }
+    return { pageId, label, sourceFile, bytes, cids };
+  }
+
+  function buildActivity(row: LegacyCourseContentRow): ActivityNode {
+    const legacyType = row.type as "activity" | "bank";
+    const entries = entriesFromJsonDefinition(row.jsonDefinition, legacyType);
+    const node: ActivityNode = {
+      kind: "activity",
+      legacyDoenetId: row.doenetId,
+      legacyCourseId: row.courseId,
+      label: row.label,
+      legacyType,
+      shape: "empty",
+      pages: [],
+      issues: [],
+    };
+    if (entries === null) {
+      node.issues.push("bad-json-definition");
+      issues.push({ category: "bad-json-definition", detail: row.doenetId });
+      bump("badJsonDefinition");
+      return node;
+    }
+    node.shape = classifyShape(entries);
+    node.pages = flattenEntries(entries).map((pageId) =>
+      resolvePage(row.doenetId, pageId),
+    );
+    if (node.shape === "empty") {
+      bump("activitiesEmpty");
+    }
+    bump(
+      node.shape === "singleDoc" ? "activitiesSingleDoc" : "activitiesOther",
+      0,
+    );
+    return node;
+  }
+
+  // ---- course trees --------------------------------------------------------
+  console.log("Building course trees ...");
+  const courses: Record<string, CourseModel> = {};
+  const courseIds = [...ownersByCourse.keys()];
+  const courseRows = new Map(
+    (await db.coursesByIds(courseIds)).map((c) => [c.courseId, c]),
+  );
+
+  for (const courseId of courseIds) {
+    const courseRow = courseRows.get(courseId);
+    if (!courseRow) {
+      issues.push({ category: "course-row-missing", detail: courseId });
+      continue;
+    }
+    const rows = await db.courseContent(courseId);
+    const byParent = new Map<string, LegacyCourseContentRow[]>();
+    const byId = new Map<string, LegacyCourseContentRow>();
+    for (const row of rows) {
+      byId.set(row.doenetId, row);
+      const list = byParent.get(row.parentDoenetId) ?? [];
+      list.push(row);
+      byParent.set(row.parentDoenetId, list);
+    }
+
+    // Orphans (parent neither the course root nor an existing row) and
+    // children of non-section rows are hoisted to the course root.
+    const hoisted: LegacyCourseContentRow[] = [];
+    for (const row of rows) {
+      if (row.parentDoenetId === courseId) continue;
+      const parent = byId.get(row.parentDoenetId);
+      if (!parent) {
+        hoisted.push(row);
+        issues.push({ category: "orphan-parent", detail: row.doenetId });
+        bump("orphanRows");
+      } else if (parent.type !== "section") {
+        hoisted.push(row);
+        issues.push({
+          category: "non-section-parent",
+          detail: `${row.doenetId} under ${parent.type} ${parent.doenetId}`,
+        });
+        bump("nonSectionParentRows");
+      }
+    }
+
+    const emitChildren = (parentId: string): TreeNode[] => {
+      const children = byParent.get(parentId) ?? [];
+      const nodes: TreeNode[] = [];
+      for (const row of children) {
+        if (row.type === "section") {
+          const section: SectionNode = {
+            kind: "section",
+            legacyDoenetId: row.doenetId,
+            label: row.label,
+            children: emitChildren(row.doenetId),
+            issues: [],
+          };
+          nodes.push(section);
+          bump("sections");
+        } else {
+          nodes.push(buildActivity(row));
+          bump("courseActivities");
+        }
+      }
+      return nodes;
+    };
+
+    const tree = emitChildren(courseId);
+    for (const row of hoisted) {
+      if (row.type === "section") {
+        tree.push({
+          kind: "section",
+          legacyDoenetId: row.doenetId,
+          label: row.label,
+          children: emitChildren(row.doenetId),
+          issues: ["hoisted-to-root"],
+        });
+      } else {
+        const node = buildActivity(row);
+        node.issues.push("hoisted-to-root");
+        tree.push(node);
+      }
+    }
+
+    courses[courseId] = {
+      legacyCourseId: courseId,
+      label: courseRow.label,
+      ownerLegacyUserIds: ownersByCourse.get(courseId) ?? [],
+      tree,
+    };
+    bump("courses");
+  }
+
+  // ---- portfolios ----------------------------------------------------------
+  console.log("Building portfolios ...");
+  const portfolioByUser = new Map<string, ActivityNode[]>();
+  for (const pu of portfolioUsers) {
+    const rows = await db.courseContent(pu.portfolioCourseId);
+    const activities = rows
+      .filter((r) => r.type !== "section")
+      .map((row) => buildActivity(row));
+    portfolioByUser.set(pu.userId, activities);
+    bump("portfolioActivities", activities.length);
+  }
+
+  // ---- users ---------------------------------------------------------------
+  const users: UserModel[] = [];
+  for (const userId of userIds) {
+    const row = userRows.get(userId);
+    if (!row) {
+      issues.push({ category: "user-row-missing", detail: userId });
+      continue;
+    }
+    const email = (row.email ?? "").trim();
+    if (email === "") {
+      issues.push({ category: "user-no-email", detail: userId });
+      bump("usersNoEmail");
+      continue;
+    }
+    users.push({
+      legacyUserId: userId,
+      email,
+      firstName: row.firstName ?? "",
+      lastName: row.lastName ?? "",
+      screenName: row.screenName ?? "",
+      portfolio: portfolioByUser.get(userId) ?? null,
+      ownedCourseIds: (ownersByUser.get(userId) ?? []).sort(),
+    });
+  }
+  users.sort((a, b) => a.email.localeCompare(b.email));
+  bump("usersInModel", users.length);
+
+  // ---- referenced support files -------------------------------------------
+  console.log("Resolving referenced support files ...");
+  const supportFiles: Record<string, SupportFileInfo> = {};
+  for (const cid of referencedCids) {
+    const info = supportByCid.get(cid);
+    if (!info) {
+      issues.push({ category: "cid-not-in-support-files", detail: cid });
+      bump("cidsWithoutSupportRow");
+      continue;
+    }
+    const ext = EXT_FROM_MIME[info.mimeType];
+    if (!ext) {
+      issues.push({
+        category: "unsupported-mime",
+        detail: `${cid} (${info.mimeType})`,
+      });
+      continue;
+    }
+    if (info.mimeType === "text/csv") {
+      issues.push({ category: "csv-skipped", detail: cid });
+      bump("csvsSkipped");
+      continue;
+    }
+    const relative = `${cid}.${ext}`;
+    const absolute = path.join(config.legacyMediaDir, relative);
+    const exists = fs.existsSync(absolute);
+    if (!exists) {
+      issues.push({ category: "missing-image-file", detail: relative });
+      bump("imagesMissingFile");
+    }
+    const uploader = userRows.get(info.userId);
+    const uploaderName = uploader
+      ? `${uploader.firstName} ${uploader.lastName}`.trim() ||
+        uploader.screenName ||
+        "Unknown"
+      : "Unknown";
+    supportFiles[cid] = {
+      cid,
+      ext,
+      mimeType: info.mimeType,
+      description: info.description,
+      asFileName: info.asFileName,
+      file: exists ? relative : null,
+      bytes: exists ? fs.statSync(absolute).size : 0,
+      uploaderName,
+    };
+  }
+  bump("supportFilesInModel", Object.keys(supportFiles).length);
+  bump("referencedCids", referencedCids.size);
+
+  // ---- write artifacts ------------------------------------------------------
+  fs.mkdirSync(config.buildDir, { recursive: true });
+  const model: Model = {
+    generatedAt: new Date().toISOString(),
+    legacyMediaDir: config.legacyMediaDir,
+    users,
+    courses,
+    supportFiles,
+    stats,
+  };
+  const modelPath = path.join(config.buildDir, "model.json");
+  fs.writeFileSync(modelPath, JSON.stringify(model, null, 1));
+  console.log(`Wrote ${modelPath}`);
+
+  const reportPath = path.join(config.buildDir, "extract-report.md");
+  fs.writeFileSync(reportPath, renderReport(model, issues));
+  console.log(`Wrote ${reportPath}`);
+
+  await db.close();
+}
+
+function renderReport(model: Model, issues: Issue[]): string {
+  const lines: string[] = [];
+  lines.push(`# Legacy extract report`);
+  lines.push(``);
+  lines.push(`Generated: ${model.generatedAt}`);
+  lines.push(``);
+  lines.push(`## Stats`);
+  lines.push(``);
+  for (const [key, value] of Object.entries(model.stats).sort()) {
+    lines.push(`- ${key}: ${value}`);
+  }
+
+  // shape breakdown
+  const shapeCounts: Record<string, number> = {};
+  const countActivity = (node: ActivityNode) => {
+    shapeCounts[node.shape] = (shapeCounts[node.shape] ?? 0) + 1;
+  };
+  const walk = (nodes: TreeNode[]) => {
+    for (const node of nodes) {
+      if (node.kind === "activity") countActivity(node);
+      else walk(node.children);
+    }
+  };
+  for (const course of Object.values(model.courses)) walk(course.tree);
+  for (const user of model.users) (user.portfolio ?? []).forEach(countActivity);
+  lines.push(``);
+  lines.push(`## Activity shapes (portfolio + courses)`);
+  lines.push(``);
+  for (const [shape, count] of Object.entries(shapeCounts).sort()) {
+    lines.push(`- ${shape}: ${count}`);
+  }
+
+  lines.push(``);
+  lines.push(`## Issues (${issues.length})`);
+  lines.push(``);
+  const byCategory = new Map<string, string[]>();
+  for (const issue of issues) {
+    const list = byCategory.get(issue.category) ?? [];
+    list.push(issue.detail);
+    byCategory.set(issue.category, list);
+  }
+  for (const [category, details] of [...byCategory.entries()].sort()) {
+    lines.push(`### ${category} (${details.length})`);
+    lines.push(``);
+    const shown = details.slice(0, 50);
+    for (const detail of shown) {
+      lines.push(`- ${detail}`);
+    }
+    if (details.length > shown.length) {
+      lines.push(`- ... and ${details.length - shown.length} more`);
+    }
+    lines.push(``);
+  }
+
+  lines.push(`## Per-user summary`);
+  lines.push(``);
+  lines.push(`| email | portfolio activities | owned courses |`);
+  lines.push(`| --- | --- | --- |`);
+  for (const user of model.users) {
+    lines.push(
+      `| ${user.email} | ${user.portfolio?.length ?? 0} | ${user.ownedCourseIds.length} |`,
+    );
+  }
+  lines.push(``);
+  return lines.join("\n");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

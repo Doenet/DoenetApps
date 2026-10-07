@@ -95,7 +95,7 @@ export function Curate() {
 
     return (
       <Box
-        background={"white"}
+        background="surface"
         paddingTop="16px"
         paddingBottom="16px"
         minHeight={minHeight}
@@ -115,8 +115,8 @@ export function Curate() {
 
   const heading = (
     <Box
-      backgroundColor="#fff"
-      color="#000"
+      backgroundColor="surface"
+      color="text"
       height="130px"
       width="100%"
       textAlign="center"

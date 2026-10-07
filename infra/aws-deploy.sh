@@ -85,6 +85,7 @@ getOptions() {
     die "Stacks and basic settings for the target environment ${STACK_FILE}.aws"
   else
     source "${STACK_FILE}.aws"
+    declare -p STACK_REGION &>/dev/null || declare -g -A STACK_REGION=()
     export AWS_REGION TEMPLATE_BUCKET STACKS STACK_ORDER PROJECT FARGATE_CLUSTER
     export AWS_PROFILE=$SSO_ACCOUNT_NAME
     export AWS_DEFAULT_REGION=$AWS_REGION
@@ -150,8 +151,20 @@ updateStacks() {
   for name in "${STACK_ORDER[@]}"; do 
     printGreen "Deploying Cloudformation stack ${name}"
     param_file="cloudformation/${name}.params"
-    ./scripts/cfn-deploy.sh -s $name -t "https://${TEMPLATE_BUCKET}.s3.amazonaws.com/${STACK_FILE}-${PROJECT}/${STACKS[$name]}.yml" -r ${AWS_REGION} -p "${param_file}" --no-wait-for-completion --changeset-name ${name}-${STACK_FILE};
-    ./scripts/cfn-wait.sh ${name} ${AWS_REGION};
+    force_update_token=$(date -u +"%Y%m%dT%H%M%SZ")
+    temp_param_file=$(mktemp)
+    trap 'rm -f "$temp_param_file"' RETURN
+    # StackSet updates can skip creating a change set when only the nested template
+    # content changed and the outer stack inputs stayed the same. Replace the
+    # checked-in ForceUpdateToken placeholder only for this deploy so CloudFormation
+    # sees a changed parameter and refreshes the StackSet, while the uploaded .params
+    # artifact remains the stable checked-in source of truth.
+    sed '/"ParameterKey": "ForceUpdateToken"/{n;s/"ParameterValue": "DUMMY"/"ParameterValue": "'"${force_update_token}"'"/;}' "${param_file}" > "$temp_param_file"
+    region="${STACK_REGION[$name]:-$AWS_REGION}"
+    ./scripts/cfn-deploy.sh -s $name -t "https://${TEMPLATE_BUCKET}.s3.amazonaws.com/${STACK_FILE}-${PROJECT}/${STACKS[$name]}.yml" -r ${region} -p "$temp_param_file" --no-wait-for-completion --changeset-name ${name}-${STACK_FILE};
+    rm -f "$temp_param_file"
+    trap - RETURN
+    ./scripts/cfn-wait.sh ${name} ${region};
   done
 }
 

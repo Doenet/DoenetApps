@@ -38,6 +38,16 @@ Policies:
           Resource:
             - Fn::Sub: "arn:aws:s3:::${S3AppBucket}"
             - Fn::Sub: "arn:aws:s3:::${S3AppBucket}/*"
+  - PolicyName: MediaS3Policy
+    PolicyDocument:
+      Statement:
+        - Effect: Allow
+          Action:
+            - "s3:PutObject"
+            - "s3:GetObject"
+            - "s3:DeleteObject"
+          Resource:
+            - Fn::Sub: "arn:aws:s3:::${S3MediaBucket}/*"
   - PolicyName: SESPolicy
     PolicyDocument:
       Statement:

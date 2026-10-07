@@ -61,7 +61,7 @@ export function DoenetMLSelectionBox({
       <FormControl display="flex" alignItems="center" gap={1}>
         <FormLabel
           size="sm"
-          color={fetcher.state !== "idle" ? "gray" : "black"}
+          color={fetcher.state !== "idle" ? "textMuted" : "text"}
           mb={0}
         >
           Use DoenetML version

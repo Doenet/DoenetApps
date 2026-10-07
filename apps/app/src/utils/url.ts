@@ -25,6 +25,22 @@ export function editorUrl(
   return `/${contentType === "singleDoc" ? "documentEditor" : "compoundEditor"}/${contentId}/${tabPath}${inCurateMode ? "?curate" : ""}`;
 }
 
+/**
+ * The url for viewing this content.
+ * Folders open in the shared-activities browser, which needs the owner id to
+ * build the route; all other content opens in the activity viewer. A folder
+ * without a known owner falls back to the activity viewer.
+ */
+export function contentViewerUrl(
+  contentType: ContentType,
+  contentId: string,
+  ownerId: string | undefined,
+) {
+  return contentType === "folder" && ownerId !== undefined
+    ? `/sharedActivities/${ownerId}/${contentId}`
+    : `/activityViewer/${contentId}`;
+}
+
 export function editorDiagnosticsUrl(
   contentId: string,
   contentType: ContentType,

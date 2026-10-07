@@ -1,4 +1,47 @@
 describe("Activity Viewer Tests", { tags: ["@group1"] }, function () {
+  it("can view content list of problem set when not logged in", () => {
+    cy.loginAsTestUser({ isAuthor: true });
+
+    cy.createContent({
+      name: "Public Problem Set",
+      contentType: "sequence",
+      makePublic: true,
+    }).then((sequenceId) => {
+      cy.createContent({
+        name: "Doc Inside Problem Set",
+        contentType: "singleDoc",
+        parentId: sequenceId,
+        doenetML: "Hello from inside!",
+      });
+
+      // Log out so we visit as an anonymous/unauthenticated user
+      cy.clearCookies();
+
+      cy.visit(`/activityViewer/${sequenceId}`);
+
+      // The activity name should render
+      cy.get('[data-test="Activity Name"]').should(
+        "contain.text",
+        "Public Problem Set",
+      );
+
+      // Click the "Edit Mode Button" (shows "See source code" / "See list")
+      cy.get('[data-test="Edit Mode Button"]').click();
+
+      // The activities list should appear without crashing
+      cy.get('[data-test="Activities"]').should("exist");
+
+      // The doc inside the problem set should be listed
+      cy.get('[data-test="Activities"]').should(
+        "contain.text",
+        "Doc Inside Problem Set",
+      );
+
+      // The "Add" button should NOT be visible (read-only for non-logged-in users)
+      cy.get('[data-test="New Button"]').should("not.exist");
+    });
+  });
+
   it("classifications shown in activity viewer", () => {
     cy.loginAsTestUser();
     cy.createContent({

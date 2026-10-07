@@ -2,6 +2,7 @@ import { SetDocumentToSavePoint } from "./SetDocumentToSavePoint";
 import { FetcherWithComponents } from "react-router";
 import { ContentRevision } from "../types";
 import { DateTime } from "luxon";
+import { useState } from "react";
 
 describe("SetDocumentToSavePoint component", { tags: ["@group3"] }, () => {
   function createMockFetcher(state: "idle" | "loading", data?: any) {
@@ -116,11 +117,42 @@ describe("SetDocumentToSavePoint component", { tags: ["@group3"] }, () => {
       cy.checkAccessibility("body");
     });
     it("should be accessible with success message", () => {
-      const props = getDefaultProps();
-      props.fetcher = createMockFetcher("idle", {
-        data: { newRevisionNum: 2, revisionName: props.revision.revisionName },
-      });
-      cy.mount(<SetDocumentToSavePoint {...props} />);
+      // The status Box only renders after fetcher.data changes post-mount (the
+      // reset effect clears `updated` on the initial mount), so drive it via a
+      // harness that flips the fetcher data on demand.
+      function SuccessHarness() {
+        const harnessProps = getDefaultProps();
+        const [data, setData] = useState<any>(undefined);
+        const fetcher = {
+          state: "idle",
+          data,
+          submit: cy.stub(),
+          load: cy.stub(),
+          reset: cy.stub(),
+          Form: (() => null) as any,
+        } as unknown as FetcherWithComponents<any>;
+        return (
+          <>
+            <button
+              data-test="trigger"
+              onClick={() =>
+                setData({
+                  data: {
+                    newRevisionNum: 2,
+                    revisionName: harnessProps.revision.revisionName,
+                  },
+                })
+              }
+            >
+              trigger
+            </button>
+            <SetDocumentToSavePoint {...harnessProps} fetcher={fetcher} />
+          </>
+        );
+      }
+      cy.mount(<SuccessHarness />);
+      cy.get('[data-test="trigger"]').click({ force: true });
+      cy.get('[data-test="Status message"]').should("be.visible");
       cy.wait(200);
       cy.checkAccessibility("body");
     });

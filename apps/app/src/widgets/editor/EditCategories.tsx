@@ -187,7 +187,7 @@ function CategoryCheckbox({
               <Icon
                 paddingLeft="5px"
                 as={activityCategoryIcons[categoryCode]}
-                color="#666699"
+                color="iconAccent"
                 boxSize={5}
                 verticalAlign="middle"
               />
@@ -224,7 +224,7 @@ function CategoryRadios({
               <Icon
                 paddingLeft="5px"
                 as={activityCategoryIcons[categoryCode]}
-                color="#666699"
+                color="iconAccent"
                 boxSize={5}
                 verticalAlign="middle"
               />

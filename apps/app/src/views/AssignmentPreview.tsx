@@ -1,9 +1,11 @@
 import { ReactElement, useState } from "react";
 import { Box } from "@chakra-ui/react";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
+import { doenetImagesUrl } from "../utils/media";
 import { DoenetmlVersion } from "../types";
 import { ActivitySource } from "@doenet-tools/shared";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 
 export default function AssignmentPreview({
   data,
@@ -25,6 +27,7 @@ export default function AssignmentPreview({
   maxHeight?: number;
   disableShuffle?: boolean;
 }) {
+  const { themeSetting } = useThemeSettingContext();
   const [variants, setVariants] = useState({
     index: 1,
     numVariants: 1,
@@ -42,6 +45,10 @@ export default function AssignmentPreview({
         <DoenetViewer
           doenetML={data.doenetML}
           doenetmlVersion={data.doenetmlVersion.fullVersion}
+          darkMode={effectiveDarkMode(
+            themeSetting,
+            data.doenetmlVersion.fullVersion,
+          )}
           flags={{
             showCorrectness: true,
             solutionDisplayMode: "button",
@@ -57,6 +64,7 @@ export default function AssignmentPreview({
           generatedVariantCallback={setVariants}
           requestedVariantIndex={variants.index}
           doenetViewerUrl={doenetViewerUrl}
+          doenetImagesUrl={doenetImagesUrl}
         />
       );
     } else {
@@ -68,8 +76,11 @@ export default function AssignmentPreview({
       viewer = (
         <DoenetActivityViewer
           source={source}
+          // Compound activity: per-leaf version, so pass the raw setting.
+          darkMode={effectiveDarkMode(themeSetting)}
           requestedVariantIndex={1}
           doenetViewerUrl={doenetViewerUrl}
+          doenetImagesUrl={doenetImagesUrl}
           paginate={false}
           showTitle={false}
           flags={{

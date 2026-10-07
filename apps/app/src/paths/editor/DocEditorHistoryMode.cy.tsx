@@ -9,6 +9,9 @@ const MockEditor = (props: any) => (
       height: props.height,
       width: props.width,
       backgroundColor: "#f0f0f0",
+      // Pin dark text: this mock always has a light fill, so without an explicit
+      // color the inherited text goes light-on-light in dark-mode test runs.
+      color: "#1a1a1a",
     }}
     data-testid="mock-editor"
   >

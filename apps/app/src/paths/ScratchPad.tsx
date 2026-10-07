@@ -12,6 +12,8 @@ import {
   UserInfoWithEmail,
 } from "../types";
 import { DoenetEditor } from "@doenet/doenetml-iframe";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
+import { doenetImagesUrl } from "../utils/media";
 import axios from "axios";
 import defaultSource from "../assets/scratchPadDefault.doenet?raw";
 import multipleChoice from "../assets/multipleChoiceExamples.doenet?raw";
@@ -373,9 +375,10 @@ export function ScratchPadComponent({
       {saveDocumentDialog}
       <HStack
         position="fixed"
-        top="40px"
+        top="calc(40px + var(--maintenance-offset, 0px))"
         height="40px"
         background="orange.100"
+        _dark={{ background: "orange.900" }}
         width="100%"
         pr="10px"
         zIndex="300"
@@ -389,11 +392,11 @@ export function ScratchPadComponent({
       </HStack>
       <Box
         position="absolute"
-        top={"80px"}
+        top="calc(80px + var(--maintenance-offset, 0px))"
         left="0"
         right="0"
         bottom="0"
-        background="doenet.lightBlue"
+        background="viewerFrame"
         overflow="auto"
       >
         {/*
@@ -418,6 +421,7 @@ function DocumentEditor({
   doenetmlVersion,
   sourceChangedCallback,
 }: DocumentEditorProps) {
+  const { themeSetting } = useThemeSettingContext();
   // See DocEditorEditMode.tsx for why we capture the initial source separately
   // from the live ref used for saves. Remove once @doenet/doenetml-iframe ships
   // its srcDoc-stability fix in a release.
@@ -465,8 +469,10 @@ function DocumentEditor({
         sourceChangedCallback?.(newDoenetML);
       }}
       doenetmlVersion={doenetmlVersion.fullVersion}
+      darkMode={effectiveDarkMode(themeSetting, doenetmlVersion.fullVersion)}
       border="none"
       doenetViewerUrl={doenetViewerUrl}
+      doenetImagesUrl={doenetImagesUrl}
     />
   );
 }

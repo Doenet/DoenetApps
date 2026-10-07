@@ -368,7 +368,7 @@ export function EditorHeader() {
     <Icon
       as={FaRegFolder}
       aria-label="Go to containing folder"
-      color="gray.500"
+      color="textMuted"
       fontSize="1.1rem"
     />
   );
@@ -412,7 +412,7 @@ export function EditorHeader() {
         ml={{ base: "0rem", xl: "0.5rem" }}
         mr={{ base: "0rem", xl: "0.5rem" }}
       >
-        <FaChevronRight color="gray.500" fontSize="0.7rem" />
+        <FaChevronRight color="textMuted" fontSize="0.7rem" />
       </Box>
     </Hide>
   );
@@ -458,7 +458,7 @@ export function EditorHeader() {
         ml={{ base: "0rem", xl: "0.5rem" }}
         mr={{ base: "0rem", xl: "0.5rem" }}
       >
-        <FaChevronRight color="gray.500" fontSize="0.7rem" />
+        <FaChevronRight color="textMuted" fontSize="0.7rem" />
       </Box>
     </Hide>
   );
@@ -695,7 +695,7 @@ export function EditorHeader() {
 
       <Box
         position="fixed"
-        top="40px"
+        top="calc(40px + var(--maintenance-offset, 0px))"
         height={editorHeaderHeight}
         background="doenet.canvas"
         width="100%"
@@ -718,11 +718,11 @@ export function EditorHeader() {
 
       <Box
         position="absolute"
-        top={totalHeaderHeight}
+        top={`calc(${totalHeaderHeight} + var(--maintenance-offset, 0px))`}
         left="0"
         right="0"
         bottom="0"
-        background="doenet.lightBlue"
+        background="viewerFrame"
         overflow="auto"
       >
         {/*

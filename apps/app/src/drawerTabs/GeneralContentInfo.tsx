@@ -46,7 +46,7 @@ export function GeneralContentInfo({
                     <Icon
                       paddingLeft="5px"
                       as={activityCategoryIcons[categoryCode]}
-                      color="#666699"
+                      color="iconAccent"
                       boxSize={5}
                       verticalAlign="middle"
                     />
@@ -64,6 +64,7 @@ export function GeneralContentInfo({
             marginTop="10px"
             border="2px solid black"
             background="orange.100"
+            _dark={{ background: "orange.900", borderColor: "orange.200" }}
             padding="5px"
           >
             <InfoIcon color="orange.500" mr="2px" /> {contentType} is shared

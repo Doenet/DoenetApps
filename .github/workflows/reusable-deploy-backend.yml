@@ -82,6 +82,8 @@ jobs:
           date_string=$(date +%Y-%m-%d-%H-%M-%S)
           tag=${date_string}-${sha_short}
           echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-and-push
@@ -91,6 +93,10 @@ jobs:
           file: ./apps/api/Dockerfile
           platforms: linux/amd64
           push: true
+          build-args: |
+            GIT_SHA=${{ steps.vars.outputs.sha }}
+            DEPLOY_REF=${{ inputs.deploy_ref }}
+            BUILD_TIME=${{ steps.vars.outputs.build_time }}
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.tag }}
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ inputs.tag_name }}

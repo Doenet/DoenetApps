@@ -147,7 +147,7 @@ async function determineDbPort() {
 function writeWebEnvLocal(offset) {
   const target = path.join(repoRoot, "apps/web/.env.local");
   const content =
-    `PUBLIC_DOENET_MAIN_URL=http://localhost:${BASE.app + offset}\n` +
+    `PUBLIC_APP_URL=http://localhost:${BASE.app + offset}\n` +
     `PUBLIC_SITE_URL=http://localhost:${BASE.web + offset}\n`;
   fs.writeFileSync(target, content);
 }

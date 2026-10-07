@@ -24,9 +24,11 @@ Environment:
   - Name: MEDIA_S3_MODE
     Value: "aws"
   - Name: MEDIA_S3_REGION
-    Value: "us-east-1"
+    Value:
+      Fn::Sub: "${AWS::Region}"
   - Name: MEDIA_S3_BUCKET
-    Value: "dev3-media-568298704244-us-east-1"
+    Value:
+      Fn::Sub: "${S3MediaBucket}"
   # - Name: DISCOURSE_API_USERNAME
   #   Value: "system"
   # - Name: DISCOURSE_URL

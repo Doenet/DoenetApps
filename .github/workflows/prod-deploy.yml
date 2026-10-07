@@ -1,91 +1,67 @@
 name: Prod Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
+    branches: ["main"]
 
 permissions:
   contents: read
   id-token: write
+  deployments: write
 
+# Never cancel a deploy that has started: killing a run mid-S3-sync or
+# mid-ECS-rollout (or mid-rollback) can leave prod half-updated. Queued
+# runs are safe to supersede — GitHub keeps only the newest pending run,
+# and branch protection guarantees it contains every earlier merge.
 concurrency:
   group: prod-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  approve:
-    if: >-
-      ${{
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main'
-      }}
+  # Open a GitHub deployment so the repo's prod Environment always shows
+  # what is currently live. Uses the Deployments API rather than an
+  # `environment:` key so environment protection rules can never gate the
+  # deploy, and the deploy job does not depend on this one — bookkeeping
+  # must never block or skip an actual deploy.
+  create-deployment:
     runs-on: ubuntu-latest
-    environment:
-      name: prod
-    steps:
-      - name: Queue prod deploy
-        run: echo "Preparing prod deploy for ${{ github.event.workflow_run.head_sha }}"
-
-  deploy-backend:
-    needs: approve
-    uses: ./.github/workflows/reusable-deploy-backend.yml
-    with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
-      aws_region: us-east-2
-      ecr_repository: prod/doenet
-      ecs_cluster: prod
-      ecs_service: doenet-FARGATE
-      gha_role: arn:aws:iam::350646758180:role/github-actions-prod
-      sns_topic: arn:aws:sns:us-east-2:350646758180:prod-critical-cloudwatch-notifications
-      tag_name: main
-    secrets: inherit
-
-  deploy-frontend:
-    needs: approve
-    uses: ./.github/workflows/reusable-deploy-frontend.yml
-    with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
-      aws_region: us-east-1
-      gha_role: arn:aws:iam::350646758180:role/github-actions-prod
-      aws_account_id: "350646758180"
-      env_name: prod
-      build_mode: prod
-    secrets: inherit
-
-  deploy-site:
-    needs: approve
-    uses: ./.github/workflows/reusable-deploy-site.yml
-    with:
-      deploy_ref: ${{ github.event.workflow_run.head_sha }}
-      aws_region: us-east-1
-      gha_role: arn:aws:iam::350646758180:role/github-actions-prod
-      aws_account_id: "350646758180"
-      env_name: prod
-      build_mode: prod
-    secrets: inherit
-
-  tag-prod:
-    needs:
-      - approve
-      - deploy-backend
-      - deploy-frontend
-      - deploy-site
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      deployment_id: ${{ steps.open.outputs.deployment_id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Update prod tag
-        shell: bash
-        run: |
-          DEPLOY_REF="${{ github.event.workflow_run.head_sha }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f prod "$DEPLOY_REF"
-          git push origin refs/tags/prod --force
+      - name: Open GitHub deployment
+        id: open
+        uses: ./.github/actions/open-deployment
+        with:
+          environment: prod
+          environment-url: https://doenet.org
+          ref: ${{ github.sha }}
+          description: prod deploy
+          production-environment: "true"
+
+  deploy:
+    uses: ./.github/workflows/reusable-deploy-env.yml
+    with:
+      deploy_ref: ${{ github.sha }}
+      env_name: prod
+    secrets: inherit
+
+  record-deployment:
+    needs: [create-deployment, deploy]
+    if: always() && needs.create-deployment.outputs.deployment_id != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Finalize GitHub deployment status
+        uses: ./.github/actions/finalize-deployment
+        with:
+          deployment-id: ${{ needs.create-deployment.outputs.deployment_id }}
+          environment: prod
+          environment-url: https://doenet.org
+          backend-result: ${{ needs.deploy.outputs.backend_result }}
+          frontend-result: ${{ needs.deploy.outputs.frontend_result }}
+          site-result: ${{ needs.deploy.outputs.site_result }}

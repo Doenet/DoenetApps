@@ -109,11 +109,17 @@ export function CreateDocumentSavePoint({
           {revisionMessage !== "" ? (
             <Box
               data-test="Status message"
-              border="solid 1px lightgray"
+              border="solid 1px"
+              borderColor="border"
               borderRadius="5px"
               padding="5px 10px"
               marginTop="10px"
               backgroundColor={["green.100", "green.200"][statusStyleIdx % 2]}
+              color="green.900"
+              _dark={{
+                backgroundColor: ["green.900", "green.800"][statusStyleIdx % 2],
+                color: "green.100",
+              }}
             >
               {revisionMessage}
             </Box>

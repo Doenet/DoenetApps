@@ -13,6 +13,7 @@ import {
 import { getRandomValues } from "crypto";
 import { AssignmentMode, ContentType, Prisma } from "@prisma/client";
 import { Content, ItemScores, ScoreData, UserInfo } from "../types";
+import { repeatCountInProblemSet } from "@doenet-tools/shared";
 import { fromUUID, isEqualUUID } from "../utils/uuid";
 import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { InvalidRequestError } from "../utils/error";
@@ -865,7 +866,13 @@ export async function getAssignmentResponseStudent({
       children: {
         where: { isDeletedOn: null },
         orderBy: { sortIndex: "asc" },
-        select: { name: true, type: true, numToSelect: true },
+        select: {
+          name: true,
+          type: true,
+          numToSelect: true,
+          repeatInProblemSet: true,
+          numVariants: true,
+        },
       },
     },
   });
@@ -1411,7 +1418,25 @@ async function getAllAttemptScores({
   }
 }
 
-/** Get a list of the names of the documents/selects in `content`, in original order. */
+/**
+ * Names for the `count` items that `name` contributes to an activity,
+ * disambiguated by index unless there is just the one.
+ */
+function repeatedItemNames(name: string, count: number) {
+  if (count <= 1) {
+    return [name];
+  }
+  return Array.from({ length: count }, (_, i) => `${name} (${i + 1})`);
+}
+
+/**
+ * Get a list of the names of the documents/selects in `content`, in original order.
+ *
+ * The result must line up one-to-one with the items of the compiled activity
+ * (see `compileActivityFromContent`), since the item names label the columns of
+ * the gradebook indexed by `itemNumber`. So a question bank contributes one name
+ * per selected item and a repeated document one name per copy.
+ */
 function getItemNames(
   content:
     | Content
@@ -1423,36 +1448,27 @@ function getItemNames(
           name: string;
           type: ContentType;
           numToSelect: number;
+          repeatInProblemSet?: number;
+          numVariants?: number;
         }[];
       },
 ) {
-  const itemNames: string[] = [];
-
   if (content.type === "select") {
-    if (content.numToSelect === 1) {
-      itemNames.push(content.name);
-    } else {
-      for (let i = 1; i <= content.numToSelect; i++) {
-        itemNames.push(`${content.name} (${i})`);
-      }
-    }
-  } else if (content.type === "sequence") {
-    for (const child of content.children) {
-      if (child.type === "singleDoc") {
-        itemNames.push(child.name);
-      } else if (child.type === "select") {
-        if (child.numToSelect === 1) {
-          itemNames.push(child.name);
-        } else {
-          for (let i = 1; i <= child.numToSelect; i++) {
-            itemNames.push(`${child.name} (${i})`);
-          }
-        }
-      }
-    }
+    return repeatedItemNames(content.name, content.numToSelect);
+  }
+  if (content.type !== "sequence") {
+    return [];
   }
 
-  return itemNames;
+  return content.children.flatMap((child) => {
+    if (child.type === "singleDoc") {
+      return repeatedItemNames(child.name, repeatCountInProblemSet(child));
+    }
+    if (child.type === "select") {
+      return repeatedItemNames(child.name, child.numToSelect);
+    }
+    return [];
+  });
 }
 
 /**

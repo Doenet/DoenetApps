@@ -7,8 +7,19 @@ import {
 } from "react-router";
 
 import { DoenetViewer } from "@doenet/doenetml-iframe";
+import { doenetImagesUrl } from "../utils/media";
 
-import { Box, Button, Grid, GridItem, Text, Tooltip } from "@chakra-ui/react";
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Box,
+  Button,
+  Grid,
+  GridItem,
+  Text,
+  Tooltip,
+} from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
 import {
   EnterClassCode,
@@ -16,13 +27,10 @@ import {
 } from "./EnterClassCode";
 import { SiteContext } from "./SiteHeader";
 import { Content, DoenetmlVersion } from "../types";
-import {
-  ActivitySource,
-  isActivitySource,
-  isReportStateMessage,
-} from "@doenet-tools/shared";
+import { ActivitySource, isReportStateMessage } from "@doenet-tools/shared";
 import { compileActivityFromContent } from "../utils/activity";
 import { ActivityViewer as DoenetActivityViewer } from "@doenet/assignment-viewer";
+import { effectiveDarkMode, useThemeSettingContext } from "../utils/theme";
 import { BlueBanner } from "../widgets/BlueBanner";
 
 type ItemScore = {
@@ -186,13 +194,7 @@ export async function loader({ params }: { params: any }) {
       loadedScore,
     };
   } else {
-    const activityJsonPrelim = data.assignment.activityJson
-      ? JSON.parse(data.assignment.activityJson)
-      : null;
-
-    const activityJson = isActivitySource(activityJsonPrelim)
-      ? activityJsonPrelim
-      : compileActivityFromContent(data.assignment);
+    const activityJson = compileActivityFromContent(data.assignment);
 
     return {
       assignmentFound: true,
@@ -252,9 +254,14 @@ export function AssignmentViewer() {
   const scrollingContainer = useRef<HTMLDivElement>(null);
 
   const { user } = useOutletContext<SiteContext>();
+  const { themeSetting } = useThemeSettingContext();
   if (!user) {
     throw Error("User should have been defined");
   }
+
+  const isAnonymous = user.isAnonymous === true;
+  const anonymousBannerHeight = "40px";
+  const headerHeight = isAnonymous ? "120px" : "80px";
 
   const [attemptNumber, setAttemptNumber] = useState<number>(
     loaderData.attemptNumber,
@@ -565,8 +572,6 @@ export function AssignmentViewer() {
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
-  const headerHeight = "80px";
-
   let viewer: ReactElement<any>;
   if (loaderData.type === "singleDoc") {
     const maxAttempts = assignment.assignmentInfo?.maxAttempts ?? 0;
@@ -593,6 +598,10 @@ export function AssignmentViewer() {
         <DoenetViewer
           doenetML={loaderData.doenetML}
           doenetmlVersion={loaderData.doenetmlVersion.fullVersion}
+          darkMode={effectiveDarkMode(
+            themeSetting,
+            loaderData.doenetmlVersion.fullVersion,
+          )}
           // Since DoenetViewer does not adjust variant by attemptNumber, add attemptNumber to the initial variant
           requestedVariantIndex={initialVariant + attemptNumber}
           docId={assignment.contentId}
@@ -610,6 +619,7 @@ export function AssignmentViewer() {
           }}
           attemptNumber={attemptNumber}
           doenetViewerUrl={doenetViewerUrl}
+          doenetImagesUrl={doenetImagesUrl}
           requestScrollTo={requestScrollTo}
         />
       </Box>
@@ -620,10 +630,14 @@ export function AssignmentViewer() {
         <DoenetActivityViewer
           source={loaderData.activityJson}
           activityId={assignment.contentId}
+          // Compound activity: version is per-leaf, so we can't gate here — pass
+          // the raw setting. (Per-leaf gating belongs inside DoenetActivityViewer.)
+          darkMode={effectiveDarkMode(themeSetting)}
           // DoenetActivityViewer adjusts variant based on attempt number, so we don't need to add it to initial variant
           requestedVariantIndex={initialVariant}
           userId={user.userId}
           doenetViewerUrl={doenetViewerUrl}
+          doenetImagesUrl={doenetImagesUrl}
           paginate={
             assignment.type === "sequence" ? assignment.paginate : false
           }
@@ -652,12 +666,13 @@ export function AssignmentViewer() {
 
   return (
     <Grid
-      background="doenet.lightBlue"
+      background="viewerFrame"
       minHeight="calc(100vh - 40px)" //40px header height
       templateAreas={`"header"
+      ${isAnonymous ? `"banner"` : ``}
       "centerContent"
       `}
-      templateRows="40px auto"
+      templateRows={isAnonymous ? "40px 40px auto" : "40px auto"}
       position="relative"
     >
       <GridItem
@@ -697,6 +712,22 @@ export function AssignmentViewer() {
           ></GridItem>
         </Grid>
       </GridItem>
+
+      {isAnonymous && (
+        <GridItem
+          area="banner"
+          height={anonymousBannerHeight}
+          width="100%"
+          data-test="Anonymous User Banner"
+        >
+          <Alert status="info" height={anonymousBannerHeight}>
+            <AlertIcon />
+            <AlertDescription>
+              You are working on this assignment as an anonymous user.
+            </AlertDescription>
+          </Alert>
+        </GridItem>
+      )}
 
       <GridItem
         area="centerContent"

@@ -102,6 +102,15 @@ Parameters:
   EnvironmentKmsKey:
     Type: "AWS::SSM::Parameter::Value<String>"
     Default: "/webdev/EnvironmentKmsKey"
+
+  CloudwatchSNSWarningTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSWarningTopic"
+
+  CloudwatchSNSCriticalTopic:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Default: "/webdev/CloudwatchSNSCriticalTopic"
+
 Conditions:
   RunRdsServerA: !Not
     - !Equals
@@ -432,6 +441,31 @@ Resources:
         - "${DatabaseUrlScheme}://${DBUsername}:${DBPassword}@${DnsRecord}:${DatabasePort}/doenet"
         - DatabaseUrlScheme: !FindInMap [Engine, !Ref DBType, urlScheme]
           DatabasePort: !FindInMap [Engine, !Ref DBType, port]
+
+  RDSExtendedCPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+    Properties:
+      AlarmName: !Sub "${EnvironmentName}-RDS-Extended-High-CPU"
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 20
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Period: 60
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+        - !Ref CloudwatchSNSCriticalTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !If
+            - RunRdsServerA
+            - !GetAtt RdsServerA.DBInstanceIdentifier
+            - !GetAtt RdsServerB.DBInstanceIdentifier
 
 Outputs:
   DatabaseHost:

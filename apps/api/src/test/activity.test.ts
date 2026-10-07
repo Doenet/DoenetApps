@@ -3,7 +3,14 @@ import { describe, expect, test, vi } from "vitest";
 import { DateTime } from "luxon";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { createTestUser, doc, fold, pset, setupTestContent } from "./utils";
+import {
+  createTestUser,
+  doc,
+  fold,
+  pset,
+  qbank,
+  setupTestContent,
+} from "./utils";
 import {
   createContent,
   deleteContent,
@@ -28,6 +35,7 @@ import { modifyContentSharedWith, setContentIsPublic } from "../query/share";
 import {
   closeAssignment,
   createAssignment,
+  getAssignmentResponseOverview,
   updateAssignmentClosedOn,
 } from "../query/assign";
 import { createNewAttempt, saveScoreAndState } from "../query/scores";
@@ -40,8 +48,10 @@ import {
   getEditorShareStatus,
 } from "../query/editor";
 import { setContentLicense } from "../query/license";
-import { isEqualUUID } from "../utils/uuid";
+import { updateVisibility } from "../access";
+import { fromUUID, isEqualUUID } from "../utils/uuid";
 import { Doc } from "../types";
+import { compileActivityFromContent } from "../utils/contentStructure";
 import {
   InvalidRequestError,
   PermissionDeniedRedirectError,
@@ -119,12 +129,25 @@ test("New activity starts out private, then delete it", async () => {
   });
   expect(sharing).eqls({
     isPublic: false,
+    ownerId: fromUUID(userId),
     visibility: "private",
     canSharePublicly: false,
     publicShareIssues: [
       "errorsCheckPending",
       "accessibilityCheckPending",
       "missingRequiredCategories",
+    ],
+    publicShareBlockers: [
+      {
+        contentId: fromUUID(contentId),
+        name: "Untitled Document",
+        contentType: "singleDoc",
+        issues: [
+          "errorsCheckPending",
+          "accessibilityCheckPending",
+          "missingRequiredCategories",
+        ],
+      },
     ],
     sharedWith: [],
     parentIsPublic: false,
@@ -261,7 +284,6 @@ test("Test updating repeatInProblemSet", async () => {
     const result = (await getContent({
       contentId: psDoc,
       loggedInUserId: userId,
-      includeRepeatInProblemSet: true,
     })) as Doc;
     return result.repeatInProblemSet;
   }
@@ -292,6 +314,147 @@ test("Test updating repeatInProblemSet", async () => {
     repeatInProblemSet: 24,
   });
   expect(await repeatVal()).eqls(23);
+});
+
+test("repeatInProblemSet survives into the compiled activity", async () => {
+  const { userId } = await createTestUser();
+  const [ps, psDoc] = await setupTestContent(userId, {
+    ps: pset({
+      psDoc: doc(`<selectFromSequence from="1" to="5"/>`),
+    }),
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    numVariants: 5,
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    repeatInProblemSet: 3,
+  });
+
+  // A plain `getContent` must carry the setting, since it is what every
+  // activity-compiling caller (revisions, cids, assignments) uses.
+  const content = await getContent({ contentId: ps, loggedInUserId: userId });
+  const source = compileActivityFromContent(content);
+
+  if (source.type !== "sequence") {
+    throw Error("shouldn't happen");
+  }
+
+  // the repeated document is wrapped in a select that picks 3 variants.
+  // Mirrored by "wraps a repeated document in a select, as the server does"
+  // in `apps/app/src/utils/activity.cy.tsx` — the client compiler produces the
+  // source for every viewer path, so the two must stay in agreement.
+  const item = source.items[0];
+  expect(item.type).eqls("select");
+  if (item.type !== "select") {
+    throw Error("shouldn't happen");
+  }
+  expect(item.id).eqls(`select_for_${fromUUID(psDoc)}`);
+  expect(item.title).eqls("Repeat 3 times");
+  expect(item.numToSelect).eqls(3);
+  expect(item.selectByVariant).eqls(true);
+  expect(item.items.length).eqls(1);
+
+  const inner = item.items[0];
+  if (inner.type !== "singleDoc") {
+    throw Error("shouldn't happen");
+  }
+  expect(inner.id).eqls(fromUUID(psDoc));
+  // the document carries its title, as it does on the client
+  expect(inner.title).eqls("psDoc");
+});
+
+test("A document is repeated no more times than it has variants", async () => {
+  const { userId } = await createTestUser();
+  const [ps, psDoc] = await setupTestContent(userId, {
+    ps: pset({
+      psDoc: doc(`<selectFromSequence from="1" to="5"/>`),
+    }),
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    numVariants: 5,
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    repeatInProblemSet: 3,
+  });
+
+  // Editing the document down to fewer variants leaves the larger repeat in
+  // place, and the editor offers no way to lower it: the repeat control is
+  // shown only for a document with more than one variant.
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    numVariants: 2,
+  });
+
+  const content = await getContent({ contentId: ps, loggedInUserId: userId });
+  const source = compileActivityFromContent(content);
+  if (source.type !== "sequence") {
+    throw Error("shouldn't happen");
+  }
+  const item = source.items[0];
+  if (item.type !== "select") {
+    throw Error("shouldn't happen");
+  }
+  expect(item.numToSelect).eqls(2);
+  expect(item.title).eqls("Repeat 2 times");
+
+  // The item names label the gradebook columns, so they follow the same cap.
+  const { assignmentId } = await createAssignment({
+    contentId: ps,
+    loggedInUserId: userId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+    destinationParentId: null,
+  });
+  const { itemNames } = await getAssignmentResponseOverview({
+    contentId: assignmentId,
+    loggedInUserId: userId,
+  });
+  expect(itemNames).eqls(["psDoc (1)", "psDoc (2)"]);
+});
+
+test("A document in a question bank is not repeated", async () => {
+  const { userId } = await createTestUser();
+  const [_ps, psDoc, bank] = await setupTestContent(userId, {
+    ps: pset({
+      psDoc: doc(`<selectFromSequence from="1" to="5"/>`),
+    }),
+    bank: qbank({}),
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    numVariants: 5,
+  });
+  await updateContent({
+    contentId: psDoc,
+    loggedInUserId: userId,
+    repeatInProblemSet: 3,
+  });
+
+  // The setting travels with the document when it moves, but a question bank
+  // already selects from its documents: a nested select would put more items
+  // in the activity than `numToSelect` accounts for.
+  await moveContent({
+    contentId: psDoc,
+    changeParentIdTo: bank,
+    desiredPosition: 0,
+    loggedInUserId: userId,
+  });
+
+  const content = await getContent({ contentId: bank, loggedInUserId: userId });
+  const source = compileActivityFromContent(content);
+  if (source.type !== "select") {
+    throw Error("shouldn't happen");
+  }
+  expect(source.items[0].type).eqls("singleDoc");
 });
 
 test("deleteContent marks a activity and document as deleted and prevents its retrieval", async () => {
@@ -2124,12 +2287,13 @@ test("Create new activity with DoenetML", async () => {
   expect(newDoc.doenetML).toBe("My DoenetML source");
 });
 
-test("getPublicContent only gets public activity", async () => {
+test("getPublicContent gets link-visible (public or unlisted) activity", async () => {
   const { userId: ownerId } = await createTestUser();
 
-  const [publicContentId, privateContentId, publicFolderId] =
+  const [publicContentId, unlistedContentId, privateContentId, publicFolderId] =
     await setupTestContent(ownerId, {
       "public content": doc(""),
+      "unlisted content": doc(""),
       "private content": doc(""),
       "public folder": fold({}),
     });
@@ -2138,6 +2302,12 @@ test("getPublicContent only gets public activity", async () => {
     contentId: publicContentId,
     loggedInUserId: ownerId,
     isPublic: true,
+  });
+
+  await updateVisibility({
+    contentId: unlistedContentId,
+    loggedInUserId: ownerId,
+    visibility: "unlisted",
   });
 
   await setContentIsPublic({
@@ -2150,6 +2320,11 @@ test("getPublicContent only gets public activity", async () => {
     contentId: publicContentId,
   });
   expect(publicContent.contentId).eqls(publicContentId);
+
+  const { activity: unlistedContent } = await getPublicContent({
+    contentId: unlistedContentId,
+  });
+  expect(unlistedContent.contentId).eqls(unlistedContentId);
 
   await expect(
     getPublicContent({
@@ -2164,12 +2339,13 @@ test("getPublicContent only gets public activity", async () => {
   ).rejects.toThrow("not found");
 });
 
-test("getPublicContentByCid only get public activities", async () => {
+test("getPublicContentByCid gets link-visible (public or unlisted) activities", async () => {
   const { userId: ownerId } = await createTestUser();
 
   const baseSource = DateTime.now().toISO();
 
   const publicDoenetml = `<text>Public content for this test: ${baseSource}</text>`;
+  const unlistedDoenetml = `<text>Unlisted content for this test: ${baseSource}</text>`;
   const privateDoenetml = `<text>Private content for this test: ${baseSource}</text>`;
 
   const { contentId: publicContentId } = await createContent({
@@ -2177,6 +2353,13 @@ test("getPublicContentByCid only get public activities", async () => {
     contentType: "singleDoc",
     parentId: null,
     doenetml: publicDoenetml,
+  });
+
+  const { contentId: unlistedContentId } = await createContent({
+    loggedInUserId: ownerId,
+    contentType: "singleDoc",
+    parentId: null,
+    doenetml: unlistedDoenetml,
   });
 
   const { contentId: privateContentId } = await createContent({
@@ -2192,8 +2375,21 @@ test("getPublicContentByCid only get public activities", async () => {
     isPublic: true,
   });
 
+  await updateVisibility({
+    contentId: unlistedContentId,
+    loggedInUserId: ownerId,
+    visibility: "unlisted",
+  });
+
   const { cid: publicContentCid } = await createContentRevision({
     contentId: publicContentId,
+    loggedInUserId: ownerId,
+    autoGenerated: true,
+    revisionName: "Initial revision",
+  });
+
+  const { cid: unlistedContentCid } = await createContentRevision({
+    contentId: unlistedContentId,
     loggedInUserId: ownerId,
     autoGenerated: true,
     revisionName: "Initial revision",
@@ -2215,6 +2411,16 @@ test("getPublicContentByCid only get public activities", async () => {
   }
 
   expect(publicContent.doenetML).toBe(publicDoenetml);
+
+  const { activity: unlistedContent } = await getPublicContentByCid({
+    cid: unlistedContentCid,
+  });
+
+  if (unlistedContent.type !== "singleDoc") {
+    throw Error("shouldn't happen");
+  }
+
+  expect(unlistedContent.doenetML).toBe(unlistedDoenetml);
 
   await expect(
     getPublicContentByCid({

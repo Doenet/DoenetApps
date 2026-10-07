@@ -18,8 +18,13 @@ const env = loadEnv(mode, process.cwd(), "");
 
 // https://astro.build/config
 export default defineConfig({
+  devToolbar: {
+    enabled: false,
+  },
   site: env.PUBLIC_SITE_URL,
-  server: { port: webPort },
+  // host is unset on a normal checkout (localhost only); the dev container
+  // sets DEV_SERVER_HOST=0.0.0.0 so the published port reaches it.
+  server: { port: webPort, host: process.env.DEV_SERVER_HOST },
   integrations: [mdx(), sitemap(), react()],
   markdown: {
     remarkPlugins: [remarkMath],

@@ -6,6 +6,7 @@ import {
   VStack,
   Link as ChakraLink,
 } from "@chakra-ui/react";
+import { Link as ReactRouterLink } from "react-router";
 import { WithSideBanners } from "../layout/WithSideBanners";
 
 export function GetInvolved() {
@@ -30,8 +31,8 @@ export function GetInvolved() {
               There are many ways to get involved with Doenet. Just by writing
               activities on{" "}
               <ChakraLink
-                href="https://beta.doenet.org"
-                isExternal
+                as={ReactRouterLink}
+                to="/"
                 textDecoration="underline"
               >
                 Doenet
@@ -98,8 +99,8 @@ export function GetInvolved() {
                   The curriculum group helps shepherd the development of the
                   content on{" "}
                   <ChakraLink
-                    href="https://beta.doenet.org"
-                    isExternal
+                    as={ReactRouterLink}
+                    to="/"
                     textDecoration="underline"
                   >
                     Doenet
@@ -107,8 +108,8 @@ export function GetInvolved() {
                   . They help organize groups of authors working on different
                   topics, curate content for{" "}
                   <ChakraLink
-                    href="https://beta.doenet.org/explore"
-                    isExternal
+                    as={ReactRouterLink}
+                    to="/explore"
                     textDecoration="underline"
                   >
                     library section

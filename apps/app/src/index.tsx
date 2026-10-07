@@ -12,6 +12,7 @@ import "./styles/mathjax-menu.css";
 
 import { MathJaxContext } from "better-react-mathjax";
 import { theme } from "./theme";
+import { doenetColorModeManager } from "./utils/theme";
 import { loader as exploreLoader, Explore } from "./paths/Explore";
 
 import { loader as curateLoader, Curate } from "./paths/Curate";
@@ -104,6 +105,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
+import { ensureDevAutoLogin } from "./dev/autoLogin";
 import { loadShareStatus } from "./features/sharing";
 import {
   DocEditorHistoryMode,
@@ -125,6 +127,10 @@ import { editorUrl } from "./utils/url";
 import { ScratchPad, loader as scratchPadLoader } from "./paths/ScratchPad";
 import { About } from "./paths/About";
 import { RawViewer, loader as rawViewerLoader } from "./paths/RawViewer";
+import {
+  ImageDetails,
+  loader as imageDetailsLoader,
+} from "./paths/ImageDetails";
 import { GetInvolved } from "./paths/GetInvolved";
 import { Events } from "./paths/Events";
 import { QuickLinks } from "./paths/QuickLinks";
@@ -135,7 +141,7 @@ const router = createBrowserRouter([
     loader: siteLoader,
     element: (
       <>
-        <ChakraProvider theme={theme}>
+        <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
           <MathJaxContext
             version={4}
             config={mathjaxConfig}
@@ -147,7 +153,7 @@ const router = createBrowserRouter([
       </>
     ),
     errorElement: (
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
         <ErrorPage />
       </ChakraProvider>
     ),
@@ -247,6 +253,12 @@ const router = createBrowserRouter([
         action: genericAction,
         errorElement: <ErrorPage />,
         element: <ActivityViewer />,
+      },
+      {
+        path: "imageDetails/:contentId",
+        loader: imageDetailsLoader,
+        errorElement: <ErrorPage />,
+        element: <ImageDetails />,
       },
       {
         path: "documentEditor/:contentId",
@@ -429,15 +441,41 @@ const router = createBrowserRouter([
     element: <RawViewer />,
     loader: rawViewerLoader,
     errorElement: (
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} colorModeManager={doenetColorModeManager}>
         <ErrorPage />
       </ChakraProvider>
     ),
   },
+  // These paths no longer exist on the new site but were used by the old
+  // site (now at legacy.doenet.org), so send visitors there instead of
+  // showing a 404. Forwards the full path and query string as-is.
+  {
+    path: "/portfolioviewer/:contentId",
+    loader: legacySiteRedirectLoader,
+  },
+  {
+    path: "/publiceditor/:contentId1/:contentId2",
+    loader: legacySiteRedirectLoader,
+  },
 ]);
 
 const root = createRoot(document.getElementById("root")!);
-root.render(<RouterProvider router={router} />);
+
+// Dev-only: optionally auto-authenticate before the first render so the app
+// loaders see a logged-in session. No-op (and stripped) in production builds.
+void (async () => {
+  await ensureDevAutoLogin();
+  root.render(<RouterProvider router={router} />);
+})();
+
+/**
+ * Redirects a request to the same path (and query string) on legacy.doenet.org.
+ * Used for old-site paths that no longer exist on the new site.
+ */
+function legacySiteRedirectLoader({ request }: { request: Request }) {
+  const { pathname, search } = new URL(request.url);
+  return redirect(`https://legacy.doenet.org${pathname}${search}`);
+}
 
 /**
  * A generic action handler for React Router pages

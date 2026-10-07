@@ -24,6 +24,7 @@ import { Link as ReactRouterLink, useOutletContext } from "react-router";
 import { SiteContext } from "./SiteHeader";
 import { getDiscourseUrl } from "../utils/discourse";
 import { WithSideBanners } from "../layout/WithSideBanners";
+import { WelcomeBanner } from "../widgets/WelcomeBanner";
 import { FaExternalLinkAlt } from "react-icons/fa";
 
 export async function loader() {
@@ -179,7 +180,7 @@ export function Home() {
   );
 
   // const exploreSection = (
-  //   <WithSideBanners bgColor="white" padding="50px">
+  //   <WithSideBanners bgColor="surface" padding="50px">
   //     <Heading size="lg">Explore community content</Heading>
 
   //     <Heading size="md" pl="40px" mt="20px">
@@ -205,7 +206,11 @@ export function Home() {
   // );
 
   const featuresSection = (
-    <WithSideBanners bgColor="#d3dff1ff" padding="70px">
+    <WithSideBanners
+      bgColor="surface"
+      borderTopColor="doenet.lightGray"
+      padding="70px"
+    >
       <Heading size="lg" mb="20px">
         Customize or create your own activities
       </Heading>
@@ -265,7 +270,7 @@ export function Home() {
   );
 
   const communitySection = (
-    <WithSideBanners bgColor="white" padding="70px">
+    <WithSideBanners bgColor="surface" padding="70px">
       <Heading size="lg">A community project</Heading>
 
       <Text marginTop="10px" fontSize="22px" fontWeight="400">
@@ -291,40 +296,53 @@ export function Home() {
         Events
       </Heading>
       <Stack direction={{ base: "column", md: "row" }}>
-        <Card>
+        <Card width="70%">
           <CardHeader>
             <Heading size="sm">
-              June Doenet Virtual Workshop
-              <br /> June 15-18, 1–4pm Eastern, 10am–1pm Pacific
+              MathFest Minicourse
+              <br />
+              Upgrading Online Assignments: Building Scaffolded Activities for
+              Conceptual Understanding
+              <br />
+              August 6 and 7, 2026
             </Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={"18px"} fontWeight="500">
-              In this 4-day virtual workshop held on Zoom, participants will
-              learn how to create accessible, dynamic and interactive activities
-              in Doenet. The workshop will also provide guidance on using the
-              available resources to learn more about Doenet, including how to
-              connect with the supportive Doenet community of developers and
-              experienced instructors.
+              Do your students get perfect scores on autograded homework only to
+              demonstrate poor learning on in-class assessments? What if, rather
+              than just seeing the correctness of their single answer, students
+              received feedback throughout the process, helping them discover
+              the solution and develop conceptual understanding? In this
+              minicourse, you will learn how to create interactive online
+              mathematics activities that guide students to discover how to
+              solve a problem. (See more details in the{" "}
+              <ChakraLink
+                href="https://maa.org/events/mathfest-program/minicourses/"
+                isExternal
+                textDecoration="underline"
+              >
+                MathFest program
+              </ChakraLink>
+              .)
             </Text>
-
-            <Button
-              as="a"
-              href="https://scholarlattice.org/collections/f35e07c6-acc2-4b79-9ffd-f9cd8eada6cb"
-              colorScheme="blue"
-              target="_blank"
-              rel="noopener noreferrer"
-              mt="1em"
-            >
-              Details and registration at ScholarLattice
-            </Button>
+            <Text fontSize={"18px"} fontWeight="500" mt="1em">
+              Register for the minicourse as part of your{" "}
+              <ChakraLink
+                href="https://web.cvent.com/event/ad822b5c-1850-4215-a691-11fd7c371828/summary"
+                isExternal
+                textDecoration="underline"
+              >
+                MathFest registration
+              </ChakraLink>
+              .
+            </Text>
           </CardBody>
         </Card>
         <Card>
           <CardHeader>
             <Heading size="sm">
               Virtual office hours, Tuesdays, 2–4pm Eastern, 11am–1pm Pacific
-              (no office hours Tuesday, June 2)
             </Heading>
           </CardHeader>
           <CardBody>
@@ -430,6 +448,7 @@ export function Home() {
 
   return (
     <>
+      <WelcomeBanner />
       {heroSection}
       {/* {exploreSection} */}
       {featuresSection}
@@ -572,7 +591,8 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
 
         <Box
           position="relative"
-          border="1px solid lightgray"
+          border="1px solid"
+          borderColor="border"
           width={`${VIDEO_WIDTH_PX}px`}
           aspectRatio={VIDEO_WIDTH_PX / VIDEO_HEIGHT_PX}
           overflow="hidden"
@@ -592,7 +612,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
               width: "100%",
               display: "block",
               objectFit: "cover",
-              backgroundColor: "white",
+              backgroundColor: "var(--canvas)",
             }}
           />
 
@@ -604,7 +624,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
             left={0}
             right={0}
             bottom={0}
-            bg="white"
+            bg="background"
             zIndex={2}
             style={{
               opacity: overlayShown ? 1 : 0,
@@ -667,7 +687,8 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
       <VStack spacing={4} display={{ base: "flex", lg: "none" }}>
         <Box
           position="relative"
-          border="3px solid lightgray"
+          border="3px solid"
+          borderColor="border"
           width={`min(100vw, ${VIDEO_WIDTH_PX}px)`}
           aspectRatio={VIDEO_WIDTH_PX / VIDEO_HEIGHT_PX}
           overflow="hidden"
@@ -687,7 +708,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
               height: "100%",
               display: "block",
               objectFit: "cover",
-              backgroundColor: "white",
+              backgroundColor: "var(--canvas)",
             }}
           />
 
@@ -699,7 +720,7 @@ function VideoCarousel({ videos }: { videos: [string, string, number][] }) {
             left={0}
             right={0}
             bottom={0}
-            bg="white"
+            bg="background"
             zIndex={2}
             style={{
               opacity: overlayShown ? 1 : 0,

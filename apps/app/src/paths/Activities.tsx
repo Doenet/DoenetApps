@@ -44,6 +44,13 @@ import { CardContent } from "../widgets/Card";
 import CardList from "../widgets/CardList";
 import { MoveCopyContent } from "../popups/MoveCopyContent";
 import { Content, ContentType, LicenseCode, UserInfo } from "../types";
+import {
+  EditImageAttribution,
+  emptyImageAttribution,
+  type ImageAttributionFormValues,
+} from "../popups/EditImageAttribution";
+import { buildImageTag } from "../utils/imageTag";
+import { createNameNoTag } from "../utils/names";
 
 import { getAllowedParentTypes, getIconInfo } from "../utils/activity";
 import { CreateLocalContent } from "../popups/CreateLocalContent";
@@ -131,6 +138,14 @@ export function Activities() {
     onOpen: shareFolderOnOpen,
     onClose: shareFolderOnClose,
   } = useDisclosure();
+
+  // The image-attribution modal is shown either to collect a license for a
+  // freshly picked file before uploading it (`create`), or to edit an existing
+  // image's attribution (`edit`). A license is mandatory in both, so an
+  // unlicensed image is never created.
+  // The image file awaiting a license before its upload completes. Editing the
+  // attribution of an already-uploaded image now lives on the image viewer page.
+  const [uploadTarget, setUploadTarget] = useState<{ file: File } | null>(null);
 
   const { addTo, setAddTo, user } = useOutletContext<SiteContext>();
 
@@ -232,7 +247,9 @@ export function Activities() {
       <Box>
         <Icon
           as={parent ? folderIcon : LuDessert}
-          color={parent ? folderColor : "black"}
+          // "black" is invisible in dark mode; use the flipping text token for
+          // the root (My Activities) icon.
+          color={parent ? folderColor : "text"}
           boxSizing="content-box"
           width="24px"
           height="24px"
@@ -274,18 +291,50 @@ export function Activities() {
   const revalidator = useRevalidator();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+  // Picking a file doesn't upload it yet: we first open the attribution modal to
+  // require a license, then upload once the user confirms (see
+  // `uploadImageWithAttribution`). This guarantees no unlicensed image is
+  // created.
+  function handleImageFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    // No card anchor for the upload flow; clear any stale one so focus restores
+    // to the element that had it (rather than an unrelated card's menu button).
+    finalFocusRef.current = null;
+    setUploadTarget({ file });
+  }
+
+  // Runs the two-step upload with the license/attribution the user supplied.
+  // Errors propagate so the modal keeps itself open and shows the message.
+  async function uploadImageWithAttribution(
+    file: File,
+    values: ImageAttributionFormValues,
+  ) {
     setHaveContentSpinner(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      if (parentId) form.append("parentId", parentId);
-      await axios.post("/api/media/image", form, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const initRes = await axios.post<{
+        uploadKey: string;
+        uploadUrl: string;
+      }>("/api/media/image/init", {
+        mimeType: file.type,
+        sizeBytes: file.size,
       });
+      const { uploadKey, uploadUrl } = initRes.data;
+
+      await axios.put(uploadUrl, file, {
+        headers: { "Content-Type": file.type },
+      });
+
+      await axios.post("/api/media/image/complete", {
+        uploadKey,
+        parentId: parentId ?? null,
+        name: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        ...values,
+      });
+
       revalidator.revalidate();
       toast({
         title: "Image uploaded",
@@ -293,23 +342,29 @@ export function Activities() {
         duration: 3000,
         isClosable: true,
       });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.details ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Upload failed";
-      toast({
-        title: "Upload failed",
-        description: message,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
     } finally {
       setHaveContentSpinner(false);
     }
   }
+
+  // Shown when the user picks an image to upload: they must license it before
+  // the upload completes. Editing an existing image's attribution happens on the
+  // image viewer page instead.
+  const attributionModal = uploadTarget ? (
+    <EditImageAttribution
+      isOpen={true}
+      onClose={() => setUploadTarget(null)}
+      initial={emptyImageAttribution}
+      imageSource={null}
+      headerLabel="License this image"
+      submitLabel="Upload"
+      defaultAuthorName={user ? createNameNoTag(user) : undefined}
+      finalFocusRef={finalFocusRef}
+      onSubmit={(values) =>
+        uploadImageWithAttribution(uploadTarget.file, values)
+      }
+    />
+  ) : null;
 
   const moveCopyContentModal = (
     <MoveCopyContent
@@ -691,7 +746,7 @@ export function Activities() {
   const searchResultsHeading = haveQuery ? (
     <Flex
       width="100%"
-      background="lightgray"
+      background="surfaceMuted"
       fontSize="large"
       alignItems="center"
       padding="5px"
@@ -706,7 +761,7 @@ export function Activities() {
         <Tooltip label="Close search results" placement="bottom-end">
           <IconButton
             icon={<MdClose />}
-            background="lightgray"
+            background="surfaceMuted"
             aria-label="Close search results"
             type="submit"
             onClick={() => {
@@ -729,7 +784,7 @@ export function Activities() {
 
     let cardLink: string | undefined;
     if (activity.type === "image") {
-      cardLink = undefined;
+      cardLink = `/imageDetails/${activity.contentId}`;
     } else if (activity.type === "folder") {
       cardLink = `/activities/${activity.ownerId}/${activity.contentId}`;
     } else if (activity.assignmentInfo) {
@@ -740,36 +795,38 @@ export function Activities() {
 
     const inlineActions =
       activity.type === "image" ? (
-        <Button
-          ref={getCardMenuRef}
-          size="xs"
-          variant="outline"
-          colorScheme="blue"
-          leftIcon={<MdContentCopy />}
-          data-test="Copy Image Tag"
-          onClick={async () => {
-            const tag = `<image source="${window.location.origin}/api/media/${activity.contentId}" />`;
-            try {
-              await navigator.clipboard.writeText(tag);
-              toast({
-                title: "Image tag copied",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-              });
-            } catch {
-              toast({
-                title: "Could not copy to clipboard",
-                description: tag,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-              });
-            }
-          }}
-        >
-          Copy tag
-        </Button>
+        <HStack spacing="4px">
+          <Button
+            ref={getCardMenuRef}
+            size="xs"
+            variant="outline"
+            colorScheme="blue"
+            leftIcon={<MdContentCopy />}
+            data-test="Copy Image Tag"
+            onClick={async () => {
+              const tag = buildImageTag(activity);
+              try {
+                await navigator.clipboard.writeText(tag);
+                toast({
+                  title: "Image tag copied",
+                  status: "success",
+                  duration: 3000,
+                  isClosable: true,
+                });
+              } catch {
+                toast({
+                  title: "Could not copy to clipboard",
+                  description: tag,
+                  status: "error",
+                  duration: 5000,
+                  isClosable: true,
+                });
+              }
+            }}
+          >
+            Copy tag
+          </Button>
+        </HStack>
       ) : undefined;
 
     return {
@@ -800,7 +857,7 @@ export function Activities() {
   return (
     <Flex
       data-test="Activities"
-      background={"white"}
+      background="surface"
       align="flex-start"
       overflowY="hidden"
       height="100%"
@@ -835,6 +892,7 @@ export function Activities() {
         {authorModeModal}
         {imageAccessModal}
         {shareFolderModal}
+        {attributionModal}
 
         {searchResultsHeading}
         {addToActionBar}

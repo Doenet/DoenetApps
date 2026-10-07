@@ -36,7 +36,7 @@ import axios from "axios";
 import { DoenetHeading as Heading } from "../widgets/Heading";
 import "../utils/score-table.css";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Label } from "recharts";
+import { ScoreSummaryChart } from "./ScoreSummaryChart";
 import { Link as ReactRouterLink, useNavigate } from "react-router";
 import { createNameNoTag, lastNameFirst } from "../utils/names";
 import {
@@ -45,7 +45,6 @@ import {
   DoenetmlVersion,
   UserInfoWithEmail,
 } from "../types";
-import { isActivitySource } from "@doenet/assignment-viewer";
 import {
   compileActivityFromContent,
   contentTypeToName,
@@ -173,13 +172,7 @@ export async function loader({ params, request }: ActionFunctionArgs) {
       doenetmlVersion,
     };
   } else if (assignment.type !== "folder" && assignment.type !== "image") {
-    const activityJsonPrelim = assignment.activityJson
-      ? JSON.parse(assignment.activityJson)
-      : null;
-
-    const activityJson = isActivitySource(activityJsonPrelim)
-      ? activityJsonPrelim
-      : compileActivityFromContent(assignment);
+    const activityJson = compileActivityFromContent(assignment);
 
     const itemNames = data.itemNames;
 
@@ -759,30 +752,7 @@ export function AssignmentData() {
             <TabPanel>{scoresChart}</TabPanel>
             <TabPanel>
               <Heading subheading="Score summary" />
-              <BarChart
-                width={600}
-                height={300}
-                data={scoreData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="score">
-                  <Label value="Score" offset={0} position="insideBottom" />
-                </XAxis>
-                <YAxis>
-                  <Label
-                    value="Number of students"
-                    angle={-90}
-                    position="insideLeft"
-                  />
-                </YAxis>
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
+              <ScoreSummaryChart data={scoreData} />
               <Box>
                 <List>
                   <ListItem>Number of students: {numStudents}</ListItem>
