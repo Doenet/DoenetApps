@@ -45,6 +45,11 @@ Development uses a fork workflow. Push branches to `origin` (your fork), then op
 
 Database and API changes must follow the **expand-migrate-contract** pattern: each merged PR must be safe to deploy on its own, so add new columns/endpoints before removing old ones across separate PRs.
 
+## Code Review
+
+- **Reviewing a PR or branch:** follow [docs/PR_REVIEW_GUIDELINES.md](./docs/PR_REVIEW_GUIDELINES.md).
+- **Iterating on a PR through several review-and-fix passes:** follow [docs/REPEATED_REVIEW_OF_PR.md](./docs/REPEATED_REVIEW_OF_PR.md).
+
 ## Cross-cutting Conventions
 
 - TypeScript **strict mode is enforced** across all workspaces

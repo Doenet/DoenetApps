@@ -21,6 +21,9 @@ __pycache__
 # Claude Code personal settings (project settings.json is committed; local overrides are not)
 .claude/settings.local.json
 
+# Scratch ledger written by the repeated PR review (docs/REPEATED_REVIEW_OF_PR.md)
+.review-ledger.md
+
 # misc
 
 npm-debug.log*
