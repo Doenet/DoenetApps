@@ -1493,6 +1493,56 @@ test("only owners of the student's assignments can get student assignment scores
   expect(selfView.studentData.userId).eqls(strangerId);
 });
 
+test("owner of a course can get scores of a rostered student who has not started", async () => {
+  const owner = await createTestUser();
+  const ownerId = owner.userId;
+
+  const [folderId, docId] = await setupTestContent(ownerId, {
+    "folder 1": fold({ "doc 1": doc("hi") }),
+  });
+  await markFolderAsCourse({ loggedInUserId: ownerId, folderId });
+  const { assignmentId } = await createAssignment({
+    contentId: docId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+    loggedInUserId: ownerId,
+    destinationParentId: folderId,
+  });
+  const { accounts } = await createStudentHandleAccounts({
+    loggedInUserId: ownerId,
+    folderId,
+    numAccounts: 1,
+  });
+  const studentId = accounts[0].userId;
+
+  // the rostered student is listed on the course's Students page...
+  const { orderedStudents } = await getAllAssignmentScores({
+    loggedInUserId: ownerId,
+    parentId: folderId,
+  });
+  expect(orderedStudents.map((s) => s.userId)).eqls([studentId]);
+
+  // ...so the owner can open their scores, even with no assignmentScores row
+  const ownerView = await getStudentAssignmentScores({
+    studentUserId: studentId,
+    loggedInUserId: ownerId,
+    parentId: folderId,
+  });
+  expect(ownerView.studentData.userId).eqls(studentId);
+  expect(ownerView.orderedActivityScores).eqls([
+    { contentId: assignmentId, activityName: "doc 1", score: null },
+  ]);
+
+  // an unrelated user cannot
+  const stranger = await createTestUser();
+  await expect(
+    getStudentAssignmentScores({
+      studentUserId: studentId,
+      loggedInUserId: stranger.userId,
+      parentId: null,
+    }),
+  ).rejects.toThrow(PrismaClientKnownRequestError);
+});
+
 test(
   "assignment list is correctly ordered depth-first and by sortIndex",
   { timeout: 100000 },

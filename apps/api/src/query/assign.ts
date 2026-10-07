@@ -433,8 +433,9 @@ type OrderedActivityScore = {
  * i.e., the contents of a folder immediately follow the folder itself,
  * and items within a folder are ordered by `sortIndex`
  *
- * Throws a not-found error unless `studentUserId` is `loggedInUserId`
- * or has a score on an assignment owned by `loggedInUserId`.
+ * Throws a not-found error unless `studentUserId` is `loggedInUserId`,
+ * has a score on an assignment owned by `loggedInUserId`,
+ * or is rostered to a course folder owned by `loggedInUserId`.
  *
  * @returns A Promise that resolves to an object with
  * - studentAssignmentScores: information on the student
@@ -454,9 +455,11 @@ export async function getStudentAssignmentScores({
   orderedActivityScores: OrderedActivityScore[];
   folder: { contentId: Uint8Array; name: string } | null;
 }> {
-  // Only reveal the student if they are the logged-in user or have a score
-  // on one of the logged-in user's assignments. Otherwise, throw the same
-  // not-found error as for a nonexistent user, so we don't confirm the user exists.
+  // Only reveal the student if they are the logged-in user, have a score
+  // on one of the logged-in user's assignments, or are rostered to one of the
+  // logged-in user's course folders (they are listed on its Students page
+  // before they start any assignment). Otherwise, throw the same not-found
+  // error as for a nonexistent user, so we don't confirm the user exists.
   const studentData = await prisma.users.findUniqueOrThrow({
     where: {
       userId: studentUserId,
@@ -467,6 +470,7 @@ export async function getStudentAssignmentScores({
             some: { assignment: { ownerId: loggedInUserId } },
           },
         },
+        { scopedToClass: { ownerId: loggedInUserId } },
       ],
     },
     select: {
