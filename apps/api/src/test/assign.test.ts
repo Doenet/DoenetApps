@@ -1412,7 +1412,7 @@ test("get all assignment data from anonymous user", async () => {
   });
 });
 
-test("only owners of the student's assignments can get student assignment scores", async () => {
+test("only the student or owners of their assignments can get student assignment scores", async () => {
   const owner = await createTestUser();
   const ownerId = owner.userId;
 
