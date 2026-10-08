@@ -182,6 +182,10 @@ ORDER BY metric;
 -- 3. Table sizes (approximate; from InnoDB statistics)
 -- ============================================================
 
+-- information_schema caches table statistics for up to a day by default; read
+-- them fresh. This is a session setting, not a write.
+SET SESSION information_schema_stats_expiry = 0;
+
 SELECT
   table_name,
   table_rows AS approx_rows,

@@ -19,7 +19,7 @@ mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql >
 - Commit `prod-shape.results.txt` together with the date it was taken. The dataset generator's prod-shaped scale is derived from it.
 - Re-run it about once a semester, ideally mid-semester when course sizes and attempts are near their peak, or after a noticeable change in usage. If the numbers have moved, update the results and the generator's prod-shaped scale.
 
-To try the script locally, run the same command against your dev database, using the connection details in `apps/api/.env`.
+To try the script locally, run the same command against your dev database, using the connection details in `apps/api/.env`. Pass the host as `127.0.0.1` and add `-P <port>`: with `-h localhost`, the `mysql` client connects through the Unix socket and ignores `-P`, which reaches a different server or none.
 
 ### Reading the output
 
