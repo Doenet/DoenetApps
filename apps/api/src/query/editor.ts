@@ -368,10 +368,12 @@ export async function getEditorShareStatus({
   contentId: Uint8Array;
   loggedInUserId: Uint8Array;
 }) {
+  const isEditor = await getIsEditor(loggedInUserId);
+
   const results = await prisma.content.findUniqueOrThrow({
     where: {
       id: contentId,
-      ...filterEditableContent(loggedInUserId, false),
+      ...filterEditableContent(loggedInUserId, isEditor),
     },
     select: {
       type: true,
