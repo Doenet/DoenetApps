@@ -24,6 +24,11 @@ Every merge deploys, and the app builds already open in browsers keep calling th
 1. **Expand + migrate:** add the replacement, and move every caller to it. Removing something from the contract stops its callers compiling, so the type checker finds them all.
 2. **Contract**, once (1) has been deployed for at least a day: remove the old shape.
 
+CI flags the contract step, and a label records that the wait happened:
+
+- **API**: `contract:check-breaking` (oasdiff against `main`) fails on removed operations or fields, newly required inputs, and responses that can return new values. Label the PR `api-breaking`. Prefer a server-side default over making an input required: then no contract step is needed.
+- **Database**: `db:check-migrations` fails on new migrations that drop, rename or narrow columns or tables, add `NOT NULL` without a default, or add unique constraints. Label the PR `db-destructive`. To drop a column, first mark the field `@ignore` in `schema.prisma` (it must be optional or have a default) and remove its uses, including raw SQL; drop it in the contract PR. To rename, add the new column, write both, backfill, switch reads, then drop the old one.
+
 Terms are in `CONTEXT.md`; background in `docs/adr/0003-expand-migrate-contract.md`.
 
 ## Error Handling
