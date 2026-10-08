@@ -53,12 +53,12 @@ Repeating one prompt has steep diminishing returns; asking a different question 
 Give each cycle a lens of its own. The first three lenses are different questions, not
 three attempts at the same one, and each covers a class of defect the others do not:
 
-| Cycle | Lens                                                                                                                                                                                                                          |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **Correctness, access control and edge cases.** Does it do what it claims, for every user who can reach it — the owner, another user, an anonymous visitor — at every visibility level, on empty, deleted and boundary input? |
-| 2     | **Behavior delta.** What changed that is not visible in the diff — permission helpers, visibility rules, query wrappers, `packages/shared`? What regressed? Is it safe to deploy on its own?                                  |
-| 3     | **Claims against code.** Every statement in the PR description, `AGENTS.md` files, comments and commit messages, traced to the code that makes it true. Plus test and documentation coverage.                                 |
-| 4+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                          |
+| Cycle | Lens                                                                                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Correctness, access control, security and edge cases.** Does it do what it claims, for every user who can reach it — the owner, another user, an anonymous visitor, an attacker crafting input — at every visibility level, on empty, deleted and boundary input? |
+| 2     | **Behavior delta.** What changed that is not visible in the diff — permission helpers, visibility rules, query wrappers, `packages/shared`? What regressed? Is it safe to deploy on its own?                                                                        |
+| 3     | **Claims against code.** Every statement in the PR description, `AGENTS.md` files, comments and commit messages, traced to the code that makes it true. Plus test and documentation coverage.                                                                       |
+| 4+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                                                                |
 
 A lens is a starting point, not a restriction: a cycle that notices a bug outside its lens
 should still fix it.
