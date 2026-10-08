@@ -13,7 +13,7 @@ import {
   Box,
   Link as ChakraLink,
 } from "@chakra-ui/react";
-import axios from "axios";
+import { api } from "../api/client";
 import { DoenetHeading as Heading } from "../widgets/Heading";
 import { createNameNoTag } from "../utils/names";
 
@@ -35,9 +35,13 @@ type Folder = {
 
 // loader for when an instructor gets data about a student
 export async function loader({ params }: ActionFunctionArgs) {
-  const { data } = await axios.get(
-    `/api/assign/getStudentAssignmentScores/${params.userId}/${params.parentId ?? ""}`,
-  );
+  const studentUserId = params.userId!;
+  const data = params.parentId
+    ? await api("getStudentAssignmentScoresInFolder", {
+        studentUserId,
+        parentId: params.parentId,
+      })
+    : await api("getStudentAssignmentScores", { studentUserId });
 
   const userData = data.studentData;
   const scores = data.orderedActivityScores;
@@ -48,11 +52,11 @@ export async function loader({ params }: ActionFunctionArgs) {
 
 // loader for when a student gets their own data
 export async function assignedDataloader() {
-  const { data } = await axios.get(`/api/assign/getAssignedScores`);
+  const data = await api("getAssignedScores");
 
   const userData = data.userData;
   const scores = data.orderedActivityScores;
-  const folder = data.folder;
+  const folder = null;
 
   return { userData, scores, folder, isAssignedData: true };
 }

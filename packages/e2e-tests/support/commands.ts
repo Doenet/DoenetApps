@@ -227,25 +227,14 @@ Cypress.Commands.add(
     parentId?: string;
     maxAttempts?: number;
   }) => {
-    cy.request({
-      method: "POST",
-      url: "/api/assign/createAssignment",
-      body: {
-        contentId,
-        closedOn,
-        destinationParentId: parentId ?? null,
-      },
-    }).then((resp) => {
-      const assignmentId: string = resp.body.assignmentId;
-      const classCode: number | null = resp.body.classCode ?? null;
-
-      cy.request({
-        method: "POST",
-        url: "/api/assign/updateAssignmentMaxAttempts",
-        body: {
-          contentId: assignmentId,
-          maxAttempts,
-        },
+    cy.api("createAssignment", {
+      contentId,
+      closedOn,
+      destinationParentId: parentId ?? null,
+    }).then(({ assignmentId, classCode }) => {
+      cy.api("updateAssignmentMaxAttempts", {
+        contentId: assignmentId,
+        maxAttempts,
       }).then(() => {
         return { assignmentId, classCode };
       });

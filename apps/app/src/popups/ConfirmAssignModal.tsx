@@ -22,6 +22,7 @@ import { contentTypeToName } from "../utils/activity";
 import { EditAssignmentSettings } from "../widgets/editor/EditAssignmentSettings";
 import { ContentDescription, AssignmentMode } from "../types";
 import { FetcherWithComponents } from "react-router";
+import { submitOperation } from "../api/submitOperation";
 import { DateTime } from "luxon";
 import { MoveCopyContent } from "./MoveCopyContent";
 
@@ -205,15 +206,13 @@ export function ConfirmAssignModal({
             precision: "minutes",
           });
 
-          assignmentFetcher.submit(
-            {
-              path: "assign/createAssignment",
+          if (closedOn) {
+            submitOperation(assignmentFetcher, "createAssignment", {
               contentId,
               closedOn,
               destinationParentId: parentId,
-            },
-            { method: "post", encType: "application/json" },
-          );
+            });
+          }
 
           moveCopyContentOnClose();
         }}

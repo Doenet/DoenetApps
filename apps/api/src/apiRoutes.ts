@@ -3,7 +3,6 @@ import { contractDocsRouter, operationsRouter } from "./contract";
 import { apiOperations, apiSpec } from "./apiOperations";
 import { userRouter } from "./routes/userRoutes";
 import { loginRouter } from "./routes/loginRoutes";
-import { assignRouter } from "./routes/assignRoutes";
 import { updateContentRouter } from "./routes/updateContentRoutes";
 import { shareRouter } from "./routes/shareRoutes";
 import { scoreRouter } from "./routes/scoreRoutes";
@@ -36,7 +35,6 @@ export function mountApiRoutes(
   // changing its inputs or outputs.
   app.use("/api/user", userRouter);
   app.use("/api/login", loginRouter);
-  app.use("/api/assign", assignRouter);
   app.use("/api/updateContent", updateContentRouter);
   app.use("/api/share", shareRouter);
   app.use("/api/score", scoreRouter);

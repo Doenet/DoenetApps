@@ -824,7 +824,8 @@ async function testSingleDocResponses({
       assignmentId: contentId,
       loggedInUserId: studentData.user.userId,
     });
-    expect(data.scoreData).eqls({
+    expect(data.assignmentOpen).eq(true);
+    expect(data.assignmentOpen && data.scoreData).eqls({
       calculatedScore: true,
       ...scoreFromAttempts,
     });

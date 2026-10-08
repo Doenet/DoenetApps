@@ -17,7 +17,7 @@ import {
   Tr,
 } from "@chakra-ui/react";
 import { ContentType, UserInfo } from "../types";
-import axios from "axios";
+import { api } from "../api/client";
 import { createNameNoTag } from "../utils/names";
 import { DateTime } from "luxon";
 import { parseAndFormatResponse } from "../utils/responses";
@@ -58,17 +58,17 @@ export function AnswerResponseDrawer({
   useEffect(() => {
     setResponses([]);
     async function getAnswerResponses() {
-      const itemQuery =
-        (itemNumber === null ? "" : `&requestedItemNumber=${itemNumber}`) +
-        (itemAttemptNumber === null
-          ? ""
-          : `&itemAttemptNumber=${itemAttemptNumber}`);
+      const data = await api("getStudentSubmittedResponses", {
+        contentId: assignment.contentId,
+        studentUserId: student.userId,
+        answerId,
+        contentAttemptNumber,
+        requestedItemNumber: itemNumber ?? undefined,
+        itemAttemptNumber: itemAttemptNumber ?? undefined,
+        shuffledOrder: shuffledOrder.toString(),
+      });
 
-      const { data } = await axios.get(
-        `/api/assign/getStudentSubmittedResponses/${assignment.contentId}/${student.userId}?answerId=${answerId}&contentAttemptNumber=${contentAttemptNumber}${itemQuery}&shuffledOrder=${shuffledOrder.toString()}`,
-      );
-
-      const responseData = data.responses.map((obj: any) => ({
+      const responseData = data.responses.map((obj) => ({
         response: parseAndFormatResponse(obj.response),
         creditAchieved: Number(obj.answerCreditAchieved),
         submittedAt: DateTime.fromISO(obj.submittedAt).toLocaleString(

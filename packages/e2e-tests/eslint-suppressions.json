@@ -16,7 +16,7 @@
   },
   "support/commands.ts": {
     "no-restricted-syntax": {
-      "count": 13
+      "count": 11
     }
   }
 }

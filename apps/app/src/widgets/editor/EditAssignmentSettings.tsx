@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import { FetcherWithComponents } from "react-router";
+import { submitOperation } from "../../api/submitOperation";
 import { optimistic } from "../../utils/optimistic_ui";
 import { AssignmentMode } from "../../types";
 
@@ -98,17 +99,10 @@ export function MaxAttemptsSelectionBox({
 
   const fetcherUpdate = useCallback(
     (val: number) => {
-      fetcher.submit(
-        {
-          path: "assign/updateAssignmentMaxAttempts",
-          contentId,
-          maxAttempts: val,
-        },
-        {
-          method: "post",
-          encType: "application/json",
-        },
-      );
+      submitOperation(fetcher, "updateAssignmentMaxAttempts", {
+        contentId,
+        maxAttempts: val,
+      });
     },
     [contentId, fetcher],
   );
@@ -225,14 +219,10 @@ function VariantSelectionBox({
           isChecked={!optimisticIsIndividualized}
           isDisabled={!editable}
           onChange={(e) => {
-            fetcher.submit(
-              {
-                path: "assign/updateAssignmentSettings",
-                contentId,
-                individualizeByStudent: !e.target.checked,
-              },
-              { method: "post", encType: "application/json" },
-            );
+            submitOperation(fetcher, "updateAssignmentSettings", {
+              contentId,
+              individualizeByStudent: !e.target.checked,
+            });
           }}
         />
       </FormControl>
@@ -262,14 +252,10 @@ function AssignmentModeSelection({
           isDisabled={!editable}
           onChange={(v) => {
             const mode = v === "summative" ? "summative" : "formative";
-            fetcher.submit(
-              {
-                path: "assign/updateAssignmentSettings",
-                contentId,
-                mode,
-              },
-              { method: "post", encType: "application/json" },
-            );
+            submitOperation(fetcher, "updateAssignmentSettings", {
+              contentId,
+              mode,
+            });
           }}
           value={optimisticMode}
         >

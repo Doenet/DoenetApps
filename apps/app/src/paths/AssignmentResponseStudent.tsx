@@ -10,7 +10,7 @@ import {
   Icon,
   Text,
 } from "@chakra-ui/react";
-import axios from "axios";
+import { api } from "../api/client";
 import {
   Link as ReactRouterLink,
   useNavigate,
@@ -36,25 +36,30 @@ export async function loader({ params, request }: ActionFunctionArgs) {
   const requestedItemNumber = url.searchParams.get("itemNumber");
   const requestedAttemptNumber = url.searchParams.get("attemptNumber");
 
-  let search = `?shuffledOrder=${shuffledOrder}`;
+  const query = {
+    contentId: params.contentId!,
+    shuffledOrder: String(shuffledOrder),
+    itemNumber:
+      requestedItemNumber !== null ? Number(requestedItemNumber) : undefined,
+    attemptNumber:
+      requestedAttemptNumber !== null
+        ? Number(requestedAttemptNumber)
+        : undefined,
+  };
 
-  if (requestedItemNumber !== null) {
-    search += `&itemNumber=${requestedItemNumber}`;
-  }
-  if (requestedAttemptNumber !== null) {
-    search += `&attemptNumber=${requestedAttemptNumber}`;
-  }
-
-  const { data } = await axios.get(
-    `/api/assign/getAssignmentResponseStudent/${params.contentId}/${params.studentUserId ? params.studentUserId : ""}${search}`,
-  );
+  const data = params.studentUserId
+    ? await api("getAssignmentResponseStudent", {
+        ...query,
+        studentUserId: params.studentUserId,
+      })
+    : await api("getOwnAssignmentResponse", query);
 
   const overall = data.overallScores;
 
   const overallItemScores = overall.itemScores;
   const latestItemScores = overall.latestAttempt.itemScores;
   let itemNames: string[] = data.itemNames;
-  const itemScores = data.itemScores;
+  const itemScores = data.singleItemAttempt ? data.itemScores : undefined;
 
   // Get itemNames, itemScores, and latestItemScores in the correct order.
   // TODO: this is now quite confusing with the different modes.
@@ -89,6 +94,10 @@ export async function loader({ params, request }: ActionFunctionArgs) {
     const responseCounts: Record<string, number> = Object.fromEntries(
       data.responseCounts,
     );
+    // The content of a single item attempt is always a document.
+    if (data.content.type !== "singleDoc") {
+      throw new Error(`Expected a document, got ${data.content.type}`);
+    }
     const doenetML = data.content.doenetML;
     const doenetmlVersion: DoenetmlVersion = data.content.doenetmlVersion;
 

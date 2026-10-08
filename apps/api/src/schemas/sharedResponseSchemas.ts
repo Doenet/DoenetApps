@@ -203,3 +203,36 @@ export const contentSchema: ContentWireSchema = z
     imageItemSchema,
   ])
   .meta({ id: "Content" });
+
+export const itemScoresSchema = z
+  .array(
+    z.object({
+      score: z.number(),
+      itemNumber: z.number(),
+      itemAttemptNumber: z.number(),
+    }),
+  )
+  .meta({ id: "ItemScores" });
+
+export const latestAttemptSchema = z
+  .object({
+    attemptNumber: z.number(),
+    score: z.number(),
+    itemScores: itemScoresSchema,
+  })
+  .meta({ id: "LatestAttempt" });
+
+export const calculatedScoreDataSchema = z.object({
+  calculatedScore: z.literal(true),
+  score: z.number(),
+  bestAttemptNumber: z.number(),
+  itemScores: itemScoresSchema,
+  latestAttempt: latestAttemptSchema,
+});
+
+export const scoreDataSchema = z
+  .discriminatedUnion("calculatedScore", [
+    z.object({ calculatedScore: z.literal(false) }),
+    calculatedScoreDataSchema,
+  ])
+  .meta({ id: "ScoreData" });
