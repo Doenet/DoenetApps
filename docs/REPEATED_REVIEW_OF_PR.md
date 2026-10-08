@@ -37,8 +37,8 @@ Give the subagent these instructions:
    inherited by every later cycle as a decision already taken.
 4. Run `npm run format && npm run lint`, and the tests covering what you changed.
 5. Verify the PR description still describes everything in the diff; update it with
-   `gh pr edit` if not, using the `pr` skill. Don't skip this — nothing else in the
-   pipeline checks it.
+   `gh pr edit` if not, following the PR description rules in `AGENTS.md`. Don't skip
+   this — nothing else in the pipeline checks it.
 6. Commit and push the results to `origin`.
 7. Append to the ledger, and report back a short summary of what was changed (or "no
    changes" if nothing needed updating).
