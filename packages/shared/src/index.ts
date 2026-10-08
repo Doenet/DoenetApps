@@ -7,3 +7,4 @@ export * from "./logic/browsable.js";
 export * from "./logic/categoryRules.js";
 export * from "./logic/mediaLicense.js";
 export * from "./logic/problemSetItems.js";
+export * from "./api/client.js";

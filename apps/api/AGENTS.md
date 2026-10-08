@@ -2,16 +2,29 @@
 
 See root `AGENTS.md` for commands and overall architecture.
 
-## Route Handler Pattern
+## API Contract
 
-Middleware wrappers in `src/middleware/queryMiddleware.ts` handle auth, Zod validation (merging `req.body`, `req.query`, `req.params`), UUID conversion, and errors automatically:
+New `/api` operations are described by a Zod contract and served through it (older routes are listed in `contract-uncovered.json`; see below). The OpenAPI document (`apps/api/openapi.json`, served at `/api/openapi.json`, browsable at `/api/docs`) and the client types in `packages/shared/src/api/generated/` are generated from the contracts.
 
-```ts
-router.post("/endpoint", queryLoggedIn(queryFunction, zodSchema));
-router.get("/endpoint", queryOptionalLoggedIn(queryFunction, zodSchema));
-```
+To add or change an operation:
 
-Zod schemas live in `src/schemas/` by domain. Pass them to the wrapper — do not validate inside route handlers.
+1. Define it with `defineOperation` (name, method, path, auth, request and response schemas) in `src/schemas/<domain>Contract.ts`, or in `<system>/contract.ts` for system folders. Shared response schemas live in `src/schemas/sharedResponseSchemas.ts`.
+2. Attach the handler with `implement(contract, queryFunction)` and add it to `apiOperations` in `src/apiOperations.ts`. `implement` type-checks the handler's return value against the response schema.
+3. Run `npm run contract:generate --workspace @doenet-tools/api` and commit the generated files.
+4. Call it from the app with `api("name", params)` or `submitOperation(fetcher, "name", params)`, and from e2e tests with `cy.api("name", params)`.
+
+Routes listed in `contract-uncovered.json` predate the contract and still use the `queryLoggedIn`/`queryOptionalLoggedIn` wrappers. Bring a route into the contract before changing its inputs or outputs, then remove it from that list. Tests fail on any new route outside the contract.
+
+Outside production, a response that doesn't match its schema returns 500; in production it is logged.
+
+## Expand-Migrate-Contract
+
+Every merge deploys, and the app builds already open in browsers keep calling the API the way they were built to (they switch to the new build on their next navigation after a deploy). Backend tasks running the previous code keep serving while migrations run. So a change that removes or narrows something takes two PRs:
+
+1. **Expand + migrate:** add the replacement, and move every caller to it. Removing something from the contract stops its callers compiling, so the type checker finds them all.
+2. **Contract**, once (1) has been deployed for at least a day: remove the old shape.
+
+Terms are in `CONTEXT.md`; background in `docs/adr/0003-expand-migrate-contract.md`.
 
 ## Error Handling
 

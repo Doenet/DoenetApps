@@ -1,0 +1,202 @@
+{
+  "src/dev/autoLogin.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/drawers/AnswerResponseDrawer.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/drawers/ContentInfoDrawer.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/features/sharing/loaders.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/index.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/Activities.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/ActivityViewer.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/AssignmentResponseOverview.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/AssignmentResponseStudent.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/AssignmentViewer.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/ChangeName.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/ConfirmSignIn.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/Curate.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/DoenetMLComparison.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/Explore.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/ImageDetails.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/LibraryActivities.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/RawViewer.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/ScratchPad.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/SharedActivities.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/SharedWithMe.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/SignIn.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/SiteHeader.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/StudentAssignmentScores.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/Students.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/Trash.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/CompoundEditorEditMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/CompoundEditorViewMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/DocEditorEditMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/DocEditorHistoryMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/DocEditorRemixMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/DocEditorViewMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/DoenetMLVersionComponents.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/EditorHeader.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/EditorLibraryMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/paths/editor/EditorSettingsMode.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/popups/AddClassificationModal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/popups/AddContentToMenu.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/popups/DocumentComparisonControls.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/popups/MoveCopyContent.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  }
+}

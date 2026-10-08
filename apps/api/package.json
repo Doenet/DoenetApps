@@ -10,6 +10,7 @@
   "scripts": {
     "build:assets": "npx tsx scripts/copy-assets-to-dist.ts",
     "build": "tsc --build && npm run build:assets",
+    "contract:generate": "tsx scripts/contract/generate.ts",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint --fix",
     "lint:check": "eslint",
@@ -52,6 +53,7 @@
     "passport-strategy": "^1.0.0",
     "prisma": "6.4.1",
     "short-uuid": "^5.2.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.0.14"
   },
   "devDependencies": {
@@ -66,6 +68,9 @@
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/passport-local": "^1.0.38",
     "@types/passport-strategy": "^0.2.38",
+    "@types/swagger-ui-express": "^4.1.8",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.8.1",
     "vitest": "^3.2.4"
   },
   "optionalDependencies": {

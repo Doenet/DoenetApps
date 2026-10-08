@@ -23,7 +23,11 @@ export function optimistic<T>(
 ): T {
   let optimisticValue = groundTruthValue;
   if (fetcher.state !== "idle") {
-    const jsonObject = fetcher.json! as JsonObject;
+    let jsonObject = fetcher.json! as JsonObject;
+    // Submitted with `submitOperation`: the fields are under `params`.
+    if (typeof jsonObject.operation === "string") {
+      jsonObject = jsonObject.params as JsonObject;
+    }
     if (jsonObject[fieldName] === undefined) {
       throw Error(`Fetcher json supposed to contain field ${fieldName}`);
     }

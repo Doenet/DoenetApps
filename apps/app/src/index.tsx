@@ -105,7 +105,11 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
+import { isOperationName } from "@doenet-tools/shared";
+import { api } from "./api/client";
 import { reloadOnNewVersion } from "./utils/reloadOnNewVersion";
+import type { OperationSubmission } from "./api/submitOperation";
+import type { ContentType } from "./types";
 import { ensureDevAutoLogin } from "./dev/autoLogin";
 import { loadShareStatus } from "./features/sharing";
 import {
@@ -481,6 +485,34 @@ function legacySiteRedirectLoader({ request }: { request: Request }) {
 }
 
 /**
+ * `genericAction` for submissions made with `submitOperation`: call the
+ * named operation through the typed client.
+ */
+async function operationAction({
+  operation,
+  params,
+  redirectOnSuccess,
+  replaceOnSuccess,
+  redirectNewContentId,
+}: OperationSubmission) {
+  if (!isOperationName(operation)) {
+    // Submitted by a newer build than this one; nothing we can call.
+    throw new Error(`Unknown API operation "${operation}"`);
+  }
+  const data = (await api(operation, params as never)) as unknown;
+
+  if (redirectNewContentId) {
+    const newContentId = (data as { contentId: string }).contentId;
+    return redirect(editorUrl(newContentId, params.contentType as ContentType));
+  } else if (replaceOnSuccess) {
+    return replace(replaceOnSuccess);
+  } else if (redirectOnSuccess) {
+    return redirect(redirectOnSuccess);
+  }
+  return { data };
+}
+
+/**
  * A generic action handler for React Router pages
  * 1. Takes in an action of type `application/json` (not the default `multipart/form-data`)
  * 2. Calls the endpoint specified by `path` field, using the incoming request method and
@@ -497,13 +529,17 @@ async function genericAction({ request }: ActionFunctionArgs) {
   // Currently this function returns entire http response. It comes down to a question
   // of whether pages/fetchers should have access to status information.
   const method = request.method.toLowerCase();
+  const json = await request.json();
+  if (typeof json.operation === "string") {
+    return operationAction(json as OperationSubmission);
+  }
   const {
     path,
     redirectOnSuccess,
     replaceOnSuccess,
     redirectNewContentId,
     ...body
-  } = await request.json();
+  } = json;
 
   try {
     const results = await axios({

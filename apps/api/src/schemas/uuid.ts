@@ -6,9 +6,9 @@ import { toUUID } from "../utils/uuid";
 const translator = short();
 
 export const uuidSchema = z
-  .custom<"uuid">((val) => {
-    return typeof val === "string" && translator.validate(val);
-  })
+  .string()
+  .meta({ format: "short-uuid" })
+  .refine((val) => translator.validate(val))
   .transform((val) => toUUID(val));
 
 /**
