@@ -61,7 +61,9 @@ jobs:
         run: |
           npm ci
           cd apps/app
-          npm run build -- --mode ${{ inputs.build_mode }}
+          # Built into the bundle, so an open tab knows which build it is
+          # running and can compare it to /version.json (reloadOnNewVersion).
+          VITE_COMMIT_SHA="$(git rev-parse HEAD)" npm run build -- --mode ${{ inputs.build_mode }}
 
       - name: Stamp version.json
         env:
@@ -78,6 +80,20 @@ jobs:
 
       - name: Sync to S3
         run: |
-          aws s3 sync --delete apps/app/dist s3://${{ inputs.env_name }}-app-${{ inputs.aws_account_id }}-${{ inputs.aws_region }}
+          bucket=s3://${{ inputs.env_name }}-app-${{ inputs.aws_account_id }}-${{ inputs.aws_region }}
+          # Vite's hashed bundles never change at a given URL, so cache them
+          # for good. Upload them first, so the new index.html never points at
+          # a bundle that isn't there yet. Old bundles are kept: a tab still
+          # running an older build may lazy-load one of its chunks.
+          aws s3 sync apps/app/dist/assets "$bucket/assets" \
+            --cache-control "public, max-age=31536000, immutable"
+          # Everything else (index.html, version.json, public/ files) keeps its
+          # URL across deploys, so browsers and CloudFront must revalidate it.
+          # Without a Cache-Control header, CloudFront keeps index.html for its
+          # default TTL (a day) and browsers guess a lifetime from its age.
+          aws s3 sync --delete apps/app/dist "$bucket" --exclude "assets/*" \
+            --cache-control "no-cache"
           id=$(aws ssm get-parameter --name "/${{ inputs.env_name }}/app/DistributionId" --query "Parameter.Value" --output text)
-          aws cloudfront create-invalidation --distribution-id $id --paths "/" "/version.json"
+          # AppSpaRewriteFunction rewrites every app route, including "/", to
+          # /index.html before the cache lookup, so that is the cached key.
+          aws cloudfront create-invalidation --distribution-id $id --paths "/index.html" "/version.json"

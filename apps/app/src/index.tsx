@@ -105,6 +105,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
+import { reloadOnNewVersion } from "./utils/reloadOnNewVersion";
 import { ensureDevAutoLogin } from "./dev/autoLogin";
 import { loadShareStatus } from "./features/sharing";
 import {
@@ -458,6 +459,8 @@ const router = createBrowserRouter([
     loader: legacySiteRedirectLoader,
   },
 ]);
+
+reloadOnNewVersion(router);
 
 const root = createRoot(document.getElementById("root")!);
 
