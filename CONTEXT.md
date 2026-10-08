@@ -32,7 +32,7 @@ The recorded number of database queries each perf scenario makes. Any change, up
 
 **Perf dataset**:
 The synthetic, reproducible data that perf runs execute against, shaped to resemble prod's distributions: course sizes, folder depth, library size and so on. It can be generated at different scales.
-_Avoid_: seed data (that is the minimal reference data every database gets), fixtures
+_Avoid_: seed data (taken by the reference data loaded into dev and CI databases, and by the load tests' setup data), fixtures
 
 **Page load marks**:
 The three points a page load is measured to:
