@@ -1,0 +1,3 @@
+# Only perf proxies can fail a PR
+
+Wall-clock timing on CI runners and on dev3 varies too much from run to run to make a fair pass/fail gate. dev3's database (MySQL in a small container) also isn't sized like prod's (RDS). So PRs are gated only on perf proxies: query count snapshots, which must match exactly, and initial-load bundle growth, which must stay under a threshold unless the PR is labeled `perf-ack`. Wall-clock timing is only compared with a baseline run in the same environment and is reported, never enforced. dev3 numbers are never compared with prod numbers. Absolute numbers come from passive measurement in prod. That's why the repo has no millisecond budgets.

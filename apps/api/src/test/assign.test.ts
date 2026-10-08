@@ -1412,6 +1412,137 @@ test("get all assignment data from anonymous user", async () => {
   });
 });
 
+test("only the student or owners of their assignments can get student assignment scores", async () => {
+  const owner = await createTestUser();
+  const ownerId = owner.userId;
+
+  const [contentId] = await setupTestContent(ownerId, {
+    "Activity 1": doc("Some content"),
+  });
+
+  const { assignmentId } = await createAssignment({
+    contentId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+    loggedInUserId: ownerId,
+    destinationParentId: null,
+  });
+
+  const student = await createTestAnonymousUser();
+  const studentId = student.userId;
+
+  await createNewAttempt({
+    contentId: assignmentId,
+    variant: 1,
+    state: "document state 1",
+    loggedInUserId: studentId,
+  });
+  await saveScoreAndState({
+    contentId: assignmentId,
+    loggedInUserId: studentId,
+    attemptNumber: 1,
+    score: 0.5,
+    state: "document state 1",
+    variant: 1,
+  });
+
+  // owner of the assignment can get the student's data
+  const ownerView = await getStudentAssignmentScores({
+    studentUserId: studentId,
+    loggedInUserId: ownerId,
+    parentId: null,
+  });
+  expect(ownerView.studentData.userId).eqls(studentId);
+
+  // an unrelated user cannot, with or without a folder of their own
+  const stranger = await createTestUser();
+  const strangerId = stranger.userId;
+  const [strangerFolderId] = await setupTestContent(strangerId, {
+    "Stranger folder": fold({}),
+  });
+
+  await expect(
+    getStudentAssignmentScores({
+      studentUserId: studentId,
+      loggedInUserId: strangerId,
+      parentId: null,
+    }),
+  ).rejects.toThrow(PrismaClientKnownRequestError);
+  await expect(
+    getStudentAssignmentScores({
+      studentUserId: studentId,
+      loggedInUserId: strangerId,
+      parentId: strangerFolderId,
+    }),
+  ).rejects.toThrow(PrismaClientKnownRequestError);
+
+  // the student cannot get the owner's data, as the owner is not their student
+  await expect(
+    getStudentAssignmentScores({
+      studentUserId: ownerId,
+      loggedInUserId: studentId,
+      parentId: null,
+    }),
+  ).rejects.toThrow(PrismaClientKnownRequestError);
+
+  // a user can get their own data
+  const selfView = await getStudentAssignmentScores({
+    studentUserId: strangerId,
+    loggedInUserId: strangerId,
+    parentId: null,
+  });
+  expect(selfView.studentData.userId).eqls(strangerId);
+});
+
+test("owner of a course can get scores of a rostered student who has not started", async () => {
+  const owner = await createTestUser();
+  const ownerId = owner.userId;
+
+  const [folderId, docId] = await setupTestContent(ownerId, {
+    "folder 1": fold({ "doc 1": doc("hi") }),
+  });
+  await markFolderAsCourse({ loggedInUserId: ownerId, folderId });
+  const { assignmentId } = await createAssignment({
+    contentId: docId,
+    closedOn: DateTime.now().plus({ days: 1 }),
+    loggedInUserId: ownerId,
+    destinationParentId: folderId,
+  });
+  const { accounts } = await createStudentHandleAccounts({
+    loggedInUserId: ownerId,
+    folderId,
+    numAccounts: 1,
+  });
+  const studentId = accounts[0].userId;
+
+  // the rostered student is listed on the course's Students page...
+  const { orderedStudents } = await getAllAssignmentScores({
+    loggedInUserId: ownerId,
+    parentId: folderId,
+  });
+  expect(orderedStudents.map((s) => s.userId)).eqls([studentId]);
+
+  // ...so the owner can open their scores, even with no assignmentScores row
+  const ownerView = await getStudentAssignmentScores({
+    studentUserId: studentId,
+    loggedInUserId: ownerId,
+    parentId: folderId,
+  });
+  expect(ownerView.studentData.userId).eqls(studentId);
+  expect(ownerView.orderedActivityScores).eqls([
+    { contentId: assignmentId, activityName: "doc 1", score: null },
+  ]);
+
+  // an unrelated user cannot
+  const stranger = await createTestUser();
+  await expect(
+    getStudentAssignmentScores({
+      studentUserId: studentId,
+      loggedInUserId: stranger.userId,
+      parentId: null,
+    }),
+  ).rejects.toThrow(PrismaClientKnownRequestError);
+});
+
 test(
   "assignment list is correctly ordered depth-first and by sortIndex",
   { timeout: 100000 },
