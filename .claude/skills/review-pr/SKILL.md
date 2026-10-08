@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a DoenetApps PR or branch for correctness, access control, and deploy safety, following docs/PR_REVIEW_GUIDELINES.md. Use when the user asks to review a PR, a branch, or work-in-progress changes in this repo.
+description: Review a DoenetApps PR or branch for correctness, access control, security and deploy safety, following docs/PR_REVIEW_GUIDELINES.md. Use when the user asks to review a PR, a branch, or work-in-progress changes in this repo.
 ---
 
 # review-pr
