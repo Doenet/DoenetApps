@@ -5,12 +5,13 @@ import nodePolyfills from "rollup-plugin-polyfill-node";
 import { defineConfig } from "vite";
 
 import { createRequire } from "module";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadEnv } from "vite";
 const require = createRequire(import.meta.url);
 
 // Dev ports live in apps/api/.env (see .env.example); the environment wins.
-const env = loadEnv("development", path.resolve("../api"), "");
+const apiDir = fileURLToPath(new URL("../api", import.meta.url));
+const env = loadEnv("development", apiDir, "");
 const apiPort = Number(env.PORT) || 3000;
 const appPort = Number(env.APP_PORT) || 8000;
 const webPort = Number(env.WEB_PORT) || 4321;
@@ -38,6 +39,25 @@ export default defineConfig(({ command }) => ({
     ],
   },
   plugins: [
+    {
+      // A worktree set up before APP_PORT/WEB_PORT existed has only PORT, so
+      // its app and blog fall back to the default ports another checkout uses.
+      name: "warn-missing-dev-ports",
+      apply: "serve",
+      configResolved() {
+        if (
+          env.PORT &&
+          env.PORT !== "3000" &&
+          (!env.APP_PORT || !env.WEB_PORT)
+        ) {
+          console.warn(
+            `\nPORT is ${env.PORT}, but APP_PORT or WEB_PORT is not set in apps/api/.env.` +
+              ` The app and blog are using ports ${appPort} and ${webPort}, which may belong to another checkout.` +
+              ` Set both (see apps/api/.env.example).\n`,
+          );
+        }
+      },
+    },
     react(),
     // Enable esbuild polyfill plugins
     NodeGlobalsPolyfillPlugin({

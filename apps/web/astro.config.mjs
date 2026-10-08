@@ -7,7 +7,7 @@ import process from "node:process";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { loadEnv } from "vite";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import react from "@astrojs/react";
 
@@ -15,8 +15,8 @@ const modeIndex = process.argv.indexOf("--mode");
 const mode = modeIndex >= 0 ? process.argv[modeIndex + 1] : "production";
 const env = loadEnv(mode, process.cwd(), "");
 // Dev ports live in apps/api/.env (see .env.example); the environment wins.
-const webPort =
-  Number(loadEnv("development", path.resolve("../api"), "").WEB_PORT) || 4321;
+const apiDir = fileURLToPath(new URL("../api", import.meta.url));
+const webPort = Number(loadEnv("development", apiDir, "").WEB_PORT) || 4321;
 
 // https://astro.build/config
 export default defineConfig({
