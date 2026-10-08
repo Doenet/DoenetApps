@@ -26,6 +26,7 @@ import { getActivityIdFromSourceId } from "./testQueries";
 import { getMyUserInfo } from "../query/user";
 import { moveContent } from "../query/copy_move";
 import { getDocEditorDoenetML, getEditorShareStatus } from "../query/editor";
+import { getDoenetMLComparison } from "../query/compare";
 
 async function expectStatusIs(
   sourceId: Uint8Array,
@@ -1572,4 +1573,39 @@ test("Moving library content positions it among the content curators can see", a
     loggedInUserId: editorId,
   });
   expect(await listedIds()).eqls([a, b, c]);
+});
+
+test("Comparison says whether the activity is library content", async () => {
+  const { userId: editorId } = await createTestEditorUser();
+
+  const { contentId: sourceId } = await createContent({
+    loggedInUserId: editorId,
+    contentType: "singleDoc",
+    parentId: null,
+  });
+  await setContentIsPublic({
+    contentId: sourceId,
+    loggedInUserId: editorId,
+    isPublic: true,
+  });
+  await suggestToBeCurated({ contentId: sourceId, loggedInUserId: editorId });
+  const draftId = await getActivityIdFromSourceId(sourceId);
+
+  // The library draft compared with the source it was remixed from
+  const fromLibrary = await getDoenetMLComparison({
+    contentId: draftId,
+    compareId: sourceId,
+    loggedInUserId: editorId,
+  });
+  expect(fromLibrary.compareRelation).eq("source");
+  expect(fromLibrary.activity.inLibrary).eq(true);
+
+  // The source compared with its library remix
+  const fromSource = await getDoenetMLComparison({
+    contentId: sourceId,
+    compareId: draftId,
+    loggedInUserId: editorId,
+  });
+  expect(fromSource.compareRelation).eq("remix");
+  expect(fromSource.activity.inLibrary).eq(false);
 });

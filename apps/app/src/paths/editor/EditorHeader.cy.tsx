@@ -24,7 +24,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       contentId,
       name: "Test Activity",
       type: "sequence",
-      parent: null,
+      parent: null as { contentId: string; name: string; type: string } | null,
       grandparentId: null,
       grandparentName: null,
       hasBadVersion: false,
@@ -48,15 +48,35 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
     allDoenetmlVersions: [],
   };
 
-  function mountEditorHeader(shareStatus: {
-    visibility: string;
-    parentVisibility: string;
-    canSharePublicly: boolean;
-    publicShareIssues: string[];
-    publicShareBlockers: unknown[];
-    sharedWith: unknown[];
-    parentSharedWith: unknown[];
-  }) {
+  const privateShareStatus = {
+    visibility: "private",
+    parentVisibility: "private",
+    canSharePublicly: true,
+    publicShareIssues: [],
+    publicShareBlockers: [],
+    sharedWith: [],
+    parentSharedWith: [],
+  };
+
+  function mountEditorHeader(
+    shareStatus: {
+      visibility: string;
+      parentVisibility: string;
+      canSharePublicly: boolean;
+      publicShareIssues: string[];
+      publicShareBlockers: unknown[];
+      sharedWith: unknown[];
+      parentSharedWith: unknown[];
+    },
+    {
+      editorOverrides = {},
+      search = "",
+    }: {
+      editorOverrides?: Partial<typeof editorData>;
+      search?: string;
+    } = {},
+  ) {
+    const editor = { ...editorData, ...editorOverrides };
     const router = createMemoryRouter(
       [
         {
@@ -68,14 +88,37 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
               element: <EditorHeader />,
               loader: ({ params }: LoaderFunctionArgs) => {
                 expect(params.contentId).to.equal(contentId);
-                return editorData;
+                return editor;
               },
               children: [
                 {
                   index: true,
-                  element: <div data-test="Editor Content" />,
+                  element: (
+                    <div
+                      data-test="Editor Content"
+                      style={{ height: "100%" }}
+                    />
+                  ),
                 },
               ],
+            },
+            {
+              path: "compoundEditor/:contentId/library",
+              loader: ({ params }: LoaderFunctionArgs) => {
+                expect(params.contentId).to.equal(contentId);
+                return {
+                  libraryRelations: {
+                    source: {
+                      status: "UNDER_REVIEW",
+                      sourceContentId: "source-123",
+                      reviewRequestDate: "2024-01-15T10:00:00Z",
+                      ownerRequested: true,
+                      iAmPrimaryEditor: true,
+                    },
+                  },
+                  libraryComments: [],
+                };
+              },
             },
             {
               path: "loadShareStatus/:contentId",
@@ -99,7 +142,7 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
         },
       ],
       {
-        initialEntries: [`/compoundEditor/${contentId}/edit`],
+        initialEntries: [`/compoundEditor/${contentId}/edit${search}`],
       },
     );
 
@@ -110,7 +153,10 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
           config={mathjaxConfig}
           src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"
         >
-          <RouterProvider router={router} />
+          {/* Stands in for the site layout, which gives the editor the full page */}
+          <div style={{ position: "relative", height: "100vh" }}>
+            <RouterProvider router={router} />
+          </div>
         </MathJaxContext>
       </ChakraProvider>,
     );
@@ -156,5 +202,85 @@ describe("EditorHeader", { tags: ["@group3"] }, () => {
       "not.contain.text",
       "Action required",
     );
+  });
+  it("links the breadcrumb to the owner's activities", () => {
+    cy.viewport(1400, 800);
+    mountEditorHeader(privateShareStatus);
+
+    cy.get('[data-test="Folder Breadcrumb Link"]')
+      .should("have.attr", "href", "/activities/user-123/")
+      .and("have.text", "My Activities");
+  });
+
+  it("links the breadcrumb of library content to the library", () => {
+    cy.viewport(1400, 800);
+    mountEditorHeader(privateShareStatus, {
+      editorOverrides: { inLibrary: true },
+    });
+
+    cy.get('[data-test="Folder Breadcrumb Link"]')
+      .should("have.attr", "href", "/libraryActivities/")
+      .and("have.text", "Library Activities");
+  });
+
+  it("links the breadcrumb of library content in a folder to that library folder", () => {
+    cy.viewport(1400, 800);
+    mountEditorHeader(privateShareStatus, {
+      editorOverrides: {
+        inLibrary: true,
+        contentDescription: {
+          ...editorData.contentDescription,
+          parent: {
+            contentId: "folder-456",
+            name: "Library Folder",
+            type: "folder",
+          },
+        },
+      },
+    });
+
+    cy.get('[data-test="Folder Breadcrumb Link"]')
+      .should("have.attr", "href", "/libraryActivities/folder-456")
+      .and("have.text", "Library Folder");
+  });
+
+  it("marks the remixes button when the remix source has changed", () => {
+    mountEditorHeader(privateShareStatus, {
+      editorOverrides: { remixSourceHasChanged: true },
+    });
+
+    cy.get('[aria-label="View remixes"]')
+      .parent()
+      .should("contain.text", "\u{1f534}");
+  });
+
+  it("does not mark the remixes button of library content, which cannot be updated from its source", () => {
+    mountEditorHeader(privateShareStatus, {
+      editorOverrides: { remixSourceHasChanged: true, inLibrary: true },
+    });
+
+    cy.get('[aria-label="View remixes"]')
+      .parent()
+      .should("not.contain.text", "\u{1f534}");
+  });
+
+  it("gives the editor and curation panel the full height in curate mode", () => {
+    cy.viewport(1000, 700);
+    mountEditorHeader(privateShareStatus, {
+      editorOverrides: { inLibrary: true },
+      search: "?curate",
+    });
+
+    cy.get('[data-test="Library Editor Controls"]').should(
+      "contain.text",
+      "Panel only visible to library editors",
+    );
+    cy.get('[data-test="Library Editor Controls"]').then(($panel) => {
+      const panelHeight = $panel[0].getBoundingClientRect().height;
+      expect(panelHeight).to.be.greaterThan(500);
+      cy.get('[data-test="Editor Content"]')
+        .invoke("outerHeight")
+        .should("be.closeTo", panelHeight, 1);
+    });
   });
 });
