@@ -302,8 +302,9 @@ export function DoenetMLComparison() {
               justifyContent="flex-end"
               alignItems="center"
             >
-              {/* The API does not let anyone update library content from
-                  its remix source, or a remix source from library content */}
+              {/* Every update action changes your activity, which the API
+                  allows only for its owner. Library content is owned by the
+                  library account, so no one can update it here. */}
               {!activity.inLibrary && (
                 <Box mr={{ base: "5px", sm: "10px" }}>
                   <Tooltip
