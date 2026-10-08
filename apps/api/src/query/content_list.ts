@@ -82,6 +82,21 @@ export async function getMyContent({
 }
 
 /**
+ * Filter Prisma's `where` clause to the library content listed on the library activities page.
+ * Drafts that are not yet published are private and are left out; folders are always listed.
+ */
+export const filterListedLibraryContent = {
+  OR: [
+    {
+      isPublic: true,
+    },
+    {
+      type: "folder" as const,
+    },
+  ],
+};
+
+/**
  * NOTE: This function does not nicely handle invalid permissions. Use {@link getMyContent} or {@link getCurationFolderContent} instead for API calls - they both call this function.
  */
 export async function getMyContentOrLibraryContent({
@@ -111,18 +126,7 @@ export async function getMyContentOrLibraryContent({
     parent = processContent(preliminaryParent);
   }
 
-  const additionalFilter = isLibrary
-    ? {
-        OR: [
-          {
-            isPublic: true,
-          },
-          {
-            type: "folder" as const,
-          },
-        ],
-      }
-    : {};
+  const additionalFilter = isLibrary ? filterListedLibraryContent : {};
 
   const preliminaryContent = await prisma.content.findMany({
     where: {

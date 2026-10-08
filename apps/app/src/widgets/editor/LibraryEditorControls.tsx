@@ -161,6 +161,7 @@ export function LibraryEditorControls({
 
   return (
     <Flex
+      data-test="Library Editor Controls"
       // width="50%"
       height="100%"
       borderWidth="5px"

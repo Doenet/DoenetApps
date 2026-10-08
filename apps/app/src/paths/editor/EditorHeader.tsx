@@ -376,10 +376,13 @@ export function EditorHeader() {
   const folderIdOrBlank = isSubActivity
     ? (contentDescription.grandparentId ?? "")
     : (parent?.contentId ?? "");
+  const rootFolderName = inLibrary ? "Library Activities" : "My Activities";
   const folderName = isSubActivity
-    ? (contentDescription.grandparentName ?? "My Activities")
-    : (parent?.name ?? "My Activities");
-  const folderLink = `/activities/${editorContext.user!.userId}/${folderIdOrBlank}`;
+    ? (contentDescription.grandparentName ?? rootFolderName)
+    : (parent?.name ?? rootFolderName);
+  const folderLink = inLibrary
+    ? `/libraryActivities/${folderIdOrBlank}`
+    : `/activities/${editorContext.user!.userId}/${folderIdOrBlank}`;
 
   const folder = (
     <Hide below="md">
@@ -614,7 +617,8 @@ export function EditorHeader() {
         </Tooltip>
       )}
 
-      <NotificationDot show={remixSourceHasChanged}>
+      {/* Library content cannot be updated from its remix source, so don't prompt to */}
+      <NotificationDot show={remixSourceHasChanged && !inLibrary}>
         <Tooltip label="View remixes" openDelay={300} placement="bottom-end">
           <IconButton
             as={ReactRouterLink}
@@ -732,7 +736,7 @@ export function EditorHeader() {
           <MenuDismissOverlay dataTest="Editor Header Menu Dismiss Overlay" />
         )}
         {inLibrary && inCurateMode ? (
-          <Flex width="100%">
+          <Flex width="100%" height="100%">
             <Outlet context={editorContext} />
             <LibraryEditorControls
               contentId={contentId}

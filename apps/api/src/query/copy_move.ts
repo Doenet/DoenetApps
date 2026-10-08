@@ -25,6 +25,7 @@ import { InvalidRequestError } from "../utils/error";
 import { createFullName } from "../utils/names";
 import { recordRecentContent } from "./recent";
 import { getLibraryAccountId } from "./curate";
+import { filterListedLibraryContent } from "./content_list";
 import { generateClassCode } from "./assign";
 
 /**
@@ -183,7 +184,9 @@ export async function moveContent({
     }
   }
 
-  // find the sort indices of all content in folder other than moved content
+  // Find the sort indices of all content in folder other than moved content.
+  // In the library, `desiredPosition` is relative to the listed content,
+  // so ignore the hidden drafts when finding the position.
   const currentSortIndices = (
     await prisma.content.findMany({
       where: {
@@ -191,6 +194,7 @@ export async function moveContent({
         parentId: parentId,
         id: { not: contentId },
         isDeletedOn: null,
+        ...(content.owner.isLibrary ? filterListedLibraryContent : {}),
       },
       select: {
         sortIndex: true,

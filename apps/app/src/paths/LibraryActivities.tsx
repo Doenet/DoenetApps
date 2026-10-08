@@ -15,7 +15,6 @@ import {
   VStack,
   Hide,
   Spinner,
-  MenuDivider,
 } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -230,27 +229,6 @@ export function LibraryActivities() {
           >
             Go to containing folder
           </MenuItem>
-        ) : null}
-        <MenuDivider />
-        {contentType !== "folder" && !isPublic ? (
-          <>
-            <MenuDivider />
-            <MenuItem
-              data-test="Delete Draft"
-              onClick={() => {
-                fetcher.submit(
-                  {
-                    path: "curate/deleteDraftFromLibrary",
-                    contentId,
-                    contentType,
-                  },
-                  { method: "post", encType: "application/json" },
-                );
-              }}
-            >
-              Move to trash
-            </MenuItem>
-          </>
         ) : null}
       </>
     );
