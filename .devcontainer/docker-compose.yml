@@ -23,7 +23,9 @@ services:
       # The image also sets CI=1, which makes `prisma migrate dev` refuse to
       # prompt (e.g. to reset a drifted database). This is not CI.
       CI: ""
-      NODE_OPTIONS: --max-old-space-size=4096
+      # Here `localhost` can resolve to ::1 when a server binds but 127.0.0.1
+      # when the app proxies /blog and /api to it; prefer IPv4 for both.
+      NODE_OPTIONS: --max-old-space-size=4096 --dns-result-order=ipv4first
     depends_on:
       mysql:
         condition: service_healthy

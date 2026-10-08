@@ -49,7 +49,7 @@ their own, in the background, every time the container starts, and the app
 opens in a browser tab when it is listening. Their output goes to
 `/tmp/dev.log`: `tail -f /tmp/dev.log` shows the auto-login link, which already
 points at a codespace's forwarded address. To run them in a terminal instead,
-stop them with `pkill -f 'npm run dev'`, then use **Terminal → Run Build Task**
+stop them with `kill -- -$(cat /tmp/dev.pid)`, then use **Terminal → Run Build Task**
 (Ctrl/Cmd+Shift+B). Git,
 `gh`, and Claude Code all work inside with your own identity and credentials,
 which the editor forwards.
