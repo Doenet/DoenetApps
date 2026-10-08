@@ -145,3 +145,7 @@ Review whether the PR includes adequate tests:
   rather than assuming an earlier pass left it accurate: it is the one surface that no
   test, no CI job and no reader of the code will catch when it goes stale. When rewriting
   it, use the `pr` skill.
+- If the PR adds an ADR under `docs/adr/`, its number must not already be taken on
+  `main` or by another open PR. Two ADRs with the same number don't conflict in git,
+  because their filenames differ, so the duplicate merges silently. Check
+  `docs/adr/` on `main` and the open PRs that add ADRs.
