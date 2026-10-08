@@ -1,10 +1,10 @@
 import { getLibraryAccountId, getMultipleLibraryRelations } from "./curate";
 import { prisma } from "../model";
 import {
-  filterEditableContent,
-  filterViewableContent,
   getEarliestRecoverableDate,
   mustBeEditor,
+  filterOwnedContent,
+  filterViewableContentAsNonEditor,
 } from "../utils/permissions";
 import { processContent, returnContentSelect } from "../utils/contentStructure";
 import { Content } from "../types";
@@ -102,7 +102,7 @@ export async function getMyContentOrLibraryContent({
     const preliminaryParent = await prisma.content.findUniqueOrThrow({
       where: {
         id: parentId,
-        ...filterEditableContent(ownerId, false),
+        ...filterOwnedContent(ownerId),
       },
       select: returnContentSelect({ includeShareDetails: true }),
     });
@@ -217,7 +217,7 @@ export async function searchMyContentOrLibraryContent({
     const preliminaryParent = await prisma.content.findUniqueOrThrow({
       where: {
         id: parentId,
-        ...filterEditableContent(ownerId),
+        ...filterOwnedContent(ownerId),
       },
       select: returnContentSelect({ includeShareDetails: true }),
     });
@@ -498,7 +498,7 @@ export async function getSharedWithMe({
     where: {
       userId: loggedInUserId,
       isRootShare: true,
-      content: filterViewableContent(loggedInUserId),
+      content: filterViewableContentAsNonEditor(loggedInUserId),
     },
     select: {
       content: {

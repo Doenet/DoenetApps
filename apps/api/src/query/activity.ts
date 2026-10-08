@@ -9,6 +9,8 @@ import {
   getEarliestRecoverableDate,
   getIsEditor,
   mustBeEditor,
+  filterOwnedContent,
+  filterOwnedActivity,
 } from "../utils/permissions";
 import { getNextSortIndexForParent } from "../utils/sort";
 import { DateTime } from "luxon";
@@ -144,7 +146,7 @@ export async function deleteContent({
   const content = await prisma.content.findUniqueOrThrow({
     where: {
       id: contentId,
-      ...filterEditableContent(loggedInUserId),
+      ...filterOwnedContent(loggedInUserId),
     },
     select: {
       id: true,
@@ -1100,7 +1102,7 @@ export async function saveSyntaxUpdate({
   await prisma.content.findUniqueOrThrow({
     where: {
       id: contentId,
-      ...filterEditableActivity(loggedInUserId),
+      ...filterOwnedActivity(loggedInUserId),
       type: "singleDoc",
     },
   });

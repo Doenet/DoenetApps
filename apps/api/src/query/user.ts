@@ -2,7 +2,7 @@ import { prisma } from "../model";
 import { Prisma, Theme } from "@prisma/client";
 import { UserInfo, UserInfoWithEmail } from "../types";
 import { generateHandle, generateUnusedHandle } from "../utils/names";
-import { filterEditableContent } from "../utils/permissions";
+import { filterOwnedContent } from "../utils/permissions";
 import { fromUUID } from "../utils/uuid";
 import bcrypt from "bcryptjs";
 
@@ -219,7 +219,7 @@ export async function createStudentHandleAccounts({
     where: {
       id: folderId,
       courseRootId: folderId,
-      ...filterEditableContent(loggedInUserId),
+      ...filterOwnedContent(loggedInUserId),
     },
     select: { id: true },
   });

@@ -14,6 +14,7 @@ import {
   filterEditableContent,
   filterViewableActivity,
   getIsEditor,
+  filterViewableActivityAsNonEditor,
 } from "../utils/permissions";
 import { ActivitySource } from "@doenet-tools/shared";
 import { getContent } from "./activity_edit_view";
@@ -64,7 +65,7 @@ export async function getEditor({
     const isViewable = await prisma.content.findUnique({
       where: {
         id: contentId,
-        ...filterViewableActivity(loggedInUserId, false),
+        ...filterViewableActivityAsNonEditor(loggedInUserId),
       },
       select: {
         type: true,

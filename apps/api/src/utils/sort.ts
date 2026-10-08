@@ -1,5 +1,5 @@
 import { prisma } from "../model";
-import { filterEditableContent } from "./permissions";
+import { filterOwnedContent } from "./permissions";
 
 export const SORT_INCREMENT = 2 ** 32;
 
@@ -101,7 +101,7 @@ export async function getNextSortIndexForParent(
       where: {
         id: parentId,
         type: { not: "singleDoc" },
-        ...filterEditableContent(ownerId),
+        ...filterOwnedContent(ownerId),
       },
     });
   }
