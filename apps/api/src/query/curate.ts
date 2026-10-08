@@ -9,6 +9,7 @@ import {
   filterViewableActivity,
   getIsEditor,
   mustBeEditor,
+  filterViewableActivityAsNonEditor,
 } from "../utils/permissions";
 import {
   getMyContentOrLibraryContent,
@@ -336,7 +337,7 @@ export async function suggestToBeCurated({
     where: {
       id: contentId,
       AND: [
-        filterViewableActivity(loggedInUserId, false),
+        filterViewableActivityAsNonEditor(loggedInUserId),
         {
           isPublic: true,
           // for now, only allow single docs
@@ -484,7 +485,7 @@ export async function publishActivityToLibrary({
   contentId: Uint8Array;
   loggedInUserId: Uint8Array;
 }) {
-  await mustBeEditor(loggedInUserId);
+  const isEditor = await mustBeEditor(loggedInUserId);
   await prisma.content.update({
     where: {
       id: contentId,
@@ -498,7 +499,7 @@ export async function publishActivityToLibrary({
             isNot: null,
           },
         },
-        filterEditableActivity(loggedInUserId, true),
+        filterEditableActivity(loggedInUserId, isEditor),
       ],
     },
     data: {
@@ -535,7 +536,7 @@ export async function unpublishActivityFromLibrary({
   contentId: Uint8Array;
   loggedInUserId: Uint8Array;
 }) {
-  await mustBeEditor(loggedInUserId);
+  const isEditor = await mustBeEditor(loggedInUserId);
   await prisma.content.update({
     where: {
       id: contentId,
@@ -547,7 +548,7 @@ export async function unpublishActivityFromLibrary({
             primaryEditorId: loggedInUserId,
           },
         },
-        filterEditableActivity(loggedInUserId, true),
+        filterEditableActivity(loggedInUserId, isEditor),
       ],
     },
     data: {
@@ -781,7 +782,7 @@ export async function getCurationQueue({
 }: {
   loggedInUserId: Uint8Array;
 }) {
-  await mustBeEditor(loggedInUserId);
+  const isEditor = await mustBeEditor(loggedInUserId);
 
   async function getLibraryContentWithStatus({
     status,
@@ -795,7 +796,7 @@ export async function getCurationQueue({
         info: {
           status,
           activity: {
-            ...filterViewableActivity(loggedInUserId, true),
+            ...filterViewableActivity(loggedInUserId, isEditor),
           },
         },
       },

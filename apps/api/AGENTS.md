@@ -48,6 +48,14 @@ Content visibility is managed in `src/access/`. Three levels: `private` < `unlis
 
 When adding endpoints that read or modify content, check whether visibility gating applies.
 
+### Curators and the permission filters
+
+Curators (`users.isEditor`) can view and edit library-owned content. The Prisma filters in `src/utils/permissions.ts` (`filterEditableContent`, `filterViewableActivity`, etc.) take a required `isEditor` flag:
+
+- Pass the value from `getIsEditor(loggedInUserId)`, or the return value of `mustBeEditor(loggedInUserId)`.
+- If curator access is deliberately excluded, use `filterOwnedContent` / `filterOwnedActivity` (owner only) or `filterViewableContentAsNonEditor` / `filterViewableActivityAsNonEditor`.
+- Never pass a literal `true`/`false`; ESLint rejects it. A hard-coded `false` 404s curators on library content.
+
 ## Content Types
 
 Four content types throughout the domain model: `"singleDoc"`, `"select"` (question bank), `"sequence"` (problem set), `"folder"`. These appear in Prisma enums and TypeScript union types.

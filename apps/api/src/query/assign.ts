@@ -2,13 +2,14 @@ import { DateTime } from "luxon";
 import { prisma } from "../model";
 import {
   filterEditableActivity,
-  filterEditableContent,
   filterEditableRootAssignment,
   filterViewableRootAssignment,
   getIsAnonymous,
   getIsEditor,
   getOwnerIsPremium,
   getScopedStudentCourseId,
+  filterOwnedContent,
+  filterOwnedActivity,
 } from "../utils/permissions";
 import { getRandomValues } from "crypto";
 import { AssignmentMode, ContentType, Prisma } from "@prisma/client";
@@ -107,7 +108,7 @@ export async function createAssignment({
             },
           },
         },
-        filterEditableActivity(loggedInUserId),
+        filterOwnedActivity(loggedInUserId),
       ],
     },
     select: { id: true },
@@ -306,7 +307,7 @@ export async function getAllAssignmentScores({
   const { name: folderName } = await prisma.content.findUniqueOrThrow({
     where: {
       id: parentId,
-      ...filterEditableContent(loggedInUserId),
+      ...filterOwnedContent(loggedInUserId),
       type: "folder",
     },
     select: { name: true },
@@ -550,7 +551,7 @@ export async function getStudentAssignmentScores({
     const preliminaryFolder = await prisma.content.findUniqueOrThrow({
       where: {
         id: parentId,
-        ...filterEditableContent(loggedInUserId),
+        ...filterOwnedContent(loggedInUserId),
         type: "folder",
       },
       select: { id: true, name: true },

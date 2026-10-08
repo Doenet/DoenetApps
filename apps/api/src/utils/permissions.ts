@@ -15,6 +15,8 @@ export async function mustBeEditor(
   if (!isEditor) {
     throw new InvalidRequestError(message);
   }
+  // Returned so callers can pass a verified `isEditor` flag to the permission filters
+  return isEditor;
 }
 
 /**
@@ -143,12 +145,23 @@ const filterActivity = {
  * NOTE: This function does not verify editor privileges. You must pass in the correct `isEditor` flag.
  */
 export function filterViewableActivity(
-  loggedInUserId?: Uint8Array,
-  isEditor: boolean = false,
+  loggedInUserId: Uint8Array | undefined,
+  isEditor: boolean,
 ) {
   return {
     AND: [filterViewableContent(loggedInUserId, isEditor), filterActivity],
   };
+}
+
+/**
+ * Like `filterViewableActivity`, but deliberately ignores editor privileges:
+ * library content is not viewable through being an editor.
+ *
+ * Use when the query is about the user's own access as a regular user,
+ * not when an editor could legitimately be acting on library content.
+ */
+export function filterViewableActivityAsNonEditor(loggedInUserId?: Uint8Array) {
+  return filterViewableActivity(loggedInUserId, false);
 }
 
 /**
@@ -241,8 +254,8 @@ export function filterViewableRootAssignment({
  * NOTE: This function does not verify editor privileges. You must pass in the correct `isEditor` flag.
  */
 export function filterViewableContent(
-  loggedInUserId?: Uint8Array,
-  isEditor: boolean = false,
+  loggedInUserId: Uint8Array | undefined,
+  isEditor: boolean,
 ) {
   const visibilityOptions: (
     | { ownerId: Uint8Array }
@@ -280,7 +293,7 @@ export function filterViewableContent(
  */
 export function viewableContentWhere(
   loggedInUserId: Uint8Array,
-  isEditor: boolean = false,
+  isEditor: boolean,
 ) {
   let visibilityOptions = Prisma.sql`
       content.ownerId = ${loggedInUserId}
@@ -318,7 +331,7 @@ export function viewableContentWhere(
  */
 export function filterEditableActivity(
   loggedInUserId: Uint8Array,
-  isEditor: boolean = false,
+  isEditor: boolean,
 ) {
   return {
     AND: [filterActivity, filterEditableContent(loggedInUserId, isEditor)],
@@ -335,8 +348,41 @@ export function filterEditableActivity(
  */
 export function filterEditableRootAssignment(loggedInUserId: Uint8Array) {
   return {
-    AND: [filterEditableContent(loggedInUserId), filterRootAssignment],
+    AND: [filterOwnedContent(loggedInUserId), filterRootAssignment],
   };
+}
+
+/**
+ * Like `filterViewableContent`, but deliberately ignores editor privileges:
+ * library content is not viewable through being an editor.
+ *
+ * Use when the query is about the user's own access as a regular user,
+ * not when an editor could legitimately be acting on library content.
+ */
+export function filterViewableContentAsNonEditor(loggedInUserId?: Uint8Array) {
+  return filterViewableContent(loggedInUserId, false);
+}
+
+/**
+ * Filter Prisma's `where` clause to content owned by `ownerId`.
+ *
+ * Unlike `filterEditableContent`, editors get no access to library content.
+ * Use when only the owner may act (e.g., assignments, sharing), or when
+ * `ownerId` is already the library account.
+ */
+export function filterOwnedContent(ownerId: Uint8Array) {
+  return filterEditableContent(ownerId, false);
+}
+
+/**
+ * Filter Prisma's `where` clause to activities owned by `ownerId`.
+ *
+ * Unlike `filterEditableActivity`, editors get no access to library content.
+ * Use when only the owner may act (e.g., assignments, sharing), or when
+ * `ownerId` is already the library account.
+ */
+export function filterOwnedActivity(ownerId: Uint8Array) {
+  return filterEditableActivity(ownerId, false);
 }
 
 /**
@@ -350,7 +396,7 @@ export function filterEditableRootAssignment(loggedInUserId: Uint8Array) {
  */
 export function filterEditableContent(
   loggedInUserId: Uint8Array,
-  isEditor: boolean = false,
+  isEditor: boolean,
 ) {
   const editabilityOptions: (
     | { ownerId: Uint8Array }
@@ -377,7 +423,7 @@ export function filterEditableContent(
  */
 export function editableContentWhere(
   loggedInUserId: Uint8Array,
-  isEditor: boolean = false,
+  isEditor: boolean,
 ) {
   let visibilityOptions = Prisma.sql`
       content.ownerId = ${loggedInUserId}
