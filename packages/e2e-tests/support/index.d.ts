@@ -1,8 +1,15 @@
 import { ContentType, UserInfo } from "@doenet-tools/shared";
+import type { AllowedApiError } from "./apiErrors";
 
 declare global {
   namespace Cypress {
     interface Chainable {
+      /**
+       * Declare API error responses that this test expects, so they don't
+       * fail the test. See `support/apiErrors.ts`.
+       */
+      allowApiErrors(...allowed: AllowedApiError[]): Chainable<void>;
+
       /**
        * Custom command to automatically log in as a user with the given email and names
        */
@@ -94,6 +101,34 @@ declare global {
         waitSelector?: string | null,
         options?: { timeout?: number; label?: string },
       ): Chainable<HTMLBodyElement>;
+
+      /**
+       * Retry `assertion` against the body of the iframe matching
+       * `iframeSelector`, re-querying the iframe on every retry. Use this
+       * instead of `getIframeBody(...).within()` for read-only checks on a
+       * viewer that may be replaced (e.g., after changing the displayed
+       * attempt, item or student).
+       */
+      iframeShould(
+        iframeSelector: string,
+        assertion: ($body: JQuery<HTMLElement>) => void,
+        options?: { timeout?: number },
+      ): Chainable<JQuery<HTMLIFrameElement>>;
+
+      /**
+       * Alias saves of student scores and state as `@saveScoreAndState`, for
+       * `waitForStateSave`. Call before the student's page loads.
+       */
+      interceptStateSaves(): Chainable<null>;
+
+      /**
+       * Wait until a save of student scores and state that includes
+       * `containing` has completed. Requires `interceptStateSaves` first.
+       */
+      waitForStateSave(
+        containing: string,
+        options?: { timeout?: number },
+      ): Chainable<void>;
 
       /**
        * Render the DoenetEditor's viewer pane by clicking its "Update" button,

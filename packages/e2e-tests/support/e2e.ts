@@ -15,6 +15,7 @@
 
 // Import commands.js using ES2015 syntax:
 import "./commands";
+import "./apiErrors";
 import "cypress-plugin-tab";
 import "cypress-real-events";
 import "wick-a11y";

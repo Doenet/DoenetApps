@@ -2,6 +2,29 @@ import { UserInfo } from "@doenet-tools/shared";
 import { toMathJaxString } from "@doenet-tools/shared";
 import { DateTime } from "luxon";
 
+/**
+ * Assert that the answer blank in the viewer iframe contains `text`, re-querying
+ * the iframe until it does (the iframe is replaced when the displayed attempt,
+ * item or student changes).
+ */
+function answerShouldContain(text: string, iframeSelector = "iframe") {
+  cy.iframeShould(iframeSelector, ($body) => {
+    expect($body.find("#ans .mq-editable-field").text()).to.contain(text);
+  });
+}
+
+/**
+ * Assert that the viewer iframe has an answer blank that does not contain
+ * `text`, re-querying the iframe until it does.
+ */
+function answerShouldNotContain(text: string, iframeSelector = "iframe") {
+  cy.iframeShould(iframeSelector, ($body) => {
+    const $field = $body.find("#ans .mq-editable-field");
+    expect($field, "answer blank").to.have.length(1);
+    expect($field.text()).not.to.contain(text);
+  });
+}
+
 describe("Assignment workflow Tests", function () {
   it(
     "instructor creates assignment, anonymous user takes it, instructor views data",
@@ -39,10 +62,13 @@ describe("Assignment workflow Tests", function () {
       // that exhausted all retries in CI (see issue #2957).
       cy.ensureDoenetEditorReady();
 
-      // add answer blank
+      // add answer blank. CodeMirror auto-closes each tag as it is opened, so
+      // type only the opening tags and step past each auto-closed tag with
+      // {end}. Typing the closing tags as well races with the auto-close and
+      // can leave stray closing tags, i.e., malformed DoenetML.
       cy.iframe()
         .find(".cm-activeLine")
-        .type('<m>x+x =</m> <answer name="ans">2x</answer>{enter}');
+        .type('<m>x+x ={end} <answer name="ans">2x{end}{enter}');
 
       // Retry Update until the viewer renders (single click can no-op under CI
       // load). See issue #2957.
@@ -50,7 +76,8 @@ describe("Assignment workflow Tests", function () {
 
       cy.iframe()
         .find(".doenet-viewer")
-        .should("contain.text", toMathJaxString("x+x ="));
+        .should("contain.text", toMathJaxString("x+x ="))
+        .and("not.contain.text", "Invalid DoenetML");
 
       // increase number of attempts to 3
       cy.get('[data-test="Settings Button"]').click();
@@ -110,6 +137,8 @@ describe("Assignment workflow Tests", function () {
       cy.getUserInfo().then((user) => {
         studentUser = user;
 
+        cy.interceptStateSaves();
+
         // Visit assignment
         cy.visit(`/code/${classCode}`);
 
@@ -127,13 +156,10 @@ describe("Assignment workflow Tests", function () {
         cy.get("#viewer-container").find("button").first().click();
         cy.get("#viewer-container").find("button").first().contains("1 left");
 
-        // Wait so that don't get element that will be removed
-        cy.wait(500);
+        // Verify answer is now blank
+        answerShouldNotContain("3x");
 
         cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          // Verify answer is now blank
-          cy.get("#ans .mq-editable-field").should("not.contain.text", "3x");
-
           // Submit an incorrect answer at first
           cy.get("#ans textarea").type("4x{enter}", { force: true });
 
@@ -157,18 +183,18 @@ describe("Assignment workflow Tests", function () {
           .should("be.disabled")
           .contains("0 left");
 
-        // Wait so that don't get element that will be removed
-        cy.wait(500);
+        // Verify answer is now blank
+        answerShouldNotContain("2x");
 
         cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          // Verify answer is now blank
-          cy.get("#ans .mq-editable-field").should("not.contain.text", "2x");
-
           // Submit an incorrect answer
           cy.get("#ans textarea").type("5x{enter}", { force: true });
 
           cy.get("#ans .mq-editable-field").should("contain.text", "5x");
         });
+
+        // Don't switch users until the response is saved
+        cy.waitForStateSave("5x");
       });
 
       // Log in as second anonymous user to take assignment
@@ -178,6 +204,8 @@ describe("Assignment workflow Tests", function () {
 
       cy.getUserInfo().then((user) => {
         studentUser2 = user;
+
+        cy.interceptStateSaves();
 
         // Visit assignment
         cy.visit(`/code/${classCode}`);
@@ -191,6 +219,9 @@ describe("Assignment workflow Tests", function () {
 
           cy.get("#ans .mq-editable-field").should("contain.text", "6x");
         });
+
+        // Don't switch users until the response is saved
+        cy.waitForStateSave("6x");
       });
 
       // Log back in as instructor to view data
@@ -204,7 +235,9 @@ describe("Assignment workflow Tests", function () {
         cy.get('[data-test="My Activities"]').click();
         cy.get(`[data-test="Content Card"]`).eq(1).click();
 
-        cy.get(`td:contains("${studentUser!.lastNames}")`).click();
+        // Click the student's name link. (Clicking the table cell clicks its
+        // center, which the link doesn't cover if the name is short.)
+        cy.get("table").contains("a", studentUser!.lastNames).click();
 
         cy.get('[data-test="Title"]').should("contain.text", `Student Summary`);
         cy.get('[data-test="Student Select"]').should(
@@ -227,15 +260,9 @@ describe("Assignment workflow Tests", function () {
 
         cy.get('[data-test="Title"]').should("contain.text", `Item Details`);
 
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get("#ans .mq-editable-field").should("contain.text", "2x");
-        });
+        answerShouldContain("2x");
         cy.get('[data-test="Attempt Select"]').select("3");
-
-        cy.wait(500); // wait for iframe to update
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get("#ans .mq-editable-field").should("contain.text", "5x");
-        });
+        answerShouldContain("5x");
 
         // switch to second student
         cy.get('[data-test="Student Select"]').select(
@@ -243,11 +270,7 @@ describe("Assignment workflow Tests", function () {
         );
 
         cy.get('[data-test="Attempt Select"]').should("have.value", `1`);
-
-        cy.wait(500); // wait for iframe to update
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get("#ans .mq-editable-field").should("contain.text", "6x");
-        });
+        answerShouldContain("6x");
 
         cy.get('[data-test="Back Link"]').click();
 
@@ -329,6 +352,11 @@ describe("Assignment workflow Tests", function () {
       cy.getUserInfo().then((user) => {
         studentUser = user;
 
+        cy.interceptStateSaves();
+        cy.intercept("POST", "/api/score/createNewAttempt").as(
+          "createNewAttempt",
+        );
+
         // Visit assignment
         cy.visit(`/code/${classCode}`);
 
@@ -367,7 +395,9 @@ describe("Assignment workflow Tests", function () {
         cy.get("[data-test='New Item Attempt']").eq(0).click();
         cy.get("[data-test='Confirm Create New Attempt']").click();
 
-        cy.wait(500);
+        // Scroll only once the new attempt exists. (A fixed wait could scroll
+        // before the item is replaced, leaving the new item uninitialized.)
+        cy.wait("@createNewAttempt");
 
         // For some reason, the first iframe is scrolling out of view after the new attempt
         // which means it isn't initializing
@@ -375,14 +405,10 @@ describe("Assignment workflow Tests", function () {
         cy.get("iframe").eq(0).scrollIntoView();
 
         // Verify first problem answer is now blank
-        cy.getIframeBody("iframe:eq(0)", ".doenet-viewer").within(() => {
-          cy.get("#ans .mq-editable-field").should("not.contain.text", "2x");
-        });
+        answerShouldNotContain("2x", "iframe:eq(0)");
 
         // Verify second problem answer is still correct
-        cy.getIframeBody("iframe:eq(1)", ".doenet-viewer").within(() => {
-          cy.get("#ans .mq-editable-field").should("contain.text", "3y");
-        });
+        answerShouldContain("3y", "iframe:eq(1)");
 
         // Submit incorrect answer for first problem
         cy.getIframeBody("iframe:eq(0)", ".doenet-viewer").within(() => {
@@ -394,21 +420,26 @@ describe("Assignment workflow Tests", function () {
         cy.get("[data-test='New Item Attempt']").eq(1).click();
         cy.get("[data-test='Confirm Create New Attempt']").click();
 
-        cy.wait(500);
+        // Scroll only once the new attempt exists. (A fixed wait could scroll
+        // before the item is replaced, leaving the new item uninitialized.)
+        cy.wait("@createNewAttempt");
 
         // For some reason, the second iframe is scrolling out of view after the new attempt
         // which means it isn't initializing
         // TODO: is there some way to prevent it from scrolling out of view?
         cy.get("iframe").eq(1).scrollIntoView();
 
-        cy.getIframeBody("iframe:eq(1)", ".doenet-viewer").within(() => {
-          // Verify second problem answer is now blank
-          cy.get("#ans .mq-editable-field").should("not.contain.text", "3y");
+        // Verify second problem answer is now blank
+        answerShouldNotContain("3y", "iframe:eq(1)");
 
+        cy.getIframeBody("iframe:eq(1)", ".doenet-viewer").within(() => {
           // Submit correct answer for second problem
           cy.get("#ans textarea").type("2y{enter}", { force: true });
           cy.get("#ans .mq-editable-field").should("contain.text", "2y");
         });
+
+        // Don't switch users until the response is saved
+        cy.waitForStateSave("2y");
       });
 
       // Log in as second anonymous user
@@ -418,6 +449,8 @@ describe("Assignment workflow Tests", function () {
 
       cy.getUserInfo().then((user) => {
         studentUser2 = user;
+
+        cy.interceptStateSaves();
 
         // Visit assignment
         cy.visit(`/code/${classCode}`);
@@ -440,6 +473,9 @@ describe("Assignment workflow Tests", function () {
 
           cy.get("#ans .mq-editable-field").should("contain.text", "2y");
         });
+
+        // Don't switch users until the response is saved
+        cy.waitForStateSave("2y");
       });
 
       // Log back in as instructor to view data
@@ -474,56 +510,28 @@ describe("Assignment workflow Tests", function () {
         );
 
         // Should go to attempt 2 of item 2, which is correct answer of 2y
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get(".doenet-viewer #ans .mq-editable-field").should(
-            "contain.text",
-            "2y",
-          );
-        });
+        answerShouldContain("2y");
 
         // Switch to attempt 1, which is incorrect answer of 3y
         cy.get('[data-test="Attempt Select"]').select("1");
-        cy.wait(500);
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get(".doenet-viewer #ans .mq-editable-field").should(
-            "contain.text",
-            "3y",
-          );
-        });
+        answerShouldContain("3y");
 
         // Switch to item 1, which will have first attempt and correct answer of 2x
         cy.get('[data-test="Item Select"]').select("1");
-        cy.wait(500);
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get(".doenet-viewer #ans .mq-editable-field").should(
-            "contain.text",
-            "2x",
-          );
-        });
+        answerShouldContain("2x");
 
         // Switch to second student
         cy.get(`[data-test="Student Select"]`).select(
           `${studentUser2!.userId}`,
         );
-        cy.wait(500);
 
-        // item one is unanswered, so should be blank
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get(".doenet-viewer #ans .mq-editable-field").should(
-            "not.contain.text",
-            "x",
-          );
-        });
+        // item one is unanswered, so should be blank. (Only the second
+        // student's viewer passes this: the first student's item 1 has 2x.)
+        answerShouldNotContain("x");
 
         // Switch to item 2 which will have correct answer of 2y
         cy.get('[data-test="Item Select"]').select("2");
-        cy.wait(500);
-        cy.getIframeBody("iframe", ".doenet-viewer").within(() => {
-          cy.get(".doenet-viewer #ans .mq-editable-field").should(
-            "contain.text",
-            "2y",
-          );
-        });
+        answerShouldContain("2y");
       });
     },
   );
