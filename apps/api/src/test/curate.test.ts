@@ -24,7 +24,7 @@ import { fromUUID } from "../utils/uuid";
 import { getActivityIdFromSourceId } from "./testQueries";
 import { getMyUserInfo } from "../query/user";
 import { moveContent } from "../query/copy_move";
-import { getDocEditorDoenetML } from "../query/editor";
+import { getDocEditorDoenetML, getEditorShareStatus } from "../query/editor";
 
 async function expectStatusIs(
   sourceId: Uint8Array,
@@ -1452,4 +1452,45 @@ test("getCurationQueue does not provide email", async () => {
   const { pendingContent } = await getCurationQueue({ loggedInUserId: userId });
 
   expect(pendingContent[0].owner).not.toHaveProperty("email");
+});
+
+test("Curator can get share status of activity in library, others cannot", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const { userId: editorId } = await createTestEditorUser();
+  const { userId: otherId } = await createTestUser();
+
+  const { contentId } = await createContent({
+    loggedInUserId: ownerId,
+    contentType: "singleDoc",
+    parentId: null,
+  });
+  await setContentIsPublic({
+    contentId,
+    loggedInUserId: ownerId,
+    isPublic: true,
+  });
+  const { contentIdInLibrary } = await suggestToBeCurated({
+    contentId,
+    loggedInUserId: ownerId,
+  });
+
+  const shareStatus = await getEditorShareStatus({
+    contentId: contentIdInLibrary,
+    loggedInUserId: editorId,
+  });
+  expect(shareStatus.isPublic).eqls(false);
+  expect(shareStatus.sharedWith).eqls([]);
+
+  await expect(() =>
+    getEditorShareStatus({
+      contentId: contentIdInLibrary,
+      loggedInUserId: ownerId,
+    }),
+  ).rejects.toThrowError();
+  await expect(() =>
+    getEditorShareStatus({
+      contentId: contentIdInLibrary,
+      loggedInUserId: otherId,
+    }),
+  ).rejects.toThrowError();
 });
