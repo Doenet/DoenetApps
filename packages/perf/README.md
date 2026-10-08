@@ -21,8 +21,12 @@ mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql >
 
 To try the script locally, run the same command against your dev database, using the connection details in `apps/api/.env`. Pass the host as `127.0.0.1` and add `-P <port>`: with `-h localhost`, the `mysql` client connects through the Unix socket and ignores `-P`, which reaches a different server or none.
 
+### Keeping it in step with the schema
+
+CI runs the script against the migrated and seeded test database (the `Run prod-shape queries` step in `.github/workflows/checks.yml`). A migration that renames or drops a table or column the script reads fails that step, so fix the script in the same PR. CI can't tell whether a metric still means what it should, so when a migration changes what a table or column represents, check the matching query by hand.
+
 ### Reading the output
 
-- **Counts:** one number per metric, such as `courses` or `content_public_activities`.
+- **Counts:** one number per metric, such as `courses` or `content_public_activities`. A content type the script doesn't know yet shows up as its own `content_<visibility>_unknown_<type>` row; add it to the `CASE` in the script.
 - **Distributions:** for each metric, the number of groups measured, the sum over them, the p50, p95 and p99 (nearest rank) and the max. A distribution only covers groups with at least one member; for example, `students_per_course` leaves out courses with no students, and `courses` minus `courses_with_students` gives how many there are. Deleted content is left out.
 - **Table sizes:** approximate row counts and on-disk sizes from InnoDB statistics, largest first. These include deleted content.

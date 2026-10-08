@@ -34,7 +34,14 @@ UNION ALL SELECT 'content_deleted', COUNT(*) FROM content WHERE isDeletedOn IS N
 UNION ALL SELECT CONCAT('content_', type), COUNT(*) FROM content WHERE isDeletedOn IS NULL GROUP BY type
 UNION ALL SELECT CONCAT('content_', visibility, '_', kind), COUNT(*) FROM (
     SELECT visibility,
-      CASE type WHEN 'folder' THEN 'folders' WHEN 'image' THEN 'images' ELSE 'activities' END AS kind
+      -- A content type added later lands in its own `unknown_<type>` row
+      -- rather than being counted as one of these kinds.
+      CASE
+        WHEN type IN ('singleDoc', 'select', 'sequence') THEN 'activities'
+        WHEN type = 'folder' THEN 'folders'
+        WHEN type = 'image' THEN 'images'
+        ELSE CONCAT('unknown_', type)
+      END AS kind
     FROM content WHERE isDeletedOn IS NULL AND visibility <> 'private'
   ) v
   GROUP BY visibility, kind

@@ -63,6 +63,11 @@ jobs:
       - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
       - run: npm run prisma:seed --workspace @doenet-tools/api
 
+      # Fails if a migration renamed or dropped a table or column that the
+      # prod-shape queries read, so the script is fixed in the same PR.
+      - name: Run prod-shape queries
+        run: mysql -uroot -proot --table db < packages/perf/prod-shape.sql > /dev/null
+
       - name: Test server
         run: npm test --workspace @doenet-tools/api
 
