@@ -51,28 +51,41 @@ Read the diff as an attacker would: for each new input, ask who controls it and 
 ends up. Access control is covered above; check these as well:
 
 - **Raw SQL.** A `Prisma.sql` template or `$queryRaw` tagged template passes values as
-  parameters. `Prisma.raw`, `$queryRawUnsafe` and `$executeRawUnsafe` splice text into the
-  query, so anything reaching them must be built by the code, never taken from a request
-  (in `apps/api/src/utils/classificationsCategories.ts`, `Prisma.raw` only ever sees
-  generated table aliases).
+  parameters. `Prisma.raw` splices its text into the query, and `$queryRawUnsafe` and
+  `$executeRawUnsafe` splice their query string while binding any further arguments as
+  parameters. So the text given to `Prisma.raw`, and the query string given to the Unsafe
+  variants, must be built by the code, with request values passed as parameters (in
+  `apps/api/src/utils/classificationsCategories.ts`, `Prisma.raw` only ever sees generated
+  table aliases).
 - **Other sinks.** Request data that reaches a shell command, a file path, an outgoing
   URL, a redirect target, or HTML rendered outside React's escaping
   (`dangerouslySetInnerHTML`).
 - **Secrets and personal data.** Secrets stay out of code, logs, error responses and
   committed files. Emails, names, session data and scores go only to users entitled to
   them, and never into logs or into files committed to this public repository.
-- **Scripts run against prod** (`packages/perf/`, one-off data fixes). Ask what
+- **Scripts run against prod** (`apps/api/scripts/`, such as `delete_empty_sessions.ts`). Ask what
   credentials they need, whether they could write, and what their output publishes. A
   change to such a script is a change to code with prod access; review it as one.
-- **CI workflows.** A trigger that runs a fork's code with the repository's secrets
-  (`pull_request_target`, `workflow_run`), or a wider `permissions:` block.
+- **CI workflows.** A workflow that runs a PR's code while secrets or cloud credentials
+  are in scope: `pull_request_target`, `workflow_run`, or `issue_comment` (as
+  `dev-deploy-pr.yml` does by design on a maintainer's `/deploy-dev`). A wider
+  `permissions:` block. Text from `${{ github.event.* }}`, such as a comment body or PR
+  title, interpolated straight into a `run:` script instead of passed through an env var.
 - **New dependencies.** Check that the package is maintained and widely used, that its
   name is spelled as intended, and whether it runs an install script.
+- **Sessions and cross-site requests.** A route that changes state on `GET`, a
+  state-changing route that accepts a plain form post, or a change to the session cookie's
+  options (`sameSite`, `secure`, `httpOnly`) in `apps/api/src/index.ts`.
+- **Window messages.** A `message` listener that acts on the data it receives (saving
+  state, submitting a score) must check `event.source` or `event.origin`. A `postMessage`
+  that carries user data names its target origin rather than `"*"`.
 - **Error paths.** An error message that leaks internals to the client, or an error path
   that skips a permission check the success path makes.
 
-This repository is public. Report a real vulnerability in code already on `main` to a
-maintainer privately, not in a PR comment or issue.
+This repository is public and has no private reporting channel. Report a vulnerability in
+code already on `main` only to the person you are working for, and keep it out of
+everything that reaches GitHub: PR descriptions, review comments, commit messages and
+issues.
 
 ## Run the code
 

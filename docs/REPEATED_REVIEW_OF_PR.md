@@ -34,7 +34,9 @@ Give the subagent these instructions:
    changing code for it**. If the guidelines' test says you established it by _assuming_,
    either settle it by running something or report it without acting on it. A wrong
    correctness fix is worse here than a wrong report, because it is committed, pushed, and
-   inherited by every later cycle as a decision already taken.
+   inherited by every later cycle as a decision already taken. A vulnerability in code
+   already on `main` is the exception: leave it unfixed and out of commits and the PR
+   description, and report it only to the orchestrator, who reports it only to the user.
 4. Run `npm run format && npm run lint`, and the tests covering what you changed.
 5. Verify the PR description still describes everything in the diff; update it with
    `gh pr edit` if not, following the PR description rules in `AGENTS.md`. Don't skip
@@ -62,7 +64,7 @@ four attempts at the same one, and each covers a class of defect the others do n
 | 5+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                                                                          |
 
 A lens is a starting point, not a restriction: a cycle that notices a bug outside its lens
-should still fix it.
+should still fix it, unless it is a vulnerability already on `main` (step 3).
 
 ## The ledger
 
