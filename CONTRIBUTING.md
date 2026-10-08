@@ -56,7 +56,9 @@ The checkout is shared with your machine, including `node_modules`, so use
 either the container or the host toolchain for a given checkout, not both.
 After changing `.devcontainer/` or dependencies, **Rebuild Container**; the
 database survives a rebuild. On an arm64 machine the image has no Chrome, so
-run Cypress with `-b electron`.
+run Cypress with `-b electron`. To open a linked git worktree in the container,
+create it with `git worktree add --relative-paths` (Git 2.48+), or git will not
+find its repository inside.
 
 ### Running dev servers individually
 
