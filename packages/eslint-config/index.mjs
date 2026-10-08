@@ -89,6 +89,7 @@ export function createBaseConfig(dirname) {
               "**/*.cy.tsx",
               "**/test/**",
               "**/__tests__/**",
+              "**/scripts/**",
               "**/cypress/**",
               "cypress.config.ts",
             ],

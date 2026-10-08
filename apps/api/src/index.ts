@@ -26,31 +26,11 @@ import {
   updateUser,
   upgradeAnonymousUser,
 } from "./query/user";
-import { userRouter } from "./routes/userRoutes";
-import { loginRouter } from "./routes/loginRoutes";
-import { assignRouter } from "./routes/assignRoutes";
-import { updateContentRouter } from "./routes/updateContentRoutes";
-import { shareRouter } from "./routes/shareRoutes";
-import { scoreRouter } from "./routes/scoreRoutes";
-import { classificationRouter } from "./routes/classificationRoutes";
-import { activityEditViewRouter } from "./routes/activityEditViewRoutes";
-import { exploreRouter } from "./routes/exploreRoutes";
-import { remixRouter } from "./routes/remixRoutes";
-import { contentListRouter } from "./routes/contentListRoutes";
-import { infoRouter } from "./routes/infoRoutes";
-import { copyMoveRouter } from "./routes/copyMoveRoutes";
-import { testRouter } from "./test/testRoutes";
-import { curateRouter } from "./routes/curateRoutes";
-import { compareRouter } from "./routes/compareRoutes";
-import { editorRouter } from "./routes/editorRoutes";
-import { discourseRouter } from "./routes/discourseLoginRoutes";
 import passportLib from "passport";
 import bcrypt from "bcryptjs";
 import { generateHandle } from "./utils/names";
-import { codeRouter } from "./routes/code";
-import { metricsRouter } from "./routes/metricsRoutes";
-import { contentRouter } from "./routes/content.route";
-import { loadMediaConfig, mediaRouter } from "./media";
+import { loadMediaConfig } from "./media";
+import { mountApiRoutes } from "./apiRoutes";
 import { getEnvVar, isTestAuthBypassEnabled } from "./utils/env";
 import { asyncPassport, toGoogleAccount } from "./auth";
 import type { DoneCallback, SessionUser } from "./auth";
@@ -440,36 +420,14 @@ const port = process.env.PORT || 3000;
 
 app.use(express.static(path.resolve(__dirname, "../public")));
 
-app.use("/api/user", userRouter);
-app.use("/api/login", loginRouter);
-app.use("/api/assign", assignRouter);
-app.use("/api/updateContent", updateContentRouter);
-app.use("/api/share", shareRouter);
-app.use("/api/score", scoreRouter);
-app.use("/api/classifications", classificationRouter);
-app.use("/api/activityEditView", activityEditViewRouter);
-app.use("/api/explore", exploreRouter);
-app.use("/api/remix", remixRouter);
-app.use("/api/contentList", contentListRouter);
-app.use("/api/info", infoRouter);
-app.use("/api/copyMove", copyMoveRouter);
-app.use("/api/curate", curateRouter);
-app.use("/api/compare", compareRouter);
-app.use("/api/editor", editorRouter);
-app.use("/api/code", codeRouter);
-app.use("/api/metrics", metricsRouter);
-app.use("/api/content", contentRouter);
-app.use("/api/media", mediaRouter);
+mountApiRoutes(app, {
+  enableTestRoutes:
+    !!process.env.ENABLE_TEST_ROUTES &&
+    process.env.ENABLE_TEST_ROUTES.toLocaleLowerCase() !== "false",
+});
 
-// Discourse uses this endpoint to sign on
-app.use("/api/discourse", discourseRouter);
-
-if (
-  process.env.ENABLE_TEST_ROUTES &&
-  process.env.ENABLE_TEST_ROUTES.toLocaleLowerCase() !== "false"
-) {
-  app.use("/api/test", testRouter);
-}
+// Routes below are registered directly on `app`; the contract coverage test
+// finds them by scanning this file, so keep them as `app.<method>("/api/...")`.
 app.get("/api/health", (_req: Request, res: Response) => {
   // `version` is stamped into the image at deploy time (see apps/api/Dockerfile
   // and the deploy workflows). It's the ground truth for what is actually

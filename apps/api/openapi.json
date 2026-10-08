@@ -1,0 +1,774 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Doenet API",
+    "version": "1",
+    "description": "Generated from the Zod contracts in apps/api. Do not edit by hand; run `npm run contract:generate --workspace @doenet-tools/api`."
+  },
+  "servers": [{ "url": "/api" }],
+  "paths": {
+    "/assign/getAssigned": {
+      "get": {
+        "operationId": "getAssigned",
+        "summary": "List the assignments the signed-in user has been assigned",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assignments": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Content" }
+                    },
+                    "user": { "$ref": "#/components/schemas/UserInfo" }
+                  },
+                  "required": ["assignments", "user"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AssignmentInfo": {
+        "type": "object",
+        "properties": {
+          "assignmentStatus": {
+            "type": "string",
+            "enum": ["Unassigned", "Closed", "Open"]
+          },
+          "classCode": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+          "assignmentClosedOn": { "type": "string", "format": "date-time" },
+          "hasScoreData": { "type": "boolean" },
+          "mode": { "$ref": "#/components/schemas/AssignmentMode" },
+          "individualizeByStudent": { "type": "boolean" },
+          "maxAttempts": { "type": "number" }
+        },
+        "required": [
+          "assignmentStatus",
+          "classCode",
+          "assignmentClosedOn",
+          "hasScoreData",
+          "mode",
+          "individualizeByStudent",
+          "maxAttempts"
+        ]
+      },
+      "AssignmentMode": {
+        "type": "string",
+        "enum": ["formative", "summative"]
+      },
+      "Content": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "contentId": { "type": "string", "format": "short-uuid" },
+              "ownerId": { "type": "string", "format": "short-uuid" },
+              "owner": { "$ref": "#/components/schemas/UserInfo" },
+              "name": { "type": "string" },
+              "isPublic": { "type": "boolean" },
+              "visibility": { "$ref": "#/components/schemas/Visibility" },
+              "isShared": { "type": "boolean" },
+              "sharedWith": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserInfoWithEmail" }
+              },
+              "licenseCode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["CCDUAL", "CCBYSA", "CCBYNCSA"]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "code": { "type": "string" },
+                    "term": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sortIndex": { "type": "number" }
+                  },
+                  "required": ["id", "code", "term", "description", "sortIndex"]
+                }
+              },
+              "classifications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContentClassification"
+                }
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "contentId": { "type": "string", "format": "short-uuid" },
+                      "name": { "type": "string" },
+                      "type": { "$ref": "#/components/schemas/ContentType" },
+                      "isPublic": { "type": "boolean" },
+                      "visibility": {
+                        "$ref": "#/components/schemas/Visibility"
+                      },
+                      "isShared": { "type": "boolean" },
+                      "sharedWith": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/UserInfoWithEmail"
+                        }
+                      }
+                    },
+                    "required": [
+                      "contentId",
+                      "name",
+                      "type",
+                      "isPublic",
+                      "visibility",
+                      "isShared",
+                      "sharedWith"
+                    ]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "assignmentInfo": {
+                "$ref": "#/components/schemas/AssignmentInfo"
+              },
+              "type": { "type": "string", "const": "singleDoc" },
+              "numVariants": { "type": "number" },
+              "revisionNum": { "type": "number" },
+              "doenetML": { "type": "string" },
+              "doenetmlVersion": {
+                "$ref": "#/components/schemas/DoenetmlVersion"
+              },
+              "repeatInProblemSet": { "type": "number" }
+            },
+            "required": [
+              "contentId",
+              "ownerId",
+              "name",
+              "isPublic",
+              "visibility",
+              "isShared",
+              "sharedWith",
+              "licenseCode",
+              "categories",
+              "classifications",
+              "parent",
+              "type",
+              "numVariants",
+              "doenetML",
+              "doenetmlVersion"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contentId": { "type": "string", "format": "short-uuid" },
+              "ownerId": { "type": "string", "format": "short-uuid" },
+              "owner": { "$ref": "#/components/schemas/UserInfo" },
+              "name": { "type": "string" },
+              "isPublic": { "type": "boolean" },
+              "visibility": { "$ref": "#/components/schemas/Visibility" },
+              "isShared": { "type": "boolean" },
+              "sharedWith": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserInfoWithEmail" }
+              },
+              "licenseCode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["CCDUAL", "CCBYSA", "CCBYNCSA"]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "code": { "type": "string" },
+                    "term": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sortIndex": { "type": "number" }
+                  },
+                  "required": ["id", "code", "term", "description", "sortIndex"]
+                }
+              },
+              "classifications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContentClassification"
+                }
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "contentId": { "type": "string", "format": "short-uuid" },
+                      "name": { "type": "string" },
+                      "type": { "$ref": "#/components/schemas/ContentType" },
+                      "isPublic": { "type": "boolean" },
+                      "visibility": {
+                        "$ref": "#/components/schemas/Visibility"
+                      },
+                      "isShared": { "type": "boolean" },
+                      "sharedWith": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/UserInfoWithEmail"
+                        }
+                      }
+                    },
+                    "required": [
+                      "contentId",
+                      "name",
+                      "type",
+                      "isPublic",
+                      "visibility",
+                      "isShared",
+                      "sharedWith"
+                    ]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "assignmentInfo": {
+                "$ref": "#/components/schemas/AssignmentInfo"
+              },
+              "type": { "type": "string", "const": "select" },
+              "revisionNum": { "type": "number" },
+              "numToSelect": { "type": "number" },
+              "selectByVariant": { "type": "boolean" },
+              "children": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Content" }
+              }
+            },
+            "required": [
+              "contentId",
+              "ownerId",
+              "name",
+              "isPublic",
+              "visibility",
+              "isShared",
+              "sharedWith",
+              "licenseCode",
+              "categories",
+              "classifications",
+              "parent",
+              "type",
+              "numToSelect",
+              "selectByVariant",
+              "children"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contentId": { "type": "string", "format": "short-uuid" },
+              "ownerId": { "type": "string", "format": "short-uuid" },
+              "owner": { "$ref": "#/components/schemas/UserInfo" },
+              "name": { "type": "string" },
+              "isPublic": { "type": "boolean" },
+              "visibility": { "$ref": "#/components/schemas/Visibility" },
+              "isShared": { "type": "boolean" },
+              "sharedWith": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserInfoWithEmail" }
+              },
+              "licenseCode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["CCDUAL", "CCBYSA", "CCBYNCSA"]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "code": { "type": "string" },
+                    "term": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sortIndex": { "type": "number" }
+                  },
+                  "required": ["id", "code", "term", "description", "sortIndex"]
+                }
+              },
+              "classifications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContentClassification"
+                }
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "contentId": { "type": "string", "format": "short-uuid" },
+                      "name": { "type": "string" },
+                      "type": { "$ref": "#/components/schemas/ContentType" },
+                      "isPublic": { "type": "boolean" },
+                      "visibility": {
+                        "$ref": "#/components/schemas/Visibility"
+                      },
+                      "isShared": { "type": "boolean" },
+                      "sharedWith": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/UserInfoWithEmail"
+                        }
+                      }
+                    },
+                    "required": [
+                      "contentId",
+                      "name",
+                      "type",
+                      "isPublic",
+                      "visibility",
+                      "isShared",
+                      "sharedWith"
+                    ]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "assignmentInfo": {
+                "$ref": "#/components/schemas/AssignmentInfo"
+              },
+              "type": { "type": "string", "const": "sequence" },
+              "revisionNum": { "type": "number" },
+              "shuffle": { "type": "boolean" },
+              "paginate": { "type": "boolean" },
+              "children": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Content" }
+              }
+            },
+            "required": [
+              "contentId",
+              "ownerId",
+              "name",
+              "isPublic",
+              "visibility",
+              "isShared",
+              "sharedWith",
+              "licenseCode",
+              "categories",
+              "classifications",
+              "parent",
+              "type",
+              "shuffle",
+              "paginate",
+              "children"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contentId": { "type": "string", "format": "short-uuid" },
+              "ownerId": { "type": "string", "format": "short-uuid" },
+              "owner": { "$ref": "#/components/schemas/UserInfo" },
+              "name": { "type": "string" },
+              "isPublic": { "type": "boolean" },
+              "visibility": { "$ref": "#/components/schemas/Visibility" },
+              "isShared": { "type": "boolean" },
+              "sharedWith": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserInfoWithEmail" }
+              },
+              "licenseCode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["CCDUAL", "CCBYSA", "CCBYNCSA"]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "code": { "type": "string" },
+                    "term": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sortIndex": { "type": "number" }
+                  },
+                  "required": ["id", "code", "term", "description", "sortIndex"]
+                }
+              },
+              "classifications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContentClassification"
+                }
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "contentId": { "type": "string", "format": "short-uuid" },
+                      "name": { "type": "string" },
+                      "type": { "$ref": "#/components/schemas/ContentType" },
+                      "isPublic": { "type": "boolean" },
+                      "visibility": {
+                        "$ref": "#/components/schemas/Visibility"
+                      },
+                      "isShared": { "type": "boolean" },
+                      "sharedWith": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/UserInfoWithEmail"
+                        }
+                      }
+                    },
+                    "required": [
+                      "contentId",
+                      "name",
+                      "type",
+                      "isPublic",
+                      "visibility",
+                      "isShared",
+                      "sharedWith"
+                    ]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "assignmentInfo": {
+                "$ref": "#/components/schemas/AssignmentInfo"
+              },
+              "type": { "type": "string", "const": "folder" },
+              "revisionNum": { "type": "number" },
+              "children": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Content" }
+              }
+            },
+            "required": [
+              "contentId",
+              "ownerId",
+              "name",
+              "isPublic",
+              "visibility",
+              "isShared",
+              "sharedWith",
+              "licenseCode",
+              "categories",
+              "classifications",
+              "parent",
+              "type",
+              "children"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contentId": { "type": "string", "format": "short-uuid" },
+              "ownerId": { "type": "string", "format": "short-uuid" },
+              "owner": { "$ref": "#/components/schemas/UserInfo" },
+              "name": { "type": "string" },
+              "isPublic": { "type": "boolean" },
+              "visibility": { "$ref": "#/components/schemas/Visibility" },
+              "isShared": { "type": "boolean" },
+              "sharedWith": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserInfoWithEmail" }
+              },
+              "licenseCode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["CCDUAL", "CCBYSA", "CCBYNCSA"]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "code": { "type": "string" },
+                    "term": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sortIndex": { "type": "number" }
+                  },
+                  "required": ["id", "code", "term", "description", "sortIndex"]
+                }
+              },
+              "classifications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContentClassification"
+                }
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "contentId": { "type": "string", "format": "short-uuid" },
+                      "name": { "type": "string" },
+                      "type": { "$ref": "#/components/schemas/ContentType" },
+                      "isPublic": { "type": "boolean" },
+                      "visibility": {
+                        "$ref": "#/components/schemas/Visibility"
+                      },
+                      "isShared": { "type": "boolean" },
+                      "sharedWith": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/UserInfoWithEmail"
+                        }
+                      }
+                    },
+                    "required": [
+                      "contentId",
+                      "name",
+                      "type",
+                      "isPublic",
+                      "visibility",
+                      "isShared",
+                      "sharedWith"
+                    ]
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "assignmentInfo": {
+                "$ref": "#/components/schemas/AssignmentInfo"
+              },
+              "type": { "type": "string", "const": "image" },
+              "imageSource": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageAuthorName": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageAuthorUrl": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageTitle": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageOriginalUrl": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageLicenseCodes": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "imageLicenseVersion": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              }
+            },
+            "required": [
+              "contentId",
+              "ownerId",
+              "name",
+              "isPublic",
+              "visibility",
+              "isShared",
+              "sharedWith",
+              "licenseCode",
+              "categories",
+              "classifications",
+              "parent",
+              "type"
+            ]
+          }
+        ]
+      },
+      "ContentClassification": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number" },
+          "code": { "type": "string" },
+          "descriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": { "type": "string" },
+                "sortIndex": { "type": "number" },
+                "subCategory": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "subCategory": { "type": "string" },
+                    "sortIndex": { "type": "number" },
+                    "category": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "number" },
+                        "category": { "type": "string" },
+                        "system": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "number" },
+                            "name": { "type": "string" },
+                            "shortName": { "type": "string" },
+                            "categoryLabel": { "type": "string" },
+                            "subCategoryLabel": { "type": "string" },
+                            "descriptionLabel": { "type": "string" },
+                            "categoriesInDescription": { "type": "boolean" },
+                            "type": { "type": "string" }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "shortName",
+                            "categoryLabel",
+                            "subCategoryLabel",
+                            "descriptionLabel",
+                            "categoriesInDescription",
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": ["id", "category", "system"]
+                    }
+                  },
+                  "required": ["id", "subCategory", "sortIndex", "category"]
+                }
+              },
+              "required": ["description", "sortIndex", "subCategory"]
+            }
+          }
+        },
+        "required": ["id", "code", "descriptions"]
+      },
+      "ContentType": {
+        "type": "string",
+        "enum": ["singleDoc", "select", "sequence", "folder", "image"]
+      },
+      "DoenetmlVersion": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number" },
+          "displayedVersion": { "type": "string" },
+          "fullVersion": { "type": "string" },
+          "default": { "type": "boolean" },
+          "deprecated": { "type": "boolean" },
+          "removed": { "type": "boolean" },
+          "deprecationMessage": { "type": "string" }
+        },
+        "required": [
+          "id",
+          "displayedVersion",
+          "fullVersion",
+          "default",
+          "deprecated",
+          "removed",
+          "deprecationMessage"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "details": { "type": "string" }
+        },
+        "required": ["error"]
+      },
+      "UserInfo": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "short-uuid" },
+          "firstNames": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "lastNames": { "type": "string" },
+          "isAnonymous": { "type": "boolean" },
+          "numLibrary": { "type": "number" },
+          "numCommunity": { "type": "number" },
+          "isMaskForLibrary": { "type": "boolean" }
+        },
+        "required": ["userId", "firstNames", "lastNames"]
+      },
+      "UserInfoWithEmail": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "short-uuid" },
+          "firstNames": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "lastNames": { "type": "string" },
+          "isAnonymous": { "type": "boolean" },
+          "numLibrary": { "type": "number" },
+          "numCommunity": { "type": "number" },
+          "isMaskForLibrary": { "type": "boolean" },
+          "email": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "isAuthor": { "type": "boolean" },
+          "isEditor": { "type": "boolean" },
+          "canUploadImages": { "type": "boolean" },
+          "theme": { "type": "string", "enum": ["system", "light", "dark"] }
+        },
+        "required": ["userId", "firstNames", "lastNames", "email"]
+      },
+      "Visibility": {
+        "type": "string",
+        "enum": ["private", "unlisted", "public"]
+      }
+    },
+    "securitySchemes": {
+      "session": { "type": "apiKey", "in": "cookie", "name": "connect.sid" }
+    }
+  }
+}

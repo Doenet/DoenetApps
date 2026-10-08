@@ -8,7 +8,7 @@ All routes are defined in `src/index.tsx` via `createBrowserRouter`. Each route 
 
 ## Mutation Pattern
 
-Most mutations go through **`genericAction`** in `src/index.tsx`: reads `{ path, ...body }` from the request JSON and calls `axios.post('/api/${path}', body)`, optionally redirecting on success. All API calls use **axios** to relative `/api/` paths.
+Call the API through the typed client in `src/api/`: `api("operationName", params)` in loaders, and `submitOperation(fetcher, "operationName", params, { redirectOnSuccess })` for mutations, which go through **`genericAction`** in `src/index.tsx` so loaders revalidate. Params and responses are typed from the API contract. Routes not yet in the contract still use raw `axios` (or `{ path, ...body }` submissions); those calls are recorded in `eslint-suppressions.json`, which may only shrink.
 
 ## DoenetML
 

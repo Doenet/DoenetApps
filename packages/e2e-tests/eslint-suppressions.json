@@ -1,0 +1,22 @@
+{
+  "e2e/Activities/sharingActivities.cy.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "e2e/Curation/curate.cy.ts": {
+    "no-restricted-syntax": {
+      "count": 12
+    }
+  },
+  "e2e/SettingsPanels/share.cy.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "support/commands.ts": {
+    "no-restricted-syntax": {
+      "count": 13
+    }
+  }
+}

@@ -1,4 +1,6 @@
 import express from "express";
+import { implement } from "../contract";
+import { getAssignedOperation } from "../schemas/assignContract";
 import {
   getAllAssignmentScores,
   getAssignedScores,
@@ -32,6 +34,11 @@ import {
   queryLoggedInNoArguments,
 } from "../middleware/queryMiddleware";
 
+export const assignOperations = [
+  implement(getAssignedOperation, listUserAssigned),
+];
+
+// Not yet in the contract.
 export const assignRouter = express.Router();
 
 assignRouter.post(
@@ -53,8 +60,6 @@ assignRouter.post(
   "/updateAssignmentSettings",
   queryLoggedIn(updateAssignmentSettings, assignmentSettingsSchema),
 );
-
-assignRouter.get("/getAssigned", queryLoggedInNoArguments(listUserAssigned));
 
 assignRouter.get(
   "/getAssignmentData/:assignmentId",

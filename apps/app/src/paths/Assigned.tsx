@@ -3,14 +3,14 @@ import { useEffect } from "react";
 import { useLoaderData, useNavigate } from "react-router";
 
 import { CardContent } from "../widgets/Card";
-import axios from "axios";
+import { api } from "../api/client";
 import { createNameNoTag } from "../utils/names";
 import CardList from "../widgets/CardList";
 import { formatAssignmentBlurb } from "../utils/assignment";
 import { Content, UserInfo } from "../types";
 
 export async function loader() {
-  const { data: assignmentData } = await axios.get(`/api/assign/getAssigned`);
+  const assignmentData = await api("getAssigned");
 
   return {
     user: assignmentData.user,

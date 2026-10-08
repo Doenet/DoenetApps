@@ -1,8 +1,23 @@
-import { ContentType, UserInfo } from "@doenet-tools/shared";
+import {
+  ContentType,
+  OperationArgs,
+  OperationName,
+  OperationResponse,
+  UserInfo,
+} from "@doenet-tools/shared";
 
 declare global {
   namespace Cypress {
     interface Chainable {
+      /**
+       * Call an API operation by name, typed from the API contract.
+       * Yields the response body. Use this instead of `cy.request` to `/api`.
+       */
+      api<K extends OperationName>(
+        name: K,
+        ...args: OperationArgs<K>
+      ): Chainable<OperationResponse<K>>;
+
       /**
        * Custom command to automatically log in as a user with the given email and names
        */
