@@ -7,6 +7,206 @@
   },
   "servers": [{ "url": "/api" }],
   "paths": {
+    "/assign/createAssignment": {
+      "post": {
+        "operationId": "createAssignment",
+        "summary": "Create an assignment by remixing an activity into a folder",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assignmentId": {
+                      "type": "string",
+                      "format": "short-uuid"
+                    },
+                    "classCode": {
+                      "anyOf": [{ "type": "number" }, { "type": "null" }]
+                    },
+                    "assignmentClosedOn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "assignmentId",
+                    "classCode",
+                    "assignmentClosedOn"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "closedOn": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "destinationParentId": {
+                    "anyOf": [
+                      { "type": "string", "format": "short-uuid" },
+                      { "type": "null" }
+                    ]
+                  }
+                },
+                "required": ["contentId", "closedOn", "destinationParentId"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/getAllAssignmentScores/{parentId}": {
+      "get": {
+        "operationId": "getAllAssignmentScores",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderedStudents": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/UserInfo" }
+                    },
+                    "orderedAssignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "contentId": {
+                            "type": "string",
+                            "format": "short-uuid"
+                          },
+                          "name": { "type": "string" }
+                        },
+                        "required": ["contentId", "name"]
+                      }
+                    },
+                    "scores": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [{ "type": "number" }, { "type": "null" }]
+                        }
+                      }
+                    },
+                    "folder": {
+                      "type": "object",
+                      "properties": {
+                        "contentId": {
+                          "type": "string",
+                          "format": "short-uuid"
+                        },
+                        "name": { "type": "string" }
+                      },
+                      "required": ["contentId", "name"]
+                    }
+                  },
+                  "required": [
+                    "orderedStudents",
+                    "orderedAssignments",
+                    "scores",
+                    "folder"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "parentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
     "/assign/getAssigned": {
       "get": {
         "operationId": "getAssigned",
@@ -61,6 +261,1741 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/getAssignedScores": {
+      "get": {
+        "operationId": "getAssignedScores",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userData": { "$ref": "#/components/schemas/UserInfo" },
+                    "orderedActivityScores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "contentId": {
+                            "type": "string",
+                            "format": "short-uuid"
+                          },
+                          "activityName": { "type": "string" },
+                          "score": {
+                            "anyOf": [{ "type": "number" }, { "type": "null" }]
+                          }
+                        },
+                        "required": ["contentId", "activityName", "score"]
+                      }
+                    }
+                  },
+                  "required": ["userData", "orderedActivityScores"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/getAssignmentData/{assignmentId}": {
+      "get": {
+        "operationId": "getAssignmentData",
+        "summary": "Get what the signed-in user needs to take an assignment",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "assignmentOpen": { "type": "boolean", "const": false },
+                        "assignment": { "$ref": "#/components/schemas/Content" }
+                      },
+                      "required": ["assignmentOpen", "assignment"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "assignmentOpen": { "type": "boolean", "const": true },
+                        "assignment": {
+                          "$ref": "#/components/schemas/Content"
+                        },
+                        "scoreData": {
+                          "$ref": "#/components/schemas/ScoreData"
+                        }
+                      },
+                      "required": ["assignmentOpen", "assignment", "scoreData"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/assign/getAssignmentResponseOverview/{contentId}": {
+      "get": {
+        "operationId": "getAssignmentResponseOverview",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scoreSummary": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "$ref": "#/components/schemas/AssignmentMode"
+                        },
+                        "scores": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "score": { "type": "number" },
+                              "bestAttemptNumber": { "type": "number" },
+                              "itemScores": {
+                                "anyOf": [
+                                  { "$ref": "#/components/schemas/ItemScores" },
+                                  { "type": "null" }
+                                ]
+                              },
+                              "latestAttempt": {
+                                "anyOf": [
+                                  {
+                                    "$ref": "#/components/schemas/LatestAttempt"
+                                  },
+                                  { "type": "null" }
+                                ]
+                              },
+                              "user": {
+                                "$ref": "#/components/schemas/UserInfo"
+                              }
+                            },
+                            "required": [
+                              "score",
+                              "bestAttemptNumber",
+                              "itemScores",
+                              "latestAttempt",
+                              "user"
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["mode", "scores"]
+                    },
+                    "content": { "$ref": "#/components/schemas/Content" },
+                    "itemNames": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["scoreSummary", "content", "itemNames"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/assign/getAssignmentResponseStudent/{contentId}": {
+      "get": {
+        "operationId": "getOwnAssignmentResponse",
+        "summary": "The signed-in user's own responses to an assignment",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "$ref": "#/components/schemas/AssignmentMode"
+                        },
+                        "user": { "$ref": "#/components/schemas/UserInfo" },
+                        "assignment": {
+                          "type": "object",
+                          "properties": {
+                            "name": { "type": "string" },
+                            "type": {
+                              "$ref": "#/components/schemas/ContentType"
+                            },
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "shuffledOrder": { "type": "boolean" },
+                            "isOpen": { "type": "boolean" }
+                          },
+                          "required": [
+                            "name",
+                            "type",
+                            "contentId",
+                            "shuffledOrder",
+                            "isOpen"
+                          ]
+                        },
+                        "overallScores": {
+                          "type": "object",
+                          "properties": {
+                            "calculatedScore": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "score": { "type": "number" },
+                            "bestAttemptNumber": { "type": "number" },
+                            "itemScores": {
+                              "$ref": "#/components/schemas/ItemScores"
+                            },
+                            "latestAttempt": {
+                              "$ref": "#/components/schemas/LatestAttempt"
+                            }
+                          },
+                          "required": [
+                            "calculatedScore",
+                            "score",
+                            "bestAttemptNumber",
+                            "itemScores",
+                            "latestAttempt"
+                          ]
+                        },
+                        "itemNames": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "allStudents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                                "format": "short-uuid"
+                              },
+                              "lastNames": { "type": "string" },
+                              "firstNames": {
+                                "anyOf": [
+                                  { "type": "string" },
+                                  { "type": "null" }
+                                ]
+                              }
+                            },
+                            "required": ["userId", "lastNames", "firstNames"]
+                          }
+                        },
+                        "singleItemAttempt": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "attemptNumber": { "type": "number" },
+                        "itemAttemptState": {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "anyOf": [
+                                { "type": "string" },
+                                { "type": "null" }
+                              ]
+                            },
+                            "score": { "type": "number" },
+                            "variant": { "type": "number" },
+                            "docId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "itemNumber": { "type": "number" },
+                            "shuffledItemNumber": { "type": "number" }
+                          },
+                          "required": ["state", "score", "variant", "docId"]
+                        },
+                        "attemptScores": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "attemptNumber": { "type": "number" },
+                              "score": { "type": "number" }
+                            },
+                            "required": ["attemptNumber", "score"]
+                          }
+                        },
+                        "itemScores": {
+                          "$ref": "#/components/schemas/ItemScores"
+                        },
+                        "content": { "$ref": "#/components/schemas/Content" },
+                        "responseCounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                { "type": "string" },
+                                { "type": "number" }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "user",
+                        "assignment",
+                        "overallScores",
+                        "itemNames",
+                        "allStudents",
+                        "singleItemAttempt",
+                        "attemptNumber",
+                        "itemAttemptState",
+                        "attemptScores",
+                        "itemScores",
+                        "content",
+                        "responseCounts"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "$ref": "#/components/schemas/AssignmentMode"
+                        },
+                        "user": { "$ref": "#/components/schemas/UserInfo" },
+                        "assignment": {
+                          "type": "object",
+                          "properties": {
+                            "name": { "type": "string" },
+                            "type": {
+                              "$ref": "#/components/schemas/ContentType"
+                            },
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "shuffledOrder": { "type": "boolean" },
+                            "isOpen": { "type": "boolean" }
+                          },
+                          "required": [
+                            "name",
+                            "type",
+                            "contentId",
+                            "shuffledOrder",
+                            "isOpen"
+                          ]
+                        },
+                        "overallScores": {
+                          "type": "object",
+                          "properties": {
+                            "calculatedScore": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "score": { "type": "number" },
+                            "bestAttemptNumber": { "type": "number" },
+                            "itemScores": {
+                              "$ref": "#/components/schemas/ItemScores"
+                            },
+                            "latestAttempt": {
+                              "$ref": "#/components/schemas/LatestAttempt"
+                            }
+                          },
+                          "required": [
+                            "calculatedScore",
+                            "score",
+                            "bestAttemptNumber",
+                            "itemScores",
+                            "latestAttempt"
+                          ]
+                        },
+                        "itemNames": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "allStudents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                                "format": "short-uuid"
+                              },
+                              "lastNames": { "type": "string" },
+                              "firstNames": {
+                                "anyOf": [
+                                  { "type": "string" },
+                                  { "type": "null" }
+                                ]
+                              }
+                            },
+                            "required": ["userId", "lastNames", "firstNames"]
+                          }
+                        },
+                        "singleItemAttempt": {
+                          "type": "boolean",
+                          "const": false
+                        },
+                        "allAttemptScores": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "byItem": { "type": "boolean", "const": true },
+                                "itemAttemptScores": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "itemNumber": { "type": "number" },
+                                      "shuffledItemNumber": {
+                                        "type": "number"
+                                      },
+                                      "attempts": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "itemAttemptNumber": {
+                                              "type": "number"
+                                            },
+                                            "score": { "type": "number" }
+                                          },
+                                          "required": [
+                                            "itemAttemptNumber",
+                                            "score"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "itemNumber",
+                                      "shuffledItemNumber",
+                                      "attempts"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": ["byItem", "itemAttemptScores"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "byItem": { "type": "boolean", "const": false },
+                                "attemptScores": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "attemptNumber": { "type": "number" },
+                                      "score": { "type": "number" },
+                                      "items": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "score": { "type": "number" },
+                                            "itemNumber": { "type": "number" },
+                                            "shuffledItemNumber": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "score",
+                                            "itemNumber",
+                                            "shuffledItemNumber"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "attemptNumber",
+                                      "score",
+                                      "items"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": ["byItem", "attemptScores"]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "user",
+                        "assignment",
+                        "overallScores",
+                        "itemNames",
+                        "allStudents",
+                        "singleItemAttempt",
+                        "allAttemptScores"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "shuffledOrder",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "itemNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "attemptNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        ]
+      }
+    },
+    "/assign/getAssignmentResponseStudent/{contentId}/{studentUserId}": {
+      "get": {
+        "operationId": "getAssignmentResponseStudent",
+        "summary": "A student's responses to an assignment owned by the signed-in user",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "$ref": "#/components/schemas/AssignmentMode"
+                        },
+                        "user": { "$ref": "#/components/schemas/UserInfo" },
+                        "assignment": {
+                          "type": "object",
+                          "properties": {
+                            "name": { "type": "string" },
+                            "type": {
+                              "$ref": "#/components/schemas/ContentType"
+                            },
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "shuffledOrder": { "type": "boolean" },
+                            "isOpen": { "type": "boolean" }
+                          },
+                          "required": [
+                            "name",
+                            "type",
+                            "contentId",
+                            "shuffledOrder",
+                            "isOpen"
+                          ]
+                        },
+                        "overallScores": {
+                          "type": "object",
+                          "properties": {
+                            "calculatedScore": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "score": { "type": "number" },
+                            "bestAttemptNumber": { "type": "number" },
+                            "itemScores": {
+                              "$ref": "#/components/schemas/ItemScores"
+                            },
+                            "latestAttempt": {
+                              "$ref": "#/components/schemas/LatestAttempt"
+                            }
+                          },
+                          "required": [
+                            "calculatedScore",
+                            "score",
+                            "bestAttemptNumber",
+                            "itemScores",
+                            "latestAttempt"
+                          ]
+                        },
+                        "itemNames": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "allStudents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                                "format": "short-uuid"
+                              },
+                              "lastNames": { "type": "string" },
+                              "firstNames": {
+                                "anyOf": [
+                                  { "type": "string" },
+                                  { "type": "null" }
+                                ]
+                              }
+                            },
+                            "required": ["userId", "lastNames", "firstNames"]
+                          }
+                        },
+                        "singleItemAttempt": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "attemptNumber": { "type": "number" },
+                        "itemAttemptState": {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "anyOf": [
+                                { "type": "string" },
+                                { "type": "null" }
+                              ]
+                            },
+                            "score": { "type": "number" },
+                            "variant": { "type": "number" },
+                            "docId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "itemNumber": { "type": "number" },
+                            "shuffledItemNumber": { "type": "number" }
+                          },
+                          "required": ["state", "score", "variant", "docId"]
+                        },
+                        "attemptScores": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "attemptNumber": { "type": "number" },
+                              "score": { "type": "number" }
+                            },
+                            "required": ["attemptNumber", "score"]
+                          }
+                        },
+                        "itemScores": {
+                          "$ref": "#/components/schemas/ItemScores"
+                        },
+                        "content": { "$ref": "#/components/schemas/Content" },
+                        "responseCounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                { "type": "string" },
+                                { "type": "number" }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "user",
+                        "assignment",
+                        "overallScores",
+                        "itemNames",
+                        "allStudents",
+                        "singleItemAttempt",
+                        "attemptNumber",
+                        "itemAttemptState",
+                        "attemptScores",
+                        "itemScores",
+                        "content",
+                        "responseCounts"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "$ref": "#/components/schemas/AssignmentMode"
+                        },
+                        "user": { "$ref": "#/components/schemas/UserInfo" },
+                        "assignment": {
+                          "type": "object",
+                          "properties": {
+                            "name": { "type": "string" },
+                            "type": {
+                              "$ref": "#/components/schemas/ContentType"
+                            },
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "shuffledOrder": { "type": "boolean" },
+                            "isOpen": { "type": "boolean" }
+                          },
+                          "required": [
+                            "name",
+                            "type",
+                            "contentId",
+                            "shuffledOrder",
+                            "isOpen"
+                          ]
+                        },
+                        "overallScores": {
+                          "type": "object",
+                          "properties": {
+                            "calculatedScore": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "score": { "type": "number" },
+                            "bestAttemptNumber": { "type": "number" },
+                            "itemScores": {
+                              "$ref": "#/components/schemas/ItemScores"
+                            },
+                            "latestAttempt": {
+                              "$ref": "#/components/schemas/LatestAttempt"
+                            }
+                          },
+                          "required": [
+                            "calculatedScore",
+                            "score",
+                            "bestAttemptNumber",
+                            "itemScores",
+                            "latestAttempt"
+                          ]
+                        },
+                        "itemNames": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "allStudents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                                "format": "short-uuid"
+                              },
+                              "lastNames": { "type": "string" },
+                              "firstNames": {
+                                "anyOf": [
+                                  { "type": "string" },
+                                  { "type": "null" }
+                                ]
+                              }
+                            },
+                            "required": ["userId", "lastNames", "firstNames"]
+                          }
+                        },
+                        "singleItemAttempt": {
+                          "type": "boolean",
+                          "const": false
+                        },
+                        "allAttemptScores": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "byItem": { "type": "boolean", "const": true },
+                                "itemAttemptScores": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "itemNumber": { "type": "number" },
+                                      "shuffledItemNumber": {
+                                        "type": "number"
+                                      },
+                                      "attempts": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "itemAttemptNumber": {
+                                              "type": "number"
+                                            },
+                                            "score": { "type": "number" }
+                                          },
+                                          "required": [
+                                            "itemAttemptNumber",
+                                            "score"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "itemNumber",
+                                      "shuffledItemNumber",
+                                      "attempts"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": ["byItem", "itemAttemptScores"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "byItem": { "type": "boolean", "const": false },
+                                "attemptScores": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "attemptNumber": { "type": "number" },
+                                      "score": { "type": "number" },
+                                      "items": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "score": { "type": "number" },
+                                            "itemNumber": { "type": "number" },
+                                            "shuffledItemNumber": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "score",
+                                            "itemNumber",
+                                            "shuffledItemNumber"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "attemptNumber",
+                                      "score",
+                                      "items"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": ["byItem", "attemptScores"]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "user",
+                        "assignment",
+                        "overallScores",
+                        "itemNames",
+                        "allStudents",
+                        "singleItemAttempt",
+                        "allAttemptScores"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "shuffledOrder",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "itemNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "attemptNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        ]
+      }
+    },
+    "/assign/getStudentAssignmentScores/{studentUserId}": {
+      "get": {
+        "operationId": "getStudentAssignmentScores",
+        "summary": "Scores of a student on all assignments of the signed-in user",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "studentData": { "$ref": "#/components/schemas/UserInfo" },
+                    "orderedActivityScores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "contentId": {
+                            "type": "string",
+                            "format": "short-uuid"
+                          },
+                          "activityName": { "type": "string" },
+                          "score": {
+                            "anyOf": [{ "type": "number" }, { "type": "null" }]
+                          }
+                        },
+                        "required": ["contentId", "activityName", "score"]
+                      }
+                    },
+                    "folder": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "name": { "type": "string" }
+                          },
+                          "required": ["contentId", "name"]
+                        },
+                        { "type": "null" }
+                      ]
+                    }
+                  },
+                  "required": ["studentData", "orderedActivityScores", "folder"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/assign/getStudentAssignmentScores/{studentUserId}/{parentId}": {
+      "get": {
+        "operationId": "getStudentAssignmentScoresInFolder",
+        "summary": "Scores of a student on the assignments in a folder",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "studentData": { "$ref": "#/components/schemas/UserInfo" },
+                    "orderedActivityScores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "contentId": {
+                            "type": "string",
+                            "format": "short-uuid"
+                          },
+                          "activityName": { "type": "string" },
+                          "score": {
+                            "anyOf": [{ "type": "number" }, { "type": "null" }]
+                          }
+                        },
+                        "required": ["contentId", "activityName", "score"]
+                      }
+                    },
+                    "folder": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "name": { "type": "string" }
+                          },
+                          "required": ["contentId", "name"]
+                        },
+                        { "type": "null" }
+                      ]
+                    }
+                  },
+                  "required": ["studentData", "orderedActivityScores", "folder"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "parentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/assign/getStudentSubmittedResponses/{contentId}/{studentUserId}": {
+      "get": {
+        "operationId": "getStudentSubmittedResponses",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "responses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "response": { "type": "string" },
+                          "answerCreditAchieved": { "type": "number" },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "response",
+                          "answerCreditAchieved",
+                          "submittedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["responses"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "answerId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "shuffledOrder",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "requestedItemNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "contentAttemptNumber",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "itemAttemptNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        ]
+      }
+    },
+    "/assign/recordSubmittedEvent": {
+      "post": {
+        "operationId": "recordSubmittedEvent",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": { "description": "OK (no content)" },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "contentAttemptNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "itemAttemptNumber": {
+                    "anyOf": [
+                      { "type": "integer", "minimum": 1, "maximum": 65535 },
+                      { "type": "null" }
+                    ]
+                  },
+                  "answerId": { "type": "string" },
+                  "response": { "type": "string" },
+                  "answerNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "componentNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "itemNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "shuffledItemNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "answerCreditAchieved": { "type": "number" },
+                  "componentCreditAchieved": { "type": "number" },
+                  "itemCreditAchieved": { "type": "number" }
+                },
+                "required": [
+                  "contentId",
+                  "contentAttemptNumber",
+                  "itemAttemptNumber",
+                  "answerId",
+                  "response",
+                  "componentNumber",
+                  "itemNumber",
+                  "shuffledItemNumber",
+                  "answerCreditAchieved",
+                  "componentCreditAchieved",
+                  "itemCreditAchieved"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/updateAssignmentClosedOn": {
+      "post": {
+        "operationId": "updateAssignmentClosedOn",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": { "description": "OK (no content)" },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "closedOn": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": ["contentId", "closedOn"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/updateAssignmentMaxAttempts": {
+      "post": {
+        "operationId": "updateAssignmentMaxAttempts",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "maxAttempts": { "type": "number" }
+                  },
+                  "required": ["success", "maxAttempts"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  }
+                },
+                "required": ["contentId", "maxAttempts"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assign/updateAssignmentSettings": {
+      "post": {
+        "operationId": "updateAssignmentSettings",
+        "tags": ["assign"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "mode": { "$ref": "#/components/schemas/AssignmentMode" },
+                    "individualizeByStudent": { "type": "boolean" }
+                  },
+                  "required": ["success"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["formative", "summative"]
+                  },
+                  "individualizeByStudent": { "type": "boolean" }
+                },
+                "required": ["contentId"]
               }
             }
           }
@@ -730,6 +2665,55 @@
           "details": { "type": "string" }
         },
         "required": ["error"]
+      },
+      "ItemScores": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number" },
+            "itemNumber": { "type": "number" },
+            "itemAttemptNumber": { "type": "number" }
+          },
+          "required": ["score", "itemNumber", "itemAttemptNumber"]
+        }
+      },
+      "LatestAttempt": {
+        "type": "object",
+        "properties": {
+          "attemptNumber": { "type": "number" },
+          "score": { "type": "number" },
+          "itemScores": { "$ref": "#/components/schemas/ItemScores" }
+        },
+        "required": ["attemptNumber", "score", "itemScores"]
+      },
+      "ScoreData": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "calculatedScore": { "type": "boolean", "const": false }
+            },
+            "required": ["calculatedScore"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "calculatedScore": { "type": "boolean", "const": true },
+              "score": { "type": "number" },
+              "bestAttemptNumber": { "type": "number" },
+              "itemScores": { "$ref": "#/components/schemas/ItemScores" },
+              "latestAttempt": { "$ref": "#/components/schemas/LatestAttempt" }
+            },
+            "required": [
+              "calculatedScore",
+              "score",
+              "bestAttemptNumber",
+              "itemScores",
+              "latestAttempt"
+            ]
+          }
+        ]
       },
       "UserInfo": {
         "type": "object",

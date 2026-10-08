@@ -4,11 +4,6 @@
       "count": 1
     }
   },
-  "src/drawers/AnswerResponseDrawer.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "src/drawers/ContentInfoDrawer.tsx": {
     "no-restricted-imports": {
       "count": 1
@@ -30,16 +25,6 @@
     }
   },
   "src/paths/ActivityViewer.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/paths/AssignmentResponseOverview.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/paths/AssignmentResponseStudent.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -110,16 +95,6 @@
     }
   },
   "src/paths/SiteHeader.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/paths/StudentAssignmentScores.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/paths/Students.tsx": {
     "no-restricted-imports": {
       "count": 1
     }

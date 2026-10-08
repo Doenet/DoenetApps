@@ -681,13 +681,15 @@ export async function recordSubmittedEvent({
 /**
  * Get the data needed for `loggedInUserId` to take the assignment `assignmentId`.
  *
- * If an open assignment with `assignmentId` is not found return:
- * - assignmentFound: `false`
- * - assignment: null
+ * Throws if `loggedInUserId` may not view the assignment.
+ *
+ * If the assignment is closed, return:
+ * - assignmentOpen: `false`
+ * - assignment: the `Content` describing the assignment
  *
  * Else, return
- * - assignmentFound: `true`
- * - assignment: the `Content` describing the found assignment
+ * - assignmentOpen: `true`
+ * - assignment: the `Content` describing the assignment
  * - scoreData: the scores that `loggedInUserId` has achieved so far on the assignment.
  *   See {@link getScore}.
  */
@@ -697,11 +699,10 @@ export async function getAssignmentData({
 }: {
   assignmentId: Uint8Array;
   loggedInUserId: Uint8Array;
-}): Promise<{
-  assignmentOpen: boolean;
-  assignment: Content | null;
-  scoreData?: ScoreData;
-}> {
+}): Promise<
+  | { assignmentOpen: false; assignment: Content }
+  | { assignmentOpen: true; assignment: Content; scoreData: ScoreData }
+> {
   // Make sure user has permission to view this assignment
   const scopedCourseId = await getScopedStudentCourseId(loggedInUserId);
   const isAnonymous = await getIsAnonymous(loggedInUserId);

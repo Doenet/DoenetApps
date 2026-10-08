@@ -32,7 +32,8 @@ import {
   useDisclosure,
   Button,
 } from "@chakra-ui/react";
-import axios from "axios";
+import { api } from "../api/client";
+import { submitOperation } from "../api/submitOperation";
 import { DoenetHeading as Heading } from "../widgets/Heading";
 import "../utils/score-table.css";
 
@@ -73,9 +74,9 @@ type ScoreItem = {
 };
 
 export async function loader({ params, request }: ActionFunctionArgs) {
-  const { data } = await axios.get(
-    `/api/assign/getAssignmentResponseOverview/${params.contentId}`,
-  );
+  const data = await api("getAssignmentResponseOverview", {
+    contentId: params.contentId!,
+  });
 
   const url = new URL(request.url);
   let sort = (url.searchParams.get("sort") ?? "name").trim();
@@ -708,14 +709,12 @@ export function AssignmentData() {
                     suppressSeconds: true,
                     suppressMilliseconds: true,
                   });
-                fetcher.submit(
-                  {
-                    path: "assign/updateAssignmentClosedOn",
+                if (closedOn) {
+                  submitOperation(fetcher, "updateAssignmentClosedOn", {
                     contentId,
                     closedOn,
-                  },
-                  { method: "post", encType: "application/json" },
-                );
+                  });
+                }
               }}
             />
           </Text>

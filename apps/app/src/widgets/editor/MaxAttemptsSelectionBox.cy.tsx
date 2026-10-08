@@ -26,9 +26,10 @@ function MaxAttemptsWrapper({ initialAttempts }: { initialAttempts: number }) {
     formData: undefined,
     data: undefined,
     Form: ({ children }: any) => <form>{children}</form>,
+    // `submitOperation` sends `{ operation, params }`
     submit: (data: any) => {
-      if (data.maxAttempts !== undefined) {
-        setAttempts(data.maxAttempts);
+      if (data.params?.maxAttempts !== undefined) {
+        setAttempts(data.params.maxAttempts);
       }
     },
     load: () => {},

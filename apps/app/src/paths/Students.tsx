@@ -19,7 +19,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import { Link as ReactRouterLink } from "react-router";
-import axios from "axios";
+import { api } from "../api/client";
 import { lastNameFirst } from "../utils/names";
 import { downloadScoresToCsv } from "../utils/csv";
 import { getIconInfo } from "../utils/activity";
@@ -48,9 +48,9 @@ export async function loader({
     throw new Error("Missing folder id");
   }
 
-  const { data } = await axios.get(
-    `/api/assign/getAllAssignmentScores/${params.parentId}`,
-  );
+  const data = await api("getAllAssignmentScores", {
+    parentId: params.parentId,
+  });
 
   const { orderedStudents, orderedAssignments, scores, folder } = data as {
     orderedStudents: UserInfo[];

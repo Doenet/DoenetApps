@@ -21,6 +21,8 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
+import { api } from "../api/client";
+import type { OperationResponse } from "@doenet-tools/shared";
 import {
   EnterClassCode,
   action as enterClassCodeAction,
@@ -118,27 +120,14 @@ export async function loader({ params }: { params: any }) {
   let itemAttemptNumbers: number[] = [];
   let attemptNumber = 1;
   let loadedScore = false;
-  let data: {
-    assignmentOpen?: boolean;
-    assignment: any;
-    scoreData: any;
-  };
+  let data: OperationResponse<"getAssignmentData">;
 
   try {
     const {
       data: { contentId },
     } = await axios.get(`/api/code/${params.classCode}`);
 
-    const result = (await axios.get(
-      `/api/assign/getAssignmentData/${contentId}`,
-    )) as {
-      data: {
-        assignmentOpen?: boolean;
-        assignment: any;
-        scoreData: any;
-      };
-    };
-    data = result.data;
+    data = await api("getAssignmentData", { assignmentId: contentId });
   } catch (_error) {
     return {
       assignmentFound: false,
@@ -155,7 +144,7 @@ export async function loader({ params }: { params: any }) {
   }
 
   if (!data.assignmentOpen) {
-    return replace(`/assignedData/${data.assignment!.contentId}?shuffledOrder`);
+    return replace(`/assignedData/${data.assignment.contentId}?shuffledOrder`);
   }
 
   if (data.scoreData.calculatedScore) {
@@ -295,7 +284,7 @@ export function AssignmentViewer() {
   }, [assignment, user]);
 
   // create refs so that is updated inside callbacks
-  const attemptNumberRef = useRef<number | null>(attemptNumber);
+  const attemptNumberRef = useRef<number>(attemptNumber);
   attemptNumberRef.current = attemptNumber;
   const itemAttemptNumbersRef = useRef<number[] | null>(itemAttemptNumbers);
   itemAttemptNumbersRef.current = itemAttemptNumbers;
@@ -828,7 +817,7 @@ async function recordSubmittedEvent({
   data,
 }: {
   assignment: Content;
-  contentAttemptNumber: number | null;
+  contentAttemptNumber: number;
   itemAttemptNumbers: number[] | null;
   docId: string | null;
   itemScores: ItemScore[] | null;
@@ -862,7 +851,7 @@ async function recordSubmittedEvent({
         : null;
 
     try {
-      await axios.post(`/api/assign/recordSubmittedEvent`, {
+      await api("recordSubmittedEvent", {
         contentId: assignment.contentId,
         contentAttemptNumber,
         itemAttemptNumber,

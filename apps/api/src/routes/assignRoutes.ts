@@ -1,6 +1,3 @@
-import express from "express";
-import { implement } from "../contract";
-import { getAssignedOperation } from "../schemas/assignContract";
 import {
   getAllAssignmentScores,
   getAssignedScores,
@@ -16,106 +13,53 @@ import {
   updateAssignmentSettings,
   getAssignmentData,
 } from "../query/assign";
-import { contentIdSchema } from "../schemas/contentSchema";
+import { implement } from "../contract";
 import {
-  assignmentParentSchema,
-  assignmentClosedOnSchema,
-  getStudentAssignmentScoresSchema,
-  recordSubmittedEventSchema,
-  assignmentMaxAttemptsSchema,
-  assignmentSettingsSchema,
-  getAssignmentResponseStudentSchema,
-  getStudentSubmittedResponsesSchema,
-  createAssignmentSchema,
-  assignmentIdSchema,
-} from "../schemas/assignSchema";
-import {
-  queryLoggedIn,
-  queryLoggedInNoArguments,
-} from "../middleware/queryMiddleware";
+  createAssignmentOperation,
+  getAllAssignmentScoresOperation,
+  getAssignedOperation,
+  getAssignedScoresOperation,
+  getAssignmentDataOperation,
+  getAssignmentResponseOverviewOperation,
+  getAssignmentResponseStudentOperation,
+  getOwnAssignmentResponseOperation,
+  getStudentAssignmentScoresInFolderOperation,
+  getStudentAssignmentScoresOperation,
+  getStudentSubmittedResponsesOperation,
+  recordSubmittedEventOperation,
+  updateAssignmentClosedOnOperation,
+  updateAssignmentMaxAttemptsOperation,
+  updateAssignmentSettingsOperation,
+} from "../schemas/assignContract";
 
 export const assignOperations = [
+  implement(createAssignmentOperation, createAssignment),
+  implement(updateAssignmentClosedOnOperation, updateAssignmentClosedOn),
+  implement(updateAssignmentMaxAttemptsOperation, updateAssignmentMaxAttempts),
+  implement(updateAssignmentSettingsOperation, updateAssignmentSettings),
   implement(getAssignedOperation, listUserAssigned),
-];
-
-// Not yet in the contract.
-export const assignRouter = express.Router();
-
-assignRouter.post(
-  "/createAssignment",
-  queryLoggedIn(createAssignment, createAssignmentSchema),
-);
-
-assignRouter.post(
-  "/updateAssignmentClosedOn",
-  queryLoggedIn(updateAssignmentClosedOn, assignmentClosedOnSchema),
-);
-
-assignRouter.post(
-  "/updateAssignmentMaxAttempts",
-  queryLoggedIn(updateAssignmentMaxAttempts, assignmentMaxAttemptsSchema),
-);
-
-assignRouter.post(
-  "/updateAssignmentSettings",
-  queryLoggedIn(updateAssignmentSettings, assignmentSettingsSchema),
-);
-
-assignRouter.get(
-  "/getAssignmentData/:assignmentId",
-  queryLoggedIn(getAssignmentData, assignmentIdSchema),
-);
-
-assignRouter.get(
-  "/getAssignedScores",
-  queryLoggedInNoArguments(getAssignedScores),
-);
-
-assignRouter.get(
-  "/getAllAssignmentScores/:parentId",
-  queryLoggedIn(getAllAssignmentScores, assignmentParentSchema),
-);
-
-assignRouter.get(
-  "/getStudentAssignmentScores/:studentUserId",
-  queryLoggedIn(getStudentAssignmentScores, getStudentAssignmentScoresSchema),
-);
-
-assignRouter.get(
-  "/getStudentAssignmentScores/:studentUserId/:parentId",
-  queryLoggedIn(getStudentAssignmentScores, getStudentAssignmentScoresSchema),
-);
-
-assignRouter.post(
-  "/recordSubmittedEvent",
-  queryLoggedIn(recordSubmittedEvent, recordSubmittedEventSchema),
-);
-
-assignRouter.get(
-  "/getAssignmentResponseOverview/:contentId",
-  queryLoggedIn(getAssignmentResponseOverview, contentIdSchema),
-);
-
-assignRouter.get(
-  "/getAssignmentResponseStudent/:contentId/:studentUserId",
-  queryLoggedIn(
-    getAssignmentResponseStudent,
-    getAssignmentResponseStudentSchema,
+  implement(getAssignmentDataOperation, getAssignmentData),
+  implement(getAssignedScoresOperation, getAssignedScores),
+  implement(getAllAssignmentScoresOperation, getAllAssignmentScores),
+  implement(getStudentAssignmentScoresOperation, (params) =>
+    getStudentAssignmentScores({ ...params, parentId: null }),
   ),
-);
-
-assignRouter.get(
-  "/getAssignmentResponseStudent/:contentId",
-  queryLoggedIn(
-    getAssignmentResponseStudent,
-    getAssignmentResponseStudentSchema,
+  implement(
+    getStudentAssignmentScoresInFolderOperation,
+    getStudentAssignmentScores,
   ),
-);
-
-assignRouter.get(
-  "/getStudentSubmittedResponses/:contentId/:studentUserId",
-  queryLoggedIn(
+  implement(recordSubmittedEventOperation, recordSubmittedEvent),
+  implement(
+    getAssignmentResponseOverviewOperation,
+    getAssignmentResponseOverview,
+  ),
+  implement(
+    getAssignmentResponseStudentOperation,
+    getAssignmentResponseStudent,
+  ),
+  implement(getOwnAssignmentResponseOperation, getAssignmentResponseStudent),
+  implement(
+    getStudentSubmittedResponsesOperation,
     getStudentSubmittedResponses,
-    getStudentSubmittedResponsesSchema,
   ),
-);
+];
