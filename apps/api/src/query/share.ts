@@ -1,7 +1,7 @@
 import { Prisma, type Visibility } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../model";
-import { filterEditableContent } from "../utils/permissions";
+import { filterOwnedContent } from "../utils/permissions";
 import { isEqualUUID } from "../utils/uuid";
 import { InvalidRequestError } from "../utils/error";
 import { UserInfoWithEmail } from "../types";
@@ -124,14 +124,14 @@ export async function modifyContentSharedWith({
 }) {
   // Check contentId exists and is editable by loggedInUserId
   await prisma.content.findUniqueOrThrow({
-    where: { id: contentId, ...filterEditableContent(loggedInUserId) },
+    where: { id: contentId, ...filterOwnedContent(loggedInUserId) },
     select: { id: true },
   });
 
   // If unsharing, make sure content doesn't have a parent shared with any of the users
   if (action === "unshare") {
     const content = await prisma.content.findUniqueOrThrow({
-      where: { id: contentId, ...filterEditableContent(loggedInUserId) },
+      where: { id: contentId, ...filterOwnedContent(loggedInUserId) },
       select: {
         parent: { select: { sharedWith: { select: { userId: true } } } },
       },

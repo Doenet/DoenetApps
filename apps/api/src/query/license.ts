@@ -1,7 +1,7 @@
 import { prisma } from "../model";
 import { LicenseCode } from "../types";
 import { processLicense } from "../utils/contentStructure";
-import { filterEditableContent } from "../utils/permissions";
+import { filterOwnedContent } from "../utils/permissions";
 
 /**
  * Get the full data on every license we support.
@@ -50,7 +50,7 @@ export async function setContentLicense({
   await prisma.content.update({
     where: {
       id: contentId,
-      ...filterEditableContent(loggedInUserId),
+      ...filterOwnedContent(loggedInUserId),
     },
     data: { licenseCode },
   });

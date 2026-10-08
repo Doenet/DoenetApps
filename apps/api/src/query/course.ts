@@ -1,6 +1,6 @@
 import { prisma } from "../model";
 import { InvalidRequestError } from "../utils/error";
-import { filterEditableContent } from "../utils/permissions";
+import { filterOwnedContent } from "../utils/permissions";
 import { getDescendantIds } from "./activity";
 import { generateClassCode } from "./assign";
 
@@ -15,7 +15,7 @@ export async function markFolderAsCourse({
   const folder = await prisma.content.findUniqueOrThrow({
     where: {
       id: folderId,
-      ...filterEditableContent(loggedInUserId),
+      ...filterOwnedContent(loggedInUserId),
       type: "folder",
     },
     select: { id: true, courseRootId: true, classCode: true },

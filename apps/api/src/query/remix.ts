@@ -4,10 +4,11 @@ import { getCidV1FromString } from "@doenet-tools/shared";
 import { compileActivityFromContent } from "../utils/contentStructure";
 import { createFullName } from "../utils/names";
 import {
-  filterEditableActivity,
   filterViewableActivity,
   filterViewableContent,
   getIsEditor,
+  filterOwnedActivity,
+  filterViewableActivityAsNonEditor,
 } from "../utils/permissions";
 import { createContentRevision } from "./activity";
 import { getContent } from "./activity_edit_view";
@@ -517,13 +518,13 @@ export async function updateRemixedContentToOrigin({
       remixContentId_originContentId: { originContentId, remixContentId },
       originContent: {
         content: {
-          ...filterViewableActivity(loggedInUserId),
+          ...filterViewableActivityAsNonEditor(loggedInUserId),
           type: "singleDoc",
         },
       },
       remixContent: {
         content: {
-          ...filterEditableActivity(loggedInUserId),
+          ...filterOwnedActivity(loggedInUserId),
           type: "singleDoc",
         },
       },
@@ -672,13 +673,13 @@ export async function updateOriginContentToRemix({
       remixContentId_originContentId: { originContentId, remixContentId },
       originContent: {
         content: {
-          ...filterEditableActivity(loggedInUserId),
+          ...filterOwnedActivity(loggedInUserId),
           type: "singleDoc",
         },
       },
       remixContent: {
         content: {
-          ...filterViewableActivity(loggedInUserId),
+          ...filterViewableActivityAsNonEditor(loggedInUserId),
           type: "singleDoc",
         },
       },
