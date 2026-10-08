@@ -18,12 +18,12 @@ mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql >
 
   ```sql
   CREATE USER 'prod_shape'@'%' IDENTIFIED BY '<password>';
-  GRANT SELECT ON <database>.* TO 'prod_shape'@'%';
+  GRANT SELECT ON `<database>`.* TO 'prod_shape'@'%';
   ```
 
   The script needs nothing beyond `SELECT`. Delete the restored database when you're done: it holds a full copy of prod's data, including emails and sessions.
 
-- Prefer a read replica or a database restored from a recent snapshot. The script only reads (it sets the session read-only first), but it scans the largest tables, including `submittedResponses` and `Session`, and a long-running read on the primary holds back InnoDB's undo purge.
+- Run it on a database restored from a recent snapshot, or, once #3067 provides a `SELECT`-only user, on a read replica. Users can't be created on a replica, since it is read-only. Avoid the primary: the script scans the largest tables, including `submittedResponses` and `Session`, and a long-running read on the primary holds back InnoDB's undo purge.
 - Check the output before committing it: every row should be a count, a percentile or a table size.
 - Commit `prod-shape.results.txt` together with the date it was taken. The dataset generator's prod-shaped scale is derived from it.
 - Re-run it about once a semester, ideally mid-semester when course sizes and attempts are near their peak, or after a noticeable change in usage. If the numbers have moved, update the results and the generator's prod-shaped scale.
