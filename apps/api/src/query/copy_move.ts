@@ -7,6 +7,7 @@ import {
   filterViewableContent,
   getIsEditor,
   mustBeEditor,
+  filterOwnedContent,
 } from "../utils/permissions";
 import { isEqualUUID } from "../utils/uuid";
 import {
@@ -896,7 +897,7 @@ export async function getMoveCopyContentData({
   const results = await prisma.content.findMany({
     where: {
       parentId: parentId,
-      ...filterEditableContent(userId),
+      ...filterOwnedContent(userId),
     },
     select: {
       id: true,
@@ -1020,7 +1021,7 @@ export async function checkIfContentContains({
   const children = await prisma.content.findMany({
     where: {
       parentId: contentId,
-      AND: [filterEditableContent(loggedInUserId), filterExcludeAssignments],
+      AND: [filterOwnedContent(loggedInUserId), filterExcludeAssignments],
     },
     select: {
       id: true,
