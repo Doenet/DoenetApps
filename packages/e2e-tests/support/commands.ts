@@ -504,3 +504,56 @@ Cypress.Commands.add(
     }
   },
 );
+
+Cypress.Commands.add(
+  "iframeShould",
+  (iframeSelector, assertion, { timeout = 30000 } = {}) => {
+    // Re-query the iframe on every retry. A DoenetML viewer iframe is replaced
+    // when the displayed attempt/item/student changes; holding on to the old
+    // iframe's body (as `getIframeBody(...).within()` does) can assert against
+    // stale content or fail with a detached-DOM error.
+    return cy
+      .get<HTMLIFrameElement>(iframeSelector, { timeout })
+      .should(($iframe) => {
+        const body = $iframe[0]?.contentDocument?.body;
+        if (!body) {
+          throw new Error(`Iframe "${iframeSelector}" body is not yet loaded`);
+        }
+        assertion(Cypress.$(body));
+      });
+  },
+);
+
+Cypress.Commands.add("interceptStateSaves", () => {
+  cy.intercept("POST", "/api/score/saveScoreAndState").as("saveScoreAndState");
+});
+
+Cypress.Commands.add(
+  "waitForStateSave",
+  (containing, { timeout = 30000 } = {}) => {
+    // Wait for a completed save whose request includes `containing` (e.g., the
+    // student's latest response). The viewer saves asynchronously after a
+    // response is submitted, so navigating away or switching users before the
+    // save lands drops it.
+    const deadline = Date.now() + timeout;
+    const waitForNext = (): void => {
+      cy.wait("@saveScoreAndState", { timeout, log: false }).then(
+        ({ request, response }) => {
+          if (
+            JSON.stringify(request.body).includes(containing) &&
+            response?.statusCode === 200
+          ) {
+            return;
+          }
+          if (Date.now() > deadline) {
+            throw new Error(
+              `No completed state save containing "${containing}" within ${timeout}ms`,
+            );
+          }
+          waitForNext();
+        },
+      );
+    };
+    waitForNext();
+  },
+);
