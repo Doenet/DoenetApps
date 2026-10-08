@@ -40,14 +40,16 @@ UNION ALL SELECT CONCAT('content_', visibility, '_', kind), COUNT(*) FROM (
 UNION ALL SELECT 'content_owned_by_library_users', COUNT(*)
   FROM content c JOIN users u ON u.userId = c.ownerId
   WHERE c.isDeletedOn IS NULL AND u.isLibrary
-UNION ALL SELECT CONCAT('library_infos_', status), COUNT(*) FROM libraryActivityInfos GROUP BY status
+UNION ALL SELECT CONCAT('library_infos_', l.status), COUNT(*)
+  FROM libraryActivityInfos l JOIN content c ON c.id = l.contentId AND c.isDeletedOn IS NULL
+  GROUP BY l.status
 
 UNION ALL SELECT 'courses', COUNT(*) FROM content WHERE id = courseRootId AND isDeletedOn IS NULL
 UNION ALL SELECT 'courses_with_students', COUNT(DISTINCT courseId) FROM (
     SELECT scopedToClassId AS courseId FROM users WHERE scopedToClassId IS NOT NULL
     UNION
     SELECT a.courseRootId FROM assignmentScores s JOIN content a ON a.id = s.contentId
-    WHERE a.courseRootId IS NOT NULL
+    WHERE a.courseRootId IS NOT NULL AND a.isDeletedOn IS NULL
   ) cs
   JOIN content c ON c.id = cs.courseId AND c.isDeletedOn IS NULL
 UNION ALL SELECT 'assignments', COUNT(*) FROM content WHERE isAssignmentRoot AND isDeletedOn IS NULL
@@ -80,7 +82,7 @@ course_students (courseId, userId) AS (
   UNION
   SELECT a.courseRootId, s.userId
   FROM assignmentScores s JOIN content a ON a.id = s.contentId
-  WHERE a.courseRootId IS NOT NULL
+  WHERE a.courseRootId IS NOT NULL AND a.isDeletedOn IS NULL
 ),
 samples (metric, v) AS (
   SELECT 'students_per_course', COUNT(*)
@@ -97,13 +99,16 @@ samples (metric, v) AS (
   GROUP BY courseRootId
 
   UNION ALL SELECT 'attempts_per_student_assignment', COUNT(*)
-  FROM contentState GROUP BY contentId, userId
+  FROM contentState x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.contentId, x.userId
 
   UNION ALL SELECT 'item_attempts_per_student_assignment', COUNT(*)
-  FROM contentItemState GROUP BY contentId, userId
+  FROM contentItemState x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.contentId, x.userId
 
   UNION ALL SELECT 'responses_per_student_assignment', COUNT(*)
-  FROM submittedResponses GROUP BY contentId, userId
+  FROM submittedResponses x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.contentId, x.userId
 
   UNION ALL SELECT 'folder_depth', depth FROM tree
 
@@ -130,22 +135,30 @@ samples (metric, v) AS (
   FROM content WHERE type = 'singleDoc' AND isDeletedOn IS NULL AND source IS NOT NULL
 
   UNION ALL SELECT 'revisions_per_content', COUNT(*)
-  FROM contentRevisions GROUP BY contentId
+  FROM contentRevisions x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.contentId
 
   UNION ALL SELECT 'remixes_per_origin', COUNT(*)
-  FROM contributorHistory GROUP BY originContentId
+  FROM contributorHistory x
+  JOIN content c ON c.id = x.originContentId AND c.isDeletedOn IS NULL
+  JOIN content r ON r.id = x.remixContentId AND r.isDeletedOn IS NULL
+  GROUP BY x.originContentId
 
   UNION ALL SELECT 'classifications_per_content', COUNT(*)
-  FROM contentClassifications GROUP BY contentId
+  FROM contentClassifications x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.contentId
 
   UNION ALL SELECT 'categories_per_content', COUNT(*)
-  FROM _categoriesTocontent GROUP BY B
+  FROM _categoriesTocontent x JOIN content c ON c.id = x.B AND c.isDeletedOn IS NULL
+  GROUP BY x.B
 
   UNION ALL SELECT 'users_per_shared_content', COUNT(*)
-  FROM contentShares WHERE isRootShare GROUP BY contentId
+  FROM contentShares x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  WHERE x.isRootShare GROUP BY x.contentId
 
   UNION ALL SELECT 'recent_items_per_user', COUNT(*)
-  FROM recentContent GROUP BY userId
+  FROM recentContent x JOIN content c ON c.id = x.contentId AND c.isDeletedOn IS NULL
+  GROUP BY x.userId
 ),
 ranked AS (
   SELECT metric, v,
