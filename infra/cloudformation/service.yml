@@ -283,6 +283,11 @@ Conditions:
     - !Equals
       - !Ref PathPattern
       - notapplicable
+  # The API service, as opposed to e.g. dev3's mysql service, which shares
+  # this template.
+  IsDoenetService: !Equals
+    - !Ref ServiceName
+    - doenet
   UseGroupTargeting: !Not
     - !Or
       - !Condition UseDomainNames
@@ -742,6 +747,65 @@ Resources:
           Value: !GetAtt Service.Name
         - Name: ClusterName
           Value: !Ref EcsCluster
+
+  # Performance of API requests, from the "perf.request" log lines the API
+  # writes (apps/api/src/perf). No alarms yet: they wait until there's
+  # enough data to know what normal looks like.
+  PerfRequestsByRouteQuery:
+    Type: AWS::Logs::QueryDefinition
+    Condition: IsDoenetService
+    Properties:
+      Name: !Sub "${EnvironmentName}/perf/requests-by-route"
+      LogGroupNames:
+        - !Ref EnvironmentName
+      QueryString: "fields @timestamp | filter type = 'perf.request' | stats count(*) as requests, pct(durMs, 50) as p50, pct(durMs, 95) as p95, pct(durMs, 99) as p99, pct(dbMs, 95) as dbP95, avg(queries) as avgQueries, max(queries) as maxQueries by method, route | sort p95 desc | limit 100"
+
+  PerfDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Condition: IsDoenetService
+    Properties:
+      DashboardName: !Sub "${EnvironmentName}-${ServiceName}-perf"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+        {
+          "type": "log", "x": 0, "y": 0, "width": 12, "height": 6,
+          "properties": {
+            "region": "${AWS::Region}",
+            "title": "API request time (ms)",
+            "view": "timeSeries",
+            "query": "SOURCE '${EnvironmentName}' | fields @timestamp | filter type = 'perf.request' | stats pct(durMs, 50) as p50, pct(durMs, 95) as p95, pct(durMs, 99) as p99 by bin(5m)"
+          }
+        },
+        {
+          "type": "log", "x": 12, "y": 0, "width": 12, "height": 6,
+          "properties": {
+            "region": "${AWS::Region}",
+            "title": "Prisma queries per request",
+            "view": "timeSeries",
+            "query": "SOURCE '${EnvironmentName}' | fields @timestamp | filter type = 'perf.request' | stats avg(queries) as avgQueries, pct(queries, 95) as p95Queries, count(*) as requests by bin(5m)"
+          }
+        },
+        {
+          "type": "log", "x": 0, "y": 6, "width": 24, "height": 8,
+          "properties": {
+            "region": "${AWS::Region}",
+            "title": "Routes by p95 request time (ms)",
+            "view": "table",
+            "query": "SOURCE '${EnvironmentName}' | fields @timestamp | filter type = 'perf.request' | stats count(*) as requests, pct(durMs, 50) as p50, pct(durMs, 95) as p95, pct(durMs, 99) as p99, pct(dbMs, 95) as dbP95, avg(queries) as avgQueries, max(queries) as maxQueries by method, route | sort p95 desc | limit 100"
+          }
+        },
+        {
+          "type": "log", "x": 0, "y": 14, "width": 24, "height": 8,
+          "properties": {
+            "region": "${AWS::Region}",
+            "title": "Routes by total server time",
+            "view": "table",
+            "query": "SOURCE '${EnvironmentName}' | fields @timestamp | filter type = 'perf.request' | stats sum(durMs) / 1000 as totalSeconds, count(*) as requests, pct(durMs, 95) as p95 by method, route | sort totalSeconds desc | limit 25"
+          }
+        }
+          ]
+        }
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup

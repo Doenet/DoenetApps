@@ -19,6 +19,9 @@ Environment:
     Value: "false"
   - Name: MOCK_SIGNIN_EMAIL
     Value: "false"
+  # Exposes per-request query counts in a Server-Timing header
+  - Name: PERF_SERVER_TIMING
+    Value: "false"
   - Name: NODE_OPTIONS
     Value: "--max-old-space-size=1950"
   - Name: MEDIA_S3_MODE

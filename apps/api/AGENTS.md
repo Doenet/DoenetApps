@@ -56,6 +56,13 @@ Four content types throughout the domain model: `"singleDoc"`, `"select"` (quest
 
 `DATABASE_URL` must be kept in sync with the individual `DATABASE_*` vars manually — Prisma uses `DATABASE_URL` while Docker uses the individual vars. Update both if any connection detail changes.
 
+## Performance Instrumentation
+
+`src/perf/` counts and times the Prisma operations each `/api` request makes, and reports them in a `Server-Timing` header (on outside production; `PERF_SERVER_TIMING=true` in dev3) and a `perf.request` log line (on in production; `PERF_REQUEST_LOG=true` locally). Counts are only complete when:
+
+- `perfMiddleware` stays the first `app.use` in `src/index.ts`, ahead of any middleware that queries the database (session store, passport).
+- Queries go through the shared `prisma` from `src/model.ts`, which carries the counting extension. A separate `new PrismaClient()` is invisible to it.
+
 ## Test Utilities
 
 Env vars for test-only features:
