@@ -116,9 +116,9 @@ callers over, then remove the old one.
 - Changes under `infra/` take effect only when someone runs `aws-deploy`, not on merge.
   If the code in the PR depends on an infra change being live first (a new env var, secret,
   IAM permission, queue, bucket or other resource the new image reads), the PR description
-  must have a section headed `## Infra Updates Before Merge`. The section names each stack
-  to update, the command to run, and what fails if the image deploys first. A PR whose code
-  needs infra that its description doesn't flag is a deploy-safety finding.
+  must have a section headed `## Infra Updates Before Merge` (see "Pull Requests" in
+  `AGENTS.md`). A PR whose code needs infra that its description doesn't flag is a
+  deploy-safety finding.
 - Test-only switches (`ENABLE_TEST_AUTH_BYPASS`, `ENABLE_TEST_ROUTES`,
   `MOCK_SIGNIN_EMAIL`) must stay confined to tests; nothing in production code may depend
   on them being set.
@@ -150,7 +150,7 @@ Review whether the PR includes adequate tests:
 - The PR description must still describe everything in the diff. Check it explicitly
   rather than assuming an earlier pass left it accurate: it is the one surface that no
   test, no CI job and no reader of the code will catch when it goes stale. When rewriting
-  it, use the `pr` skill.
+  it, follow the PR description rules under "Pull Requests" in `AGENTS.md`.
 - If the PR adds an ADR under `docs/adr/`, its number must not already be taken on
   `main` or by another open PR. Two ADRs with the same number don't conflict in git,
   because their filenames differ, so the duplicate merges silently. Check
