@@ -17,6 +17,7 @@ mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql >
 - Prefer a read replica or a database restored from a recent snapshot. The script only reads (it sets the session read-only first), but it scans the largest tables, including `submittedResponses` and `Session`, and a long-running read on the primary holds back InnoDB's undo purge.
 - Check the output before committing it: every row should be a count, a percentile or a table size.
 - Commit `prod-shape.results.txt` together with the date it was taken. The dataset generator's prod-shaped scale is derived from it.
+- Re-run it about once a semester, ideally mid-semester when course sizes and attempts are near their peak, or after a noticeable change in usage. If the numbers have moved, update the results and the generator's prod-shaped scale.
 
 To try the script locally, run the same command against your dev database, using the connection details in `apps/api/.env`.
 
