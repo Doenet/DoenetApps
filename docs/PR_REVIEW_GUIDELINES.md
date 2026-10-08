@@ -113,6 +113,12 @@ callers over, then remove the old one.
   and a schema change with no migration (or the reverse) is a defect.
 - If the schema changes, check whether `apps/api/prisma/seed.ts` and `prisma/seed/` need
   to change with it.
+- Changes under `infra/` take effect only when someone runs `aws-deploy`, not on merge.
+  If the code in the PR depends on an infra change being live first (a new env var, secret,
+  IAM permission, queue, bucket or other resource the new image reads), the PR description
+  must have a section headed `## Infra Updates Before Merge`. The section names each stack
+  to update, the command to run, and what fails if the image deploys first. A PR whose code
+  needs infra that its description doesn't flag is a deploy-safety finding.
 - Test-only switches (`ENABLE_TEST_AUTH_BYPASS`, `ENABLE_TEST_ROUTES`,
   `MOCK_SIGNIN_EMAIL`) must stay confined to tests; nothing in production code may depend
   on them being set.
