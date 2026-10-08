@@ -45,6 +45,10 @@ Development uses a fork workflow. Push branches to `origin` (your fork), then op
 
 Database and API changes must follow the **expand-migrate-contract** pattern: each merged PR must be safe to deploy on its own, so add new columns/endpoints before removing old ones across separate PRs.
 
+PR descriptions follow the `pr` skill's format (Summary, Evidence, Merge Danger), plus one rule specific to this repo:
+
+- **`## Infra Updates Before Merge`:** changes under `infra/` take effect only when someone runs `aws-deploy`, not on merge. If the PR's code needs an infra change to be live first (a new env var, secret, IAM permission, queue, bucket or other resource the new image reads), add this section. It names each stack to update, the command to run, and what fails if the image deploys first. Leave it out when infra changes are safe to deploy in either order, and mention them under Merge Danger instead.
+
 ## Code Review
 
 - **Reviewing a PR or branch:** follow [docs/PR_REVIEW_GUIDELINES.md](./docs/PR_REVIEW_GUIDELINES.md).
