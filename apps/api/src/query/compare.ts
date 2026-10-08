@@ -29,6 +29,7 @@ export async function getDoenetMLComparison({
       source: true,
       doenetmlVersion: true,
       name: true,
+      owner: { select: { isLibrary: true } },
     },
   });
 
@@ -142,6 +143,7 @@ export async function getDoenetMLComparison({
       contentId: contentId,
       doenetML: activity.source,
       doenetmlVersion: activity.doenetmlVersion,
+      inLibrary: activity.owner.isLibrary,
     },
     activityCompare: {
       name: activityCompare.name,

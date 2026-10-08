@@ -68,6 +68,7 @@ export function DoenetMLComparison() {
       doenetmlVersion: DoenetmlVersion;
       name: string;
       contentId: string;
+      inLibrary: boolean;
     };
     activityCompare: {
       doenetML: string;
@@ -301,30 +302,34 @@ export function DoenetMLComparison() {
               justifyContent="flex-end"
               alignItems="center"
             >
-              <Box mr={{ base: "5px", sm: "10px" }}>
-                <Tooltip
-                  label={updateMessage}
-                  openDelay={500}
-                  placement="bottom-end"
-                >
-                  <Button
-                    size="xs"
-                    marginLeft="10px"
-                    aria-label={updateMessage}
-                    isDisabled={activityAtCompare && !activityCompareChanged}
-                    marginRight="10px"
-                    onClick={basicActionsOnOpen}
-                    colorScheme="blue"
+              {/* The API does not let anyone update library content from
+                  its remix source, or a remix source from library content */}
+              {!activity.inLibrary && (
+                <Box mr={{ base: "5px", sm: "10px" }}>
+                  <Tooltip
+                    label={updateMessage}
+                    openDelay={500}
+                    placement="bottom-end"
                   >
-                    {activityCompareChanged && <>&#x1f534; </>}
-                    {activityAtCompare && !activityCompareChanged ? (
-                      <>Already matches</>
-                    ) : (
-                      <>Possible update actions</>
-                    )}
-                  </Button>
-                </Tooltip>
-              </Box>
+                    <Button
+                      size="xs"
+                      marginLeft="10px"
+                      aria-label={updateMessage}
+                      isDisabled={activityAtCompare && !activityCompareChanged}
+                      marginRight="10px"
+                      onClick={basicActionsOnOpen}
+                      colorScheme="blue"
+                    >
+                      {activityCompareChanged && <>&#x1f534; </>}
+                      {activityAtCompare && !activityCompareChanged ? (
+                        <>Already matches</>
+                      ) : (
+                        <>Possible update actions</>
+                      )}
+                    </Button>
+                  </Tooltip>
+                </Box>
+              )}
             </GridItem>
           </Grid>
         </GridItem>
