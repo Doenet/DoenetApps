@@ -20,6 +20,9 @@ services:
       MEDIA_S3_LOCAL_ENDPOINT: http://s3mock:9090
       # The image caches Cypress under /root; use a path the node user owns.
       CYPRESS_CACHE_FOLDER: /home/node/.cache/Cypress
+      # The image also sets CI=1, which makes `prisma migrate dev` refuse to
+      # prompt (e.g. to reset a drifted database). This is not CI.
+      CI: ""
       NODE_OPTIONS: --max-old-space-size=4096
     depends_on:
       mysql:

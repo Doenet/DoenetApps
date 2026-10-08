@@ -77,13 +77,15 @@ Two checkouts running `npm run dev` at once would collide on ports and on the
 database, so give the second one its own. In its `apps/api/.env`, change
 `PORT`, `APP_PORT`, `WEB_PORT`, and `APP_URL`, and give `DATABASE_NAME` (and
 the name in `DATABASE_URL`) a new value — the MySQL container is shared, and
-`npm run setup` creates the database.
+`npm run setup` creates the database. Edit the file before running setup:
+otherwise it applies this branch's migrations to the first checkout's database.
 
 ```bash
 git worktree add ../doenet-feature feature-branch
 cd ../doenet-feature
 npm install
-npm run setup          # then edit apps/api/.env as above and run it again
+cp apps/api/.env.example apps/api/.env   # then edit it as above
+npm run setup
 npm run dev
 ```
 
