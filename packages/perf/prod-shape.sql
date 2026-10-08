@@ -1,8 +1,8 @@
 -- Prod shape: aggregate distributions for sizing the perf dataset.
 --
 -- Read-only. Returns aggregate numbers only: no ids, names, emails or content.
--- Run once against prod (ideally a read replica or a restored snapshot) and
--- commit the output next to this file. See README.md.
+-- Run against prod (ideally a read replica or a restored snapshot) about once a
+-- semester and commit the output next to this file. See README.md.
 --
 -- Three result sets:
 --   1. counts         metric | value

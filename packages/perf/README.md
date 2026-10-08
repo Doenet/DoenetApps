@@ -8,7 +8,7 @@ Tooling for the performance harness tracked in [#3059](https://github.com/Doenet
 
 ### Running it
 
-A maintainer with access to the prod database runs it once, with any MySQL client that can reach it:
+A maintainer with access to the prod database runs it with any MySQL client that can reach it:
 
 ```bash
 mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql > packages/perf/prod-shape.results.txt
