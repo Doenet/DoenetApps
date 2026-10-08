@@ -10,4 +10,5 @@ npx cypress install
 npm run db:setup
 
 echo
-echo "✅ Dev container ready. The dev servers start on their own; if not, run: npm run dev"
+echo "✅ Dev container ready. The dev servers start on their own in the background;"
+echo "   tail -f /tmp/dev.log shows their output and the auto-login link."

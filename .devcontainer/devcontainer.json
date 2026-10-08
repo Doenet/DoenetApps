@@ -42,9 +42,12 @@
   // Once, when the container is created: env file, install, seed.
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "waitFor": "postCreateCommand",
-  // Every container start. A login shell so the Codespaces variables are set
-  // and the auto-login link the API prints has the forwarded address.
-  "postStartCommand": "bash -lc 'npm run dev'",
+  // Every container start, in the background so the command returns (a
+  // command that never exits leaves Codespaces "Running postStartCommand…"
+  // and `devcontainer up` waiting forever). A login shell so the Codespaces
+  // variables are set and the auto-login link has the forwarded address; the
+  // link and all server output go to /tmp/dev.log.
+  "postStartCommand": "bash -lc 'setsid nohup npm run dev > /tmp/dev.log 2>&1 < /dev/null &'",
 
   "customizations": {
     "vscode": {
