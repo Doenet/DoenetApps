@@ -7,6 +7,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
  * `query` events don't carry the async context, so they can't be tied to a
  * request. With `relationJoins`, an operation with includes is still one
  * statement, so the count is exact enough to expose N+1 loops.
+ *
+ * `dbMs` sums the operations' durations, so with concurrent operations
+ * (`Promise.all`, a `$transaction` array) it can exceed the request's wall
+ * time.
  */
 export type RequestStats = {
   queries: number;

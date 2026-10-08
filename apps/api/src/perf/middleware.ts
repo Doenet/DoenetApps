@@ -73,13 +73,17 @@ export function perfMiddleware(options: PerfOptions) {
     }
 
     if (options.requestLog && !UNLOGGED_PATHS.has(req.path)) {
-      res.on("finish", () => {
+      // "close" rather than "finish", so requests the client gives up on
+      // (often the slowest ones) are logged too. `status` is then whatever
+      // had been set when the connection closed.
+      res.on("close", () => {
         log(
           JSON.stringify({
             type: "perf.request",
             method: req.method,
             route: routePattern(req),
             status: res.statusCode,
+            aborted: !res.writableFinished,
             durMs: round(performance.now() - start),
             dbMs: round(stats.dbMs),
             queries: stats.queries,
@@ -96,7 +100,9 @@ export function perfMiddleware(options: PerfOptions) {
 /**
  * The matched route as written in the router, e.g.
  * `/api/content/:contentId`, so requests group by endpoint and no IDs or
- * query parameters reach the logs.
+ * query parameters reach the logs. If an error is passed out of a router
+ * (`next(err)`), Express has already reset `baseUrl`, so only the route's
+ * own path is left, e.g. `/:id`.
  */
 function routePattern(req: Request) {
   if (!req.route) {

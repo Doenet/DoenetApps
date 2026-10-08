@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import express from "express";
 import { AddressInfo } from "node:net";
-import { Server } from "node:http";
+import { Server, request } from "node:http";
 import { prisma } from "../model";
 import { perfMiddleware, perfOptionsFromEnv } from "./middleware";
 
@@ -30,6 +30,11 @@ beforeAll(async () => {
     for (let i = 0; i < Number(req.params.n); i++) {
       await prisma.content.count();
     }
+    res.json({ ok: true });
+  });
+  router.get("/slow", async (_req, res) => {
+    await prisma.content.count();
+    await new Promise((resolve) => setTimeout(resolve, 200));
     res.json({ ok: true });
   });
   app.use("/api/perfTest", router);
@@ -62,7 +67,7 @@ function parseServerTiming(header: string | null) {
 async function lastLogFor(path: string) {
   const res = await fetch(baseUrl + path);
   await res.text();
-  // The log line is written on "finish", which can land after the client
+  // The log line is written on "close", which can land after the client
   // has the response.
   await new Promise((resolve) => setTimeout(resolve, 20));
   return { res, line: logLines.at(-1) };
@@ -97,6 +102,7 @@ describe("perfMiddleware", () => {
       method: "GET",
       route: "/api/perfTest/queries/:n",
       status: 200,
+      aborted: false,
       durMs: expect.any(Number),
       dbMs: expect.any(Number),
       queries: 3,
@@ -110,6 +116,22 @@ describe("perfMiddleware", () => {
     expect(JSON.parse(line!)).toMatchObject({
       route: "unmatched",
       status: 404,
+    });
+  });
+
+  test("logs requests the client aborts", async () => {
+    const before = logLines.length;
+    const req = request(`${baseUrl}/api/perfTest/slow`);
+    req.on("error", () => {});
+    req.end();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    req.destroy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(logLines.length).toBe(before + 1);
+    expect(JSON.parse(logLines.at(-1)!)).toMatchObject({
+      route: "/api/perfTest/slow",
+      aborted: true,
     });
   });
 
