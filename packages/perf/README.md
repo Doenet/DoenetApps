@@ -14,6 +14,15 @@ A maintainer with access to the prod database runs it with any MySQL client that
 mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql > packages/perf/prod-shape.results.txt
 ```
 
+- Connect as a user that has only `SELECT` on the database, not as the app's user or the admin. The read-only setting is a statement inside the script, so it protects only as far as the script is unchanged; the user's privileges are what actually stop a write. Our infra doesn't provide such a user yet. Until it does, run the script on a database restored from a snapshot and create one there with the admin credentials:
+
+  ```sql
+  CREATE USER 'prod_shape'@'%' IDENTIFIED BY '<password>';
+  GRANT SELECT ON <database>.* TO 'prod_shape'@'%';
+  ```
+
+  The script needs nothing beyond `SELECT`. Delete the restored database when you're done: it holds a full copy of prod's data, including emails and sessions.
+
 - Prefer a read replica or a database restored from a recent snapshot. The script only reads (it sets the session read-only first), but it scans the largest tables, including `submittedResponses` and `Session`, and a long-running read on the primary holds back InnoDB's undo purge.
 - Check the output before committing it: every row should be a count, a percentile or a table size.
 - Commit `prod-shape.results.txt` together with the date it was taken. The dataset generator's prod-shaped scale is derived from it.
