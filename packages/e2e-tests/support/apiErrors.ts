@@ -11,7 +11,9 @@
  * from inside the app window rather than with `cy.intercept`: an intercept
  * that inspects responses makes Cypress's proxy buffer every response, which
  * slows the app enough to break timing-sensitive tests. An unexpected error is
- * thrown as an uncaught exception in the app, which fails the test.
+ * thrown from the request's `loadend` listener. That listener is defined here,
+ * so Cypress treats the error as coming from test code: it fails the test, and
+ * an `uncaught:exception` handler does not suppress it.
  *
  * `cy.request` calls are not checked; they fail on error status codes on
  * their own.
