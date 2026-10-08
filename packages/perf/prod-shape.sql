@@ -33,7 +33,8 @@ UNION ALL SELECT 'users_owning_content', COUNT(DISTINCT ownerId) FROM content WH
 UNION ALL SELECT 'content_deleted', COUNT(*) FROM content WHERE isDeletedOn IS NOT NULL
 UNION ALL SELECT CONCAT('content_', type), COUNT(*) FROM content WHERE isDeletedOn IS NULL GROUP BY type
 UNION ALL SELECT CONCAT('content_', visibility, '_', kind), COUNT(*) FROM (
-    SELECT visibility, IF(type = 'folder', 'folders', 'activities') AS kind
+    SELECT visibility,
+      CASE type WHEN 'folder' THEN 'folders' WHEN 'image' THEN 'images' ELSE 'activities' END AS kind
     FROM content WHERE isDeletedOn IS NULL AND visibility <> 'private'
   ) v
   GROUP BY visibility, kind
