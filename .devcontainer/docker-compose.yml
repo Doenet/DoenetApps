@@ -30,8 +30,8 @@ services:
     command: sleep infinity
 
   # Nothing is published on the host: the editor forwards ports from inside
-  # the container, and this keeps the stack from colliding with a root
-  # `docker compose up` in the same checkout.
+  # the container. That lets it run beside the `npm run setup` stack and
+  # other checkouts' dev containers.
   mysql:
     ports: !override []
   s3mock:

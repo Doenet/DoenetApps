@@ -1,7 +1,9 @@
 # Backing services for development. Shared by the host toolchain (`npm run
 # setup`) and the dev container (.devcontainer/docker-compose.yml overlays this
-# file). The fixed project name means every worktree talks to the same MySQL.
-name: doenet
+# file). No `name:` here on purpose: `npm run setup` starts this as project
+# `doenet`, shared by every host worktree, while each dev container gets a
+# project of its own (named after its checkout). A fixed name would put them all
+# in one project, where each would recreate the others' containers.
 
 services:
   mysql:

@@ -24,11 +24,12 @@ const run = (cmd, args, env = {}) =>
     env: { ...process.env, ...env },
   });
 
+// The fixed project name means every worktree talks to the same MySQL.
 console.log("🐳 Starting MySQL and s3mock...");
 try {
   run(
     "docker",
-    ["compose", "up", "-d", "--wait"],
+    ["compose", "-p", "doenet", "up", "-d", "--wait"],
     dbPort ? { DATABASE_PORT: dbPort } : {},
   );
 } catch {
