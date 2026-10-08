@@ -1,0 +1,70 @@
+name: Deploy safety
+
+# Every merge to main deploys, so each PR must work with the code already
+# running: app builds open in browsers, and backend tasks still serving
+# while a deploy rolls out. These checks flag changes that break them.
+# A labelled PR overrides a check once the replacement has been deployed;
+# see apps/api/AGENTS.md.
+#
+# Its own workflow so that adding or removing a label re-runs just these
+# checks.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+env:
+  OASDIFF_VERSION: "1.33.0"
+
+jobs:
+  api-breaking:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Needs the base branch to compare against.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install oasdiff
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" oasdiff
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check tests
+        run: npm test --workspace @doenet-tools/api -- --run scripts/contract
+
+      - name: Check for breaking API changes
+        env:
+          ALLOW_BREAKING: ${{ contains(github.event.pull_request.labels.*.name, 'api-breaking') && '1' || '' }}
+        run: npm run contract:check-breaking --workspace @doenet-tools/api -- --base "origin/${{ github.base_ref }}"
+
+  db-destructive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check for destructive migrations
+        env:
+          ALLOW_DESTRUCTIVE: ${{ contains(github.event.pull_request.labels.*.name, 'db-destructive') && '1' || '' }}
+        run: npm run db:check-migrations --workspace @doenet-tools/api -- --base "origin/${{ github.base_ref }}"

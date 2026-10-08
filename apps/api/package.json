@@ -11,6 +11,8 @@
     "build:assets": "npx tsx scripts/copy-assets-to-dist.ts",
     "build": "tsc --build && npm run build:assets",
     "contract:generate": "tsx scripts/contract/generate.ts",
+    "contract:check-breaking": "tsx scripts/contract/checkBreaking.ts",
+    "db:check-migrations": "tsx scripts/db/checkMigrations.ts",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint --fix",
     "lint:check": "eslint",
