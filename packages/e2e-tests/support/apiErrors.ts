@@ -18,7 +18,8 @@
  *
  * After each test, we wait for in-flight API requests to finish, so that a
  * request still running when the test's last command completes is checked too.
- * (Cypress reports such a failure as an `afterEach` hook failure of that test.)
+ * Cypress reports such a failure as an `afterEach` hook failure of that test,
+ * which is not retried and skips the remaining tests in the spec.
  *
  * A test that expects an error response must declare it first with
  * `cy.allowApiErrors(...)`.
