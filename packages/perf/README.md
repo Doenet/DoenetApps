@@ -14,7 +14,7 @@ A maintainer with access to the prod database runs it with any MySQL client that
 mysql -h <host> -u <user> -p --table <database> < packages/perf/prod-shape.sql > packages/perf/prod-shape.results.txt
 ```
 
-- Connect as a user that has only `SELECT` on the database, not as the app's user or the admin. The read-only setting is a statement inside the script, so it protects only as far as the script is unchanged; the user's privileges are what actually stop a write. Our infra doesn't provide such a user yet. Until it does, run the script on a database restored from a snapshot and create one there with the admin credentials:
+- Connect as a user that has only `SELECT` on the database, not as the app's user or the admin. The read-only setting is a statement inside the script, so it protects only as far as the script is unchanged; the user's privileges are what actually stop a write. Our infra doesn't provide such a user yet ([#3067](https://github.com/Doenet/DoenetApps/issues/3067)). Until it does, run the script on a database restored from a snapshot and create one there with the admin credentials:
 
   ```sql
   CREATE USER 'prod_shape'@'%' IDENTIFIED BY '<password>';
