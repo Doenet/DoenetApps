@@ -6,10 +6,10 @@ services:
     # (git, gh, sshd, Claude Code) is a devcontainer feature.
     image: cypress/browsers:node-24.15.0-chrome-148.0.7778.178-1-ff-151.0.2-edge-148.0.3967.83-1
     volumes:
-      # The parent directory, so a linked worktree kept beside the main clone
-      # can still find its repository. Only if the worktree was created with
-      # `git worktree add --relative-paths` (Git 2.48+): by default its `.git`
-      # file holds the host's absolute path, which does not exist in here.
+      # The parent directory, mounted at /workspaces. A linked worktree's
+      # `.git` file holds the host's absolute path, which does not exist in
+      # here, and the image's Git (2.47) predates `--relative-paths` worktrees
+      # (the `relativeWorktrees` extension stops it reading the main clone too).
       - ..:/workspaces:cached
     environment:
       # These win over apps/api/.env: dotenv and the Prisma CLI leave already
