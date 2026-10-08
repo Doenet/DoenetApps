@@ -45,6 +45,35 @@ can change behavior entirely inside files the PR never touches. Name the behavio
 and after, and establish the "before" by reading the code that used to run, not by
 assuming.
 
+## Security
+
+Read the diff as an attacker would: for each new input, ask who controls it and where it
+ends up. Access control is covered above; check these as well:
+
+- **Raw SQL.** A `Prisma.sql` template or `$queryRaw` tagged template passes values as
+  parameters. `Prisma.raw`, `$queryRawUnsafe` and `$executeRawUnsafe` splice text into the
+  query, so anything reaching them must be built by the code, never taken from a request
+  (in `apps/api/src/utils/classificationsCategories.ts`, `Prisma.raw` only ever sees
+  generated table aliases).
+- **Other sinks.** Request data that reaches a shell command, a file path, an outgoing
+  URL, a redirect target, or HTML rendered outside React's escaping
+  (`dangerouslySetInnerHTML`).
+- **Secrets and personal data.** Secrets stay out of code, logs, error responses and
+  committed files. Emails, names, session data and scores go only to users entitled to
+  them, and never into logs or into files committed to this public repository.
+- **Scripts run against prod** (`packages/perf/`, one-off data fixes). Ask what
+  credentials they need, whether they could write, and what their output publishes. A
+  change to such a script is a change to code with prod access; review it as one.
+- **CI workflows.** A trigger that runs a fork's code with the repository's secrets
+  (`pull_request_target`, `workflow_run`), or a wider `permissions:` block.
+- **New dependencies.** Check that the package is maintained and widely used, that its
+  name is spelled as intended, and whether it runs an install script.
+- **Error paths.** An error message that leaks internals to the client, or an error path
+  that skips a permission check the success path makes.
+
+This repository is public. Report a real vulnerability in code already on `main` to a
+maintainer privately, not in a PR comment or issue.
+
 ## Run the code
 
 Reading is not verification. Where a finding can be settled by executing something —

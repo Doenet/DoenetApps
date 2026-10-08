@@ -50,15 +50,16 @@ between.
 ## Lenses
 
 Repeating one prompt has steep diminishing returns; asking a different question does not.
-Give each cycle a lens of its own. The first three lenses are different questions, not
-three attempts at the same one, and each covers a class of defect the others do not:
+Give each cycle a lens of its own. The first four lenses are different questions, not
+four attempts at the same one, and each covers a class of defect the others do not:
 
-| Cycle | Lens                                                                                                                                                                                                                          |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **Correctness, access control and edge cases.** Does it do what it claims, for every user who can reach it — the owner, another user, an anonymous visitor — at every visibility level, on empty, deleted and boundary input? |
-| 2     | **Behavior delta.** What changed that is not visible in the diff — permission helpers, visibility rules, query wrappers, `packages/shared`? What regressed? Is it safe to deploy on its own?                                  |
-| 3     | **Claims against code.** Every statement in the PR description, `AGENTS.md` files, comments and commit messages, traced to the code that makes it true. Plus test and documentation coverage.                                 |
-| 4+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                          |
+| Cycle | Lens                                                                                                                                                                                                                                                                          |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Correctness, access control and edge cases.** Does it do what it claims, for every user who can reach it — the owner, another user, an anonymous visitor — at every visibility level, on empty, deleted and boundary input?                                                 |
+| 2     | **Security.** Read the diff as an attacker would, following the Security section of `docs/PR_REVIEW_GUIDELINES.md`: for each new input, who controls it and where does it end up? What do secrets, personal data, prod credentials, CI workflows and new dependencies expose? |
+| 3     | **Behavior delta.** What changed that is not visible in the diff — permission helpers, visibility rules, query wrappers, `packages/shared`? What regressed? Is it safe to deploy on its own?                                                                                  |
+| 4     | **Claims against code.** Every statement in the PR description, `AGENTS.md` files, comments and commit messages, traced to the code that makes it true. Plus test and documentation coverage.                                                                                 |
+| 5+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                                                                          |
 
 A lens is a starting point, not a restriction: a cycle that notices a bug outside its lens
 should still fix it.
@@ -84,12 +85,12 @@ written as "fixed, verified" spends that for nothing.
 
 ## When to stop
 
-- Run at least **three** cycles, one for each lens. The minimum is three because there
-  are three lenses, not because three passes are better than two: stopping at two skips the
+- Run at least **four** cycles, one for each lens. The minimum is four because there
+  are four lenses, not because four passes are better than three: stopping at three skips the
   claims-against-code pass entirely, which is the one that catches a false statement
   repeated across the PR description, the comments and the `AGENTS.md` files. A quiet
   cycle under one lens says nothing about what the next lens would find.
-- From the fourth cycle on, stop when a cycle finds **no correctness issue**: no bug, no
+- From the fifth cycle on, stop when a cycle finds **no correctness issue**: no bug or vulnerability, no
   inaccurate claim, no missing coverage for behavior that is in the diff. Wording changes
   and typo fixes do not by themselves justify another cycle.
 - The orchestrator judges this against the ledger. Do not leave it to the agent that made
@@ -103,11 +104,11 @@ called it — those changes are the only ones no other cycle has seen. Run one m
 that reviews and reports without committing, rather than treating the last cycle's own
 account of its work as verification.
 
-**Five cycles is a soft cap, not a hard one.** If a fifth cycle is still turning up real
+**Six cycles is a soft cap, not a hard one.** If a sixth cycle is still turning up real
 problems, do not simply keep going, and do not stop merely because a number was reached.
 Put it to the user: report what the last two cycles found, say why the evidence suggests
 more remain, and let them decide whether to continue. A PR still yielding defects at cycle
-five may need something other than another cycle — it may need to be split, or its approach
+six may need something other than another cycle — it may need to be split, or its approach
 reconsidered — and that is a judgment for a person to make.
 
 ## Final report
