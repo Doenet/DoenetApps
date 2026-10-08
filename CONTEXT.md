@@ -28,7 +28,7 @@ _Avoid_: test case, benchmark, endpoint test
 A user that exists only in the perf dataset and plays one role (guest, student, instructor or author) in perf scenarios.
 
 **Query count snapshot**:
-The recorded number of database queries each perf scenario makes. Any increase has to be accepted explicitly by updating the snapshot.
+The recorded number of database queries each perf scenario makes. Any change, up or down, has to be accepted explicitly by updating the snapshot.
 
 **Perf dataset**:
 The synthetic, reproducible data that perf runs execute against, shaped to resemble prod's distributions: course sizes, folder depth, library size and so on. It can be generated at different scales.
