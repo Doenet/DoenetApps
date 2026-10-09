@@ -57,13 +57,14 @@ export function reloadOnNewVersion(
 ): {
   /** Resolves once the first check is done. */
   ready: Promise<void>;
-  /** Re-checks the deployed commit now. */
+  /** Re-checks the deployed commit now, or joins a check in flight. */
   check: () => Promise<void>;
   stop: () => void;
 } {
   let newVersionDeployed = false;
+  let pendingCheck: Promise<void> | null = null;
 
-  async function check() {
+  async function checkNow() {
     if (!buildCommit || newVersionDeployed || document.hidden) {
       return;
     }
@@ -71,6 +72,15 @@ export function reloadOnNewVersion(
     if (deployed && deployed !== buildCommit) {
       newVersionDeployed = true;
     }
+  }
+
+  // A check while another is in flight (the interval and visibilitychange can
+  // coincide) shares that one's request and result.
+  function check() {
+    pendingCheck ??= checkNow().finally(() => {
+      pendingCheck = null;
+    });
+    return pendingCheck;
   }
 
   if (!buildCommit) {

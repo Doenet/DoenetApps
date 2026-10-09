@@ -155,6 +155,11 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
 
     cy.tick(5 * 60 * 1000);
     cy.wait(["@version", "@version"]);
+    // cy.wait returns once Cypress has seen the response, which can be before
+    // the app has read it. check() joins the interval's check if it is still
+    // in flight; no third request shows the interval's check found the change.
+    cy.then(() => watcher!.check());
+    cy.then(() => expect(requests).to.equal(2));
     navigateToOther(r);
     cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
   });
@@ -165,6 +170,12 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
       doc.dispatchEvent(new Event("visibilitychange"));
     });
     cy.wait(["@version", "@version"]);
+  });
+
+  it("shares one request between checks that overlap", () => {
+    start(router());
+    cy.then(() => Promise.all([watcher!.check(), watcher!.check()]));
+    cy.then(() => expect(requests).to.equal(2));
   });
 
   it("does not reload while the deployed version is unchanged", () => {
