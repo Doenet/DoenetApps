@@ -178,6 +178,44 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
     cy.then(() => expect(requests).to.equal(2));
   });
 
+  it("gives up on a request that never finishes, so later checks still run", () => {
+    cy.clock();
+    const r = router();
+    start(r);
+    let hung: Promise<void>;
+
+    // The next request hangs until aborted, like one cut off by a laptop
+    // going to sleep.
+    cy.then(() => {
+      const realFetch = window.fetch.bind(window);
+      let hang = true;
+      cy.stub(window, "fetch").callsFake(
+        (input: RequestInfo | URL, init?: RequestInit) => {
+          if (!hang) {
+            return realFetch(input, init);
+          }
+          hang = false;
+          return new Promise((_, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError")),
+            );
+          });
+        },
+      );
+      deployed.sha = "bbb222";
+      hung = watcher!.check();
+    });
+
+    // Without a timeout the hung check never settles, and every later check
+    // would join it.
+    cy.tick(30 * 1000);
+    cy.then(() => hung);
+    cy.then(() => watcher!.check());
+    cy.then(() => expect(requests).to.equal(2));
+    navigateToOther(r);
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
+  });
+
   it("does not reload while the deployed version is unchanged", () => {
     const r = router();
     start(r);

@@ -23,12 +23,20 @@ import { createPath, type createBrowserRouter } from "react-router";
  */
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+// Overlapping checks share one request, so a request that never settles (a
+// connection cut off by sleep, say) would block every later check.
+const REQUEST_TIMEOUT_MS = 30 * 1000;
 
 type Router = ReturnType<typeof createBrowserRouter>;
 
 async function fetchDeployedCommit(): Promise<string | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch("/version.json", { cache: "no-store" });
+    const response = await fetch("/version.json", {
+      cache: "no-store",
+      signal: controller.signal,
+    });
     if (!response.ok) {
       return null;
     }
@@ -36,6 +44,8 @@ async function fetchDeployedCommit(): Promise<string | null> {
     return typeof sha === "string" && sha !== "" ? sha : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
