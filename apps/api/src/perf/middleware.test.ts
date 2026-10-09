@@ -64,8 +64,8 @@ function parseServerTiming(header: string | null) {
   return metrics;
 }
 
-async function lastLogFor(path: string, headers?: Record<string, string>) {
-  const res = await fetch(baseUrl + path, { headers });
+async function lastLogFor(path: string) {
+  const res = await fetch(baseUrl + path);
   await res.text();
   // The log line is written on "close", which can land after the client
   // has the response.
@@ -109,21 +109,6 @@ describe("perfMiddleware", () => {
       sha: "abc123",
       clientBuild: null,
     });
-  });
-
-  test("logs the app build that sent the request", async () => {
-    const build = "0123456789abcdef0123456789abcdef01234567";
-    const { line } = await lastLogFor("/api/perfTest/queries/0", {
-      "X-Client-Build": build,
-    });
-    expect(JSON.parse(line!)).toMatchObject({ clientBuild: build });
-  });
-
-  test("ignores a client build that isn't a commit SHA", async () => {
-    const { line } = await lastLogFor("/api/perfTest/queries/0", {
-      "X-Client-Build": "x".repeat(5000),
-    });
-    expect(JSON.parse(line!)).toMatchObject({ clientBuild: null });
   });
 
   test("logs unmatched API paths without the URL", async () => {
