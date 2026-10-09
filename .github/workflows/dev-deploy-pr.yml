@@ -34,7 +34,8 @@ permissions:
 # progress: this workflow is triggered by comments from anyone on a public repo,
 # and cancelling would let a drive-by commenter kill an in-flight deploy before
 # the auth check runs. Unauthorized comments queue briefly, then fail auth and
-# release the slot. (A push to `main` still preempts, via dev-deploy.yml.)
+# release the slot. (A deploy of `main` still preempts, via dev-deploy.yml's
+# `deploy` job, which uses the same group.)
 concurrency:
   group: dev-deploy
   cancel-in-progress: false
