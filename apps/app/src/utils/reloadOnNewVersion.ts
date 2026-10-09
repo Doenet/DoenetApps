@@ -11,6 +11,10 @@ import { createPath, type createBrowserRouter } from "react-router";
  * an old build did; the API contract only stays compatible with old builds for
  * a limited time.
  *
+ * Only a navigation that runs a loader counts: the reload hooks the router's
+ * "loading" state, which a move to a page without a loader (such as /about or
+ * /signIn from another page under the root) never enters.
+ *
  * The check at startup catches a tab that loaded an old build from a cache.
  * That's why the tab's commit comes from the bundle, not from `/version.json`:
  * a fresh `/version.json` next to a cached bundle would hide the difference.

@@ -7,8 +7,9 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
   let reload: Cypress.Agent<sinon.SinonStub>;
   let watcher: ReturnType<typeof reloadOnNewVersion> | undefined;
 
-  // `/other` has a loader, as the app's routes do: the reload is triggered by
-  // the router entering the "loading" state.
+  // `/other` has a loader, as most of the app's routes do: the reload is
+  // triggered by the router entering the "loading" state, which a navigation
+  // that runs no loader skips.
   const router = () =>
     createMemoryRouter(
       [

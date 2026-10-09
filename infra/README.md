@@ -74,7 +74,8 @@ against the new schema. This is why migrations must be backward compatible
 A deploy updates the backend first and the frontend only once the backend's
 rollout has stabilized. On a rollback that means the live, newer app talks to
 the older API for a few minutes. Once the older frontend is up, open tabs
-switch to it on their next navigation (`apps/app/src/utils/reloadOnNewVersion.ts`).
+switch to it on their next navigation that runs a loader
+(`apps/app/src/utils/reloadOnNewVersion.ts`).
 
 Backend deploys that fail to boot or pass health checks roll themselves back
 (see `update-cluster-with-rollback`); manual rollback is for code that deploys
