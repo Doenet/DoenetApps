@@ -71,6 +71,11 @@ container boot and is never rolled back, so after a rollback the old code runs
 against the new schema. This is why migrations must be backward compatible
 (expand/contract: add columns/tables in one release, remove in a later one).
 
+A deploy updates the backend first and the frontend only once the backend's
+rollout has stabilized. On a rollback that means the live, newer app talks to
+the older API for a few minutes. Once the older frontend is up, open tabs
+switch to it on their next navigation (`apps/app/src/utils/reloadOnNewVersion.ts`).
+
 Backend deploys that fail to boot or pass health checks roll themselves back
 (see `update-cluster-with-rollback`); manual rollback is for code that deploys
 healthy but is functionally broken. Confirm what prod is actually running at

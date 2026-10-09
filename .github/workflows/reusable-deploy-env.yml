@@ -78,10 +78,12 @@ jobs:
       tag_name: ${{ needs.config.outputs.tag_name }}
     secrets: inherit
 
-  # The frontend waits for the backend's ECS rollout to stabilize, so a new
-  # app build never talks to an older API. Expand-migrate-contract relies on
-  # this: a PR may add to the API and start using the addition in the app at
-  # once.
+  # The frontend waits for the backend's ECS rollout to stabilize, so on a
+  # forward deploy a new app build never talks to an older API.
+  # Expand-migrate-contract relies on this: a PR may add to the API and start
+  # using the addition in the app at once. Deploying an older ref (a rollback)
+  # is the reverse: the live, newer app talks to the older API until this job
+  # replaces it.
   deploy-frontend:
     needs: [config, deploy-backend]
     uses: ./.github/workflows/reusable-deploy-frontend.yml

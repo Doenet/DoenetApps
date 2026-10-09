@@ -144,6 +144,20 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
       });
   });
 
+  it("re-checks every 5 minutes", () => {
+    cy.clock();
+    const r = router();
+    start(r);
+    cy.then(() => {
+      deployed.sha = "bbb222";
+    });
+
+    cy.tick(5 * 60 * 1000);
+    cy.wait(["@version", "@version"]);
+    navigateToOther(r);
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
+  });
+
   it("re-checks when the tab becomes visible", () => {
     start(router());
     cy.document().then((doc) => {
