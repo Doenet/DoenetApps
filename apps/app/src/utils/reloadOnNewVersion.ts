@@ -44,11 +44,11 @@ export function reloadOnNewVersion(
   {
     buildCommit = import.meta.env.VITE_COMMIT_SHA as string | undefined,
     // Swappable so component tests can observe the reload without leaving the page.
-    reload = (path) => window.location.assign(path),
+    reload = (url) => window.location.assign(url),
   }: {
     /** The commit this bundle was built from. */
     buildCommit?: string;
-    reload?: (path: string) => void;
+    reload?: (url: string) => void;
   } = {},
 ): {
   /** Resolves once the first check is done. */
@@ -90,7 +90,10 @@ export function reloadOnNewVersion(
       location &&
       !afterSubmission
     ) {
-      reload(createPath(location));
+      // Prefix the origin: a path can start with "//" (a history entry for
+      // https://host//evil.com), and on its own that is a protocol-relative
+      // URL to another site.
+      reload(window.location.origin + createPath(location));
     }
   });
 

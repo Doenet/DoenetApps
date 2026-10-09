@@ -26,6 +26,8 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
       { initialEntries: ["/"] },
     );
 
+  const url = (path: string) => window.location.origin + path;
+
   function start(r: ReturnType<typeof router>, buildCommit = "aaa111") {
     cy.then(() => {
       watcher = reloadOnNewVersion(r, { buildCommit, reload });
@@ -69,7 +71,7 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
     });
 
     navigateToOther(r);
-    cy.get("@reload").should("have.been.calledOnceWith", "/other?tab=2");
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
   });
 
   it("reloads on the next navigation when the tab started on an older build, e.g. from a cache", () => {
@@ -78,7 +80,7 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
     start(r);
 
     navigateToOther(r);
-    cy.get("@reload").should("have.been.calledOnceWith", "/other?tab=2");
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
   });
 
   it("does not reload after a form submission, which would drop its result", () => {
@@ -102,7 +104,7 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
 
     // The next plain navigation still picks up the new build.
     navigateToOther(r);
-    cy.get("@reload").should("have.been.calledOnceWith", "/other?tab=2");
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?tab=2"));
   });
 
   it("reloads on a GET form submission, as on any navigation", () => {
@@ -118,7 +120,28 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
       formData.append("q", "x");
       return r.navigate("/other", { formMethod: "get", formData });
     });
-    cy.get("@reload").should("have.been.calledOnceWith", "/other?q=x");
+    cy.get("@reload").should("have.been.calledOnceWith", url("/other?q=x"));
+  });
+
+  it("reloads a path starting with // on this site, not as a protocol-relative URL", () => {
+    // e.g. the tab first opened https://host//evil.com/start, then navigated on.
+    const r = createMemoryRouter(
+      [{ path: "*", element: null, loader: () => null }],
+      { initialEntries: ["//evil.com/start", "/"], initialIndex: 1 },
+    );
+    start(r);
+    cy.then(() => {
+      deployed.sha = "bbb222";
+      return watcher!.check();
+    });
+
+    cy.then(() => r.navigate(-1));
+    cy.get("@reload")
+      .should("have.been.calledOnceWith", url("//evil.com/start"))
+      .then(() => {
+        const target = new URL(reload.firstCall.args[0] as string);
+        expect(target.origin).to.equal(window.location.origin);
+      });
   });
 
   it("re-checks when the tab becomes visible", () => {
