@@ -1,7 +1,15 @@
 name: Prod Deploy
 
+# Deploys main once CI has passed on it. PRs no longer have to be up to date
+# with main before merging, so a merge can combine changes that were never
+# tested together; CI on main is the first run that tests them.
+#
+# The `branches` filter is on the trigger, not a job `if:`, so CI runs on PR
+# branches don't create a (skipped) run of this workflow at all.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: ["main"]
 
 permissions:
@@ -9,21 +17,50 @@ permissions:
   id-token: write
   deployments: write
 
-# Never cancel a deploy that has started: killing a run mid-S3-sync or
-# mid-ECS-rollout (or mid-rollback) can leave prod half-updated. Queued
-# runs are safe to supersede — GitHub keeps only the newest pending run,
-# and branch protection guarantees it contains every earlier merge.
-concurrency:
-  group: prod-deploy
-  cancel-in-progress: false
-
 jobs:
+  # Deploy only a commit that passed CI and is still the tip of main. CI runs
+  # for two merges can finish out of order; deploying the older one last
+  # would roll prod back. A commit that's no longer the tip is left to the
+  # newer one's CI run. Re-running a failed CI run deploys once it passes.
+  #
+  # Re-running this workflow (attempt 2+) skips the tip check: that's the
+  # manual rollback in infra/README.md, which redeploys an older run's SHA.
+  gate:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    outputs:
+      deploy: ${{ steps.tip.outputs.deploy }}
+    steps:
+      - name: Check the commit is still the tip of main
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          if [[ "$ATTEMPT" != "1" ]]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tip=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
+          if [[ "$tip" == "$SHA" ]]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping $SHA: main has moved on to $tip, whose CI run deploys it."
+          fi
+
   # Open a GitHub deployment so the repo's prod Environment always shows
   # what is currently live. Uses the Deployments API rather than an
   # `environment:` key so environment protection rules can never gate the
   # deploy, and the deploy job does not depend on this one — bookkeeping
   # must never block or skip an actual deploy.
   create-deployment:
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     outputs:
       deployment_id: ${{ steps.open.outputs.deployment_id }}
@@ -37,14 +74,25 @@ jobs:
         with:
           environment: prod
           environment-url: https://doenet.org
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           description: prod deploy
           production-environment: "true"
 
+  # Never cancel a deploy that has started: killing a run mid-S3-sync or
+  # mid-ECS-rollout (or mid-rollback) can leave prod half-updated. Queued
+  # deploys are safe to supersede: GitHub keeps only the newest pending one,
+  # and `gate` lets through only the tip of main, which contains every
+  # earlier merge. The group is on this job, after `gate`, so a run that
+  # deploys nothing (CI failed, or not the tip) never displaces one that does.
   deploy:
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
+    concurrency:
+      group: prod-deploy
+      cancel-in-progress: false
     uses: ./.github/workflows/reusable-deploy-env.yml
     with:
-      deploy_ref: ${{ github.sha }}
+      deploy_ref: ${{ github.event.workflow_run.head_sha }}
       env_name: prod
     secrets: inherit
 
@@ -56,7 +104,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # A queued deploy that a newer one displaced (see `deploy`'s
+      # concurrency) never ran, so it is neither live nor failed.
+      - name: Mark a superseded deployment inactive
+        if: needs.deploy.result == 'cancelled'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ needs.create-deployment.outputs.deployment_id }}
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses" \
+            -f state=inactive \
+            -f description="superseded by a newer prod deploy" \
+            -f environment=prod \
+            -f environment_url=https://doenet.org
+
       - name: Finalize GitHub deployment status
+        if: needs.deploy.result != 'cancelled'
         uses: ./.github/actions/finalize-deployment
         with:
           deployment-id: ${{ needs.create-deployment.outputs.deployment_id }}
