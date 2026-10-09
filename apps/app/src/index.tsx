@@ -105,7 +105,7 @@ import {
   loader as docEditorSettingsModeLoader,
 } from "./paths/editor/EditorSettingsMode";
 import axios, { AxiosError } from "axios";
-import { reloadOnNewVersion } from "./utils/reloadOnNewVersion";
+import { sendClientBuild } from "./utils/clientBuild";
 import { ensureDevAutoLogin } from "./dev/autoLogin";
 import { loadShareStatus } from "./features/sharing";
 import {
@@ -135,6 +135,9 @@ import {
 import { GetInvolved } from "./paths/GetInvolved";
 import { Events } from "./paths/Events";
 import { QuickLinks } from "./paths/QuickLinks";
+
+// Before the router is created: it starts the first page's loaders at once.
+sendClientBuild();
 
 const router = createBrowserRouter([
   {
@@ -459,8 +462,6 @@ const router = createBrowserRouter([
     loader: legacySiteRedirectLoader,
   },
 ]);
-
-reloadOnNewVersion(router);
 
 const root = createRoot(document.getElementById("root")!);
 

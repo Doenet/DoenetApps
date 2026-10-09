@@ -2,6 +2,8 @@ import { Container, Button, Heading, Text } from "@chakra-ui/react";
 
 import { useNavigate, useRouteError } from "react-router";
 
+import { OutdatedBuildNotice } from "../components/OutdatedBuildNotice";
+
 const mouths = [
   "M 23.485 28.879 C 23.474 28.835 22.34 24.5 18 24.5 S 12.526 28.835 12.515 28.879 C 12.462 29.092 12.559 29.31 12.747 29.423 C 12.935 29.535 13.18 29.509 13.343 29.363 C 13.352 29.355 14.356 28.5 18 28.5 C 21.59 28.5 22.617 29.33 22.656 29.363 C 22.751 29.453 22.875 29.5 23 29.5 C 23.084 29.5 23.169 29.479 23.246 29.436 C 23.442 29.324 23.54 29.097 23.485 28.879 Z",
   "M25 26H11c-.552 0-1-.447-1-1s.448-1 1-1h14c.553 0 1 .447 1 1s-.447 1-1 1z",
@@ -65,6 +67,7 @@ function ErrorPage() {
       <Heading data-test="Error Message">{errorMessage}</Heading>
       {/* <Heading fontSize="96">404</Heading> */}
       {errorDescription}
+      <OutdatedBuildNotice />
       <Container centerContent padding="36px">
         <svg
           width="240"

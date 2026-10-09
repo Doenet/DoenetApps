@@ -62,7 +62,8 @@ jobs:
           npm ci
           cd apps/app
           # Built into the bundle, so an open tab knows which build it is
-          # running and can compare it to /version.json (reloadOnNewVersion).
+          # running: it sends it with each API request and compares it to
+          # /version.json (apps/app/src/utils/clientBuild.ts).
           VITE_COMMIT_SHA="$(git rev-parse HEAD)" npm run build -- --mode ${{ inputs.build_mode }}
 
       - name: Stamp version.json
