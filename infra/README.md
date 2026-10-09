@@ -71,7 +71,37 @@ container boot and is never rolled back, so after a rollback the old code runs
 against the new schema. This is why migrations must be backward compatible
 (expand/contract: add columns/tables in one release, remove in a later one).
 
+A deploy updates the backend first and the frontend only once the backend's
+rollout has stabilized. On a rollback that means the newer app talks to the
+older API: for a few minutes for new page loads, and until they are reloaded
+for tabs already open, since open tabs aren't reloaded on a deploy. If one of
+those tabs fails, the error page suggests a reload.
+
 Backend deploys that fail to boot or pass health checks roll themselves back
 (see `update-cluster-with-rollback`); manual rollback is for code that deploys
 healthy but is functionally broken. Confirm what prod is actually running at
 `https://doenet.org/api/health` and `https://doenet.org/version.json`.
+
+## Removing an API shape
+
+Open tabs keep running the build they loaded until the user reloads or opens
+a new page, and a tab left open can call the API for days. So before a PR
+removes an API route, field or behaviour that an older app build used (the
+"contract" step of expand/migrate/contract), confirm that no build still using
+it is calling.
+
+Each API request's `perf.request` log line records the app build that sent it
+(`clientBuild`, from the `X-Client-Build` header). In CloudWatch Logs Insights,
+on the prod log group, over the last 7 days:
+
+```text
+fields @timestamp
+| filter type = 'perf.request'
+| stats count(*) as requests, max(@timestamp) as lastSeen by clientBuild
+| sort lastSeen desc
+```
+
+Every build listed must already include the change that stopped using the old
+shape: `git merge-base --is-ancestor <that commit> <clientBuild>` succeeds. A
+row with an empty `clientBuild` is a request without the header, from a build
+older than the header itself or from something other than the app.

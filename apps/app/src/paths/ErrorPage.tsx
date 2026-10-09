@@ -2,6 +2,8 @@ import { Container, Button, Heading, Text } from "@chakra-ui/react";
 
 import { useNavigate, useRouteError } from "react-router";
 
+import { OutdatedBuildNotice } from "../components/OutdatedBuildNotice";
+
 const mouths = [
   "M 23.485 28.879 C 23.474 28.835 22.34 24.5 18 24.5 S 12.526 28.835 12.515 28.879 C 12.462 29.092 12.559 29.31 12.747 29.423 C 12.935 29.535 13.18 29.509 13.343 29.363 C 13.352 29.355 14.356 28.5 18 28.5 C 21.59 28.5 22.617 29.33 22.656 29.363 C 22.751 29.453 22.875 29.5 23 29.5 C 23.084 29.5 23.169 29.479 23.246 29.436 C 23.442 29.324 23.54 29.097 23.485 28.879 Z",
   "M25 26H11c-.552 0-1-.447-1-1s.448-1 1-1h14c.553 0 1 .447 1 1s-.447 1-1 1z",
@@ -21,7 +23,11 @@ const rightEyes = [
   "M 19.35 3.281 C 20.209 0.85 22.875 -0.426 25.306 0.431 C 26.782 0.951 27.827 2.142 28.235 3.535 C 29.426 2.706 30.986 2.435 32.46 2.955 C 34.89 3.813 36.167 6.48 35.31 8.911 C 35.187 9.255 35.026 9.574 34.837 9.869 C 32.886 13.451 27.249 15.969 23.835 16 C 21.198 13.833 18.39 8.335 19.118 4.323 C 19.155 3.975 19.23 3.625 19.35 3.281 Z",
 ];
 
-function ErrorPage() {
+/**
+ * `build` is the commit this tab is running, for the out-of-date notice. It
+ * defaults to the one built into the bundle; tests pass their own.
+ */
+function ErrorPage({ build }: { build?: string } = {}) {
   const navigate = useNavigate();
   const error: any = useRouteError();
   console.error(error);
@@ -65,6 +71,7 @@ function ErrorPage() {
       <Heading data-test="Error Message">{errorMessage}</Heading>
       {/* <Heading fontSize="96">404</Heading> */}
       {errorDescription}
+      <OutdatedBuildNotice build={build} />
       <Container centerContent padding="36px">
         <svg
           width="240"

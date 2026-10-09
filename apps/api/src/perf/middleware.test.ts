@@ -107,6 +107,7 @@ describe("perfMiddleware", () => {
       dbMs: expect.any(Number),
       queries: 3,
       sha: "abc123",
+      clientBuild: null,
     });
   });
 

@@ -88,6 +88,7 @@ export function perfMiddleware(options: PerfOptions) {
             dbMs: round(stats.dbMs),
             queries: stats.queries,
             sha: options.sha,
+            clientBuild: clientBuild(req),
           }),
         );
       });
@@ -109,6 +110,17 @@ function routePattern(req: Request) {
     return "unmatched";
   }
   return req.baseUrl + String(req.route.path);
+}
+
+/**
+ * The app build that sent the request, from the `X-Client-Build` header the
+ * app adds (apps/app/src/utils/clientBuild.ts). Before an old API shape is
+ * removed, these show whether any build that still uses it is calling. Null
+ * when absent (older builds, local dev, other clients) or not a commit SHA.
+ */
+function clientBuild(req: Request) {
+  const value = req.get("X-Client-Build");
+  return value && /^[0-9a-f]{40}$/.test(value) ? value : null;
 }
 
 function round(ms: number) {
