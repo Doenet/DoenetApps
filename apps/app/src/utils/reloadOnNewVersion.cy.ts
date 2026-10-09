@@ -14,6 +14,14 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
       [
         { path: "/", element: null },
         { path: "/other", element: null, loader: () => null },
+        // An action that returns data: the router then revalidates the
+        // current page's loaders, entering "loading" without leaving it.
+        {
+          path: "/form",
+          element: null,
+          loader: () => null,
+          action: () => null,
+        },
       ],
       { initialEntries: ["/"] },
     );
@@ -71,6 +79,46 @@ describe("reloadOnNewVersion", { tags: ["@group2"] }, () => {
 
     navigateToOther(r);
     cy.get("@reload").should("have.been.calledOnceWith", "/other?tab=2");
+  });
+
+  it("does not reload after a form submission, which would drop its result", () => {
+    const r = router();
+    start(r);
+    cy.then(() => r.navigate("/form"));
+    cy.wrap(r).its("state.location.pathname").should("equal", "/form");
+    cy.then(() => {
+      deployed.sha = "bbb222";
+      return watcher!.check();
+    });
+
+    cy.then(() => {
+      const formData = new FormData();
+      formData.append("field", "value");
+      return r.navigate("/form", { formMethod: "post", formData });
+    });
+    cy.wrap(r).its("state.actionData").should("exist");
+    cy.wrap(r).its("state.navigation.state").should("equal", "idle");
+    cy.get("@reload").should("not.have.been.called");
+
+    // The next plain navigation still picks up the new build.
+    navigateToOther(r);
+    cy.get("@reload").should("have.been.calledOnceWith", "/other?tab=2");
+  });
+
+  it("reloads on a GET form submission, as on any navigation", () => {
+    const r = router();
+    start(r);
+    cy.then(() => {
+      deployed.sha = "bbb222";
+      return watcher!.check();
+    });
+
+    cy.then(() => {
+      const formData = new FormData();
+      formData.append("q", "x");
+      return r.navigate("/other", { formMethod: "get", formData });
+    });
+    cy.get("@reload").should("have.been.calledOnceWith", "/other?q=x");
   });
 
   it("re-checks when the tab becomes visible", () => {

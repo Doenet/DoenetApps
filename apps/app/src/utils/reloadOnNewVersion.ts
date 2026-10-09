@@ -77,8 +77,19 @@ export function reloadOnNewVersion(
   document.addEventListener("visibilitychange", check);
 
   const unsubscribe = router.subscribe((state) => {
-    const { location, state: navigationState } = state.navigation;
-    if (newVersionDeployed && navigationState === "loading" && location) {
+    const { location, state: navigationState, formMethod } = state.navigation;
+    // Skip the "loading" that follows a form submission (POST etc.): its
+    // action has run, and reloading would drop the result it returned and any
+    // request the action started without awaiting. The next plain navigation
+    // reloads instead. A GET submission is an ordinary navigation.
+    const afterSubmission =
+      formMethod !== undefined && formMethod.toUpperCase() !== "GET";
+    if (
+      newVersionDeployed &&
+      navigationState === "loading" &&
+      location &&
+      !afterSubmission
+    ) {
       reload(createPath(location));
     }
   });
