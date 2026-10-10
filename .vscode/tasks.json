@@ -3,12 +3,9 @@
   "tasks": [
     {
       "label": "Start dev servers",
-      "detail": "npm run dev \u2014 the API, app, and blog. No-op if already running.",
+      "detail": "npm run dev — the API, app, and blog.",
       "type": "shell",
-      "command": "bash .devcontainer/start-dev.sh",
-      "windows": {
-        "command": "npm run dev"
-      },
+      "command": "npm run dev",
       "isBackground": true,
       "problemMatcher": [],
       "group": {
