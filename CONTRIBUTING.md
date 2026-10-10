@@ -32,7 +32,8 @@ it is stopped later. `npm run dev` then starts everything (see
 If you would rather not install Node, the repo has a
 [dev container](https://containers.dev/) that runs the same steps inside a
 container with its own Node, MySQL, S3 mock, Chrome (for the Cypress suites),
-and Claude Code.
+and Claude Code. Locally it needs Docker Compose 2.24 or newer (the overlay
+uses `!override`).
 
 - **GitHub Codespaces.** Nothing to install: **Code → Codespaces → Create
   codespace on main**, or open
