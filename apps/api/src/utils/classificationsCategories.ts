@@ -189,83 +189,55 @@ export function returnClassificationFilterWhereClauses({
 }
 
 /**
- * Generates SQL LEFT JOIN clauses to filter content by multiple categories.
- *
- * For each category in the set, this creates:
- * 1. A LEFT JOIN to the many-to-many relation table (_categoriesTocontent)
- * 2. A LEFT JOIN to the categories table
- *
- * The joins are aliased as ccf1, ccf2, ccf3... and categories1, categories2, categories3...
- * to support multiple category filters simultaneously.
- *
- * @param categories - A set of category codes to filter by. If undefined or empty, returns Prisma.empty.
- * @returns Prisma.Sql object containing the LEFT JOIN clauses, or Prisma.empty if no categories specified.
- *
- * @example
- * // For categories = new Set(["math", "algebra"])
- * // Generates:
- * // LEFT JOIN _categoriesTocontent AS ccf1 ON ccf1.B = content.id
- * // LEFT JOIN categories as categories1 on categories1.id = ccf1.A
- * // LEFT JOIN _categoriesTocontent AS ccf2 ON ccf2.B = content.id
- * // LEFT JOIN categories as categories2 on categories2.id = ccf2.A
+ * The categories an explore request filters by, with their codes resolved to
+ * category ids by `resolveCategoryCodes`.
  */
-export function returnCategoryJoins(categories?: Set<string>) {
-  const numCategories = categories === undefined ? 0 : categories.size;
-
-  if (numCategories === 0) {
-    return Prisma.empty;
-  }
-
-  // Build join clauses dynamically for any number of categories
-  const joinClauses: Prisma.Sql[] = [];
-
-  for (let i = 0; i < numCategories; i++) {
-    joinClauses.push(Prisma.sql`
-      LEFT JOIN _categoriesTocontent AS ${Prisma.raw(`ccf${i + 1}`)} ON ${Prisma.raw(`ccf${i + 1}`)}.B = content.id
-      LEFT JOIN categories as ${Prisma.raw(`categories${i + 1}`)} on ${Prisma.raw(`categories${i + 1}`)}.id = ${Prisma.raw(`ccf${i + 1}`)}.A
-    `);
-  }
-
-  return Prisma.sql`${Prisma.join(joinClauses, " ")}`;
-}
+export type ResolvedCategories = {
+  /** Distinct ids of the categories the requested codes match */
+  ids: number[];
+  /** True if some requested code matches no category, so no content can match */
+  hasUnknownCode: boolean;
+};
 
 /**
- * Generates SQL WHERE clauses to match content that has ALL specified categories.
+ * Generates a SQL WHERE clause to match content that has ALL specified categories.
  *
- * Works in conjunction with returnCategoryJoins() to filter content. Each category
- * must match one of the joined category tables (categories1, categories2, etc.).
- * This creates an AND condition ensuring content is tagged with all specified categories.
+ * Each category adds one `EXISTS` probe of `_categoriesTocontent` for the
+ * content row, which uses its unique (A, B) index. The ids are deduplicated
+ * when the codes are resolved, so codes that name the same category (such as
+ * codes differing only in letter case) add one probe.
  *
- * @param categories - A set of category codes that must all be present. If undefined or empty, returns Prisma.empty.
- * @returns Prisma.Sql object containing AND clauses for each category, or Prisma.empty if no categories specified.
+ * @param categories - The resolved categories that must all be present. If
+ * undefined or with no ids, returns Prisma.empty. If a requested code matched no
+ * category, returns a clause that excludes all content.
+ * @returns Prisma.Sql object containing an AND clause on `content.id`, or Prisma.empty if no categories specified.
  *
  * @example
- * // For categories = new Set(["math", "algebra"])
+ * // For categories = { ids: [3, 7], hasUnknownCode: false }
  * // Generates:
- * // AND categories1.code = 'math'
- * // AND categories2.code = 'algebra'
+ * // AND EXISTS (SELECT 1 FROM _categoriesTocontent AS categoriesTocontent
+ * //   WHERE categoriesTocontent.B = content.id AND categoriesTocontent.A = 3)
+ * // AND EXISTS (SELECT 1 FROM _categoriesTocontent AS categoriesTocontent
+ * //   WHERE categoriesTocontent.B = content.id AND categoriesTocontent.A = 7)
  */
-export function returnCategoryWhereClauses(categories?: Set<string>) {
+export function returnCategoryWhereClauses(categories?: ResolvedCategories) {
   if (categories === undefined) {
     return Prisma.empty;
   }
-
-  const categoriesToRequire = [...categories.keys()];
-
-  const numCategories = categoriesToRequire.length;
-
-  if (numCategories === 0) {
+  if (categories.hasUnknownCode) {
+    return Prisma.sql`AND FALSE`;
+  }
+  if (categories.ids.length === 0) {
     return Prisma.empty;
   }
 
-  // Build where clauses dynamically for any number of categories
-  const whereClauses: Prisma.Sql[] = [];
-
-  for (let i = 0; i < numCategories; i++) {
-    whereClauses.push(
-      Prisma.sql`AND ${Prisma.raw(`categories${i + 1}`)}.code = ${categoriesToRequire[i]}`,
-    );
-  }
-
-  return Prisma.sql`${Prisma.join(whereClauses, " ")}`;
+  return Prisma.join(
+    categories.ids.map(
+      (id) => Prisma.sql`AND EXISTS (
+    SELECT 1 FROM _categoriesTocontent AS categoriesTocontent
+    WHERE categoriesTocontent.B = content.id AND categoriesTocontent.A = ${id}
+  )`,
+    ),
+    "\n    ",
+  );
 }
