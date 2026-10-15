@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type CardSelections = {
   ids: Set<string>;
@@ -16,23 +16,29 @@ export type CardSelections = {
 export function useCardSelections({ ids }: { ids: string[] }): CardSelections {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
+  // `add`, `remove` and `clear` keep their identity across renders, so memoized
+  // cards that receive them don't re-render.
+
   /** Add a card id to the selection. */
-  function add(id: string) {
+  const add = useCallback((id: string) => {
     setSelectedCards((was) => {
       const newSet = new Set(was);
       newSet.add(id);
       return newSet;
     });
-  }
+  }, []);
 
   /** Remove a card id from the selection. */
-  function remove(id: string) {
+  const remove = useCallback((id: string) => {
     setSelectedCards((was) => {
       const newSet = new Set(was);
       newSet.delete(id);
       return newSet;
     });
-  }
+  }, []);
+
+  /** Clear all selections. */
+  const clear = useCallback(() => setSelectedCards(new Set()), []);
 
   /*
    * Every time the ids changes, we check if any of the selected cards
@@ -54,8 +60,7 @@ export function useCardSelections({ ids }: { ids: string[] }): CardSelections {
     count: selectedCards.size,
     add,
     remove,
-    /** Clear all selections. */
-    clear: () => setSelectedCards(new Set()),
+    clear,
   };
 }
 

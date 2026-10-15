@@ -204,16 +204,22 @@ export function Explore() {
   const createContentMenuCreateFetcher = useFetcher();
   const createContentMenuSaveNameFetcher = useFetcher();
 
-  const allContent: ContentCard[] = [
-    ...(recentContent ?? []),
-    ...(trendingContent ?? []),
-    ...(curatedContent ?? []),
-    ...(searchedContent ?? []),
-  ];
+  const allContent: ContentCard[] = useMemo(
+    () => [
+      ...(recentContent ?? []),
+      ...(trendingContent ?? []),
+      ...(curatedContent ?? []),
+      ...(searchedContent ?? []),
+    ],
+    [recentContent, trendingContent, curatedContent, searchedContent],
+  );
 
-  const cardSelections = useCardSelections({
-    ids: allContent.map((c) => c.contentId),
-  });
+  const allContentIds = useMemo(
+    () => allContent.map((c) => c.contentId),
+    [allContent],
+  );
+
+  const cardSelections = useCardSelections({ ids: allContentIds });
 
   const selectedContentDescriptions: ContentCard[] = [];
   const seenContentIds = new Set<string>();
@@ -293,66 +299,35 @@ export function Explore() {
       />
     ) : null;
 
-  const curatedContentDisplay = useMemo(
-    () =>
-      curatedContent
-        ? displayMatchingContent(curatedContent, {
-            base: `calc(100vh - ${q ? "250" : "210"}px)`,
-            lg: `calc(100vh - ${q ? "210" : "170"}px)`,
-          })
-        : null,
-    [displayMatchingContent, curatedContent, q],
+  // The card content of each list keeps its identity until the list changes, so
+  // the memoized cards don't re-render when other state (e.g., the search
+  // string or the selected cards) changes.
+  const curatedCards = useMemo(
+    () => (curatedContent ? toCardContent(curatedContent) : null),
+    [curatedContent],
+  );
+  const trendingCards = useMemo(
+    () => (trendingContent ? toCardContent(trendingContent) : null),
+    [trendingContent],
+  );
+  const recentCards = useMemo(
+    () => (recentContent ? toCardContent(recentContent) : null),
+    [recentContent],
+  );
+  const searchedCards = useMemo(
+    () => (searchedContent ? toCardContent(searchedContent) : null),
+    [searchedContent],
   );
 
-  const trendingContentDisplay = useMemo(
-    () => (trendingContent ? displayMatchingContent(trendingContent) : null),
-    [trendingContent, displayMatchingContent],
-  );
+  const listMinHeight = {
+    base: `calc(100vh - ${q ? "250" : "210"}px)`,
+    lg: `calc(100vh - ${q ? "210" : "170"}px)`,
+  };
 
-  const recentContentDisplay = useMemo(
-    () =>
-      recentContent
-        ? displayMatchingContent(recentContent, {
-            base: `calc(100vh - ${q ? "250" : "210"}px)`,
-            lg: `calc(100vh - ${q ? "210" : "170"}px)`,
-          })
-        : null,
-    [displayMatchingContent, recentContent, q],
-  );
-
-  const searchedContentDisplay = useMemo(
-    () =>
-      searchedContent
-        ? displayMatchingContent(searchedContent, {
-            base: `calc(100vh - ${q ? "250" : "210"}px)`,
-            lg: `calc(100vh - ${q ? "210" : "170"}px)`,
-          })
-        : null,
-    [displayMatchingContent, searchedContent, q],
-  );
-
-  // TODO: figure out functions inside hooks
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  function displayMatchingContent(
-    matches: ContentCard[],
+  function displayCards(
+    cardContent: CardContent[],
     minHeight?: string | { base: string; lg: string },
   ) {
-    const cardContent: CardContent[] = matches.map((itemObj) => {
-      const { contentId, owner, type: contentType } = itemObj;
-      const cardLink = contentViewerUrl(contentType, contentId, owner?.userId);
-
-      const ownerAvatarName = createNameNoTag(owner!);
-      const ownerName = createNameCheckCurateTag(owner!);
-
-      return {
-        contentId,
-        content: itemObj,
-        ownerAvatarName,
-        ownerName,
-        cardLink,
-      };
-    });
-
     return (
       <Box
         background="surface"
@@ -862,6 +837,8 @@ export function Explore() {
       variant="enclosed-colored"
       index={currentTab ?? 0}
       onChange={setCurrentTab}
+      // Mount only the selected tab's cards
+      isLazy
     >
       <TabList>
         <Tab data-test="Curated Tab">
@@ -880,7 +857,7 @@ export function Explore() {
 
       <TabPanels data-test="Search Results">
         <TabPanel padding={0} data-test="Curated Results">
-          {curatedContentDisplay}
+          {curatedCards && displayCards(curatedCards, listMinHeight)}
         </TabPanel>
         <TabPanel padding={0} data-test="Community Results">
           {trendingContent && (
@@ -894,7 +871,7 @@ export function Explore() {
               >
                 Trending
               </Heading>
-              {trendingContentDisplay}
+              {trendingCards && displayCards(trendingCards)}
             </Box>
           )}
           {recentContent && (
@@ -908,13 +885,13 @@ export function Explore() {
               >
                 Recent
               </Heading>
-              {recentContentDisplay}
+              {recentCards && displayCards(recentCards, listMinHeight)}
             </Box>
           )}
 
           {searchedContent && (
             <Box data-test="Searched Content List">
-              {searchedContentDisplay}
+              {searchedCards && displayCards(searchedCards, listMinHeight)}
             </Box>
           )}
         </TabPanel>
@@ -963,4 +940,22 @@ export function Explore() {
       <Show below="lg">{results}</Show>
     </>
   );
+}
+
+function toCardContent(matches: ContentCard[]): CardContent[] {
+  return matches.map((itemObj) => {
+    const { contentId, owner, type: contentType } = itemObj;
+    const cardLink = contentViewerUrl(contentType, contentId, owner?.userId);
+
+    const ownerAvatarName = createNameNoTag(owner!);
+    const ownerName = createNameCheckCurateTag(owner!);
+
+    return {
+      contentId,
+      content: itemObj,
+      ownerAvatarName,
+      ownerName,
+      cardLink,
+    };
+  });
 }

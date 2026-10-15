@@ -1,4 +1,4 @@
-import { ReactElement, useState } from "react";
+import { memo, ReactElement, useState } from "react";
 import {
   Text,
   Card as ChakraCard,
@@ -56,7 +56,12 @@ export type CardContent = {
   updateRepeatInProblemSet?: (copies: number) => void;
 };
 
-export default function Card({
+/**
+ * Memoized, so a list of cards re-renders only the cards whose props changed.
+ * Pass props that keep their identity across renders (e.g., memoized
+ * `cardContent` and stable callbacks) to benefit.
+ */
+export default memo(function Card({
   cardContent,
   showOwnerName = false,
   showBlurb = false,
@@ -85,8 +90,8 @@ export default function Card({
   indentLevel?: number;
   includeSelectionBox?: boolean;
   isSelected?: boolean;
-  onSelected?: () => void;
-  onDeselected?: () => void;
+  onSelected?: (contentId: string) => void;
+  onDeselected?: (contentId: string) => void;
   isAuthor?: boolean;
   addDocumentCallback?: (contentId: string) => void;
   disableSelect?: boolean;
@@ -139,9 +144,9 @@ export default function Card({
       isChecked={isSelected || disableAsSelected}
       onChange={(e) => {
         if (e.target.checked) {
-          onSelected?.();
+          onSelected?.(contentId);
         } else {
-          onDeselected?.();
+          onDeselected?.(contentId);
         }
       }}
       aria-label={`Select item ${idx + 1}: ${title}`}
@@ -494,4 +499,4 @@ export default function Card({
       </CardBody>
     </ChakraCard>
   );
-}
+});

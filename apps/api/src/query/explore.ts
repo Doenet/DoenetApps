@@ -21,6 +21,12 @@ import { getClassificationInfo } from "./classification";
 import { getAllCategories } from "../categories";
 import { getAuthorInfo } from "./user";
 
+/**
+ * The number of cards in each list of Explore results (curated, recent, search).
+ * Explore shows only the first page, so this caps how many cards it shows.
+ */
+const EXPLORE_PAGE_SIZE = 24;
+
 function returnExploreVisibilityWhere(loggedInUserId: Uint8Array) {
   return {
     OR: [
@@ -109,7 +115,7 @@ export async function searchSharedContent({
   ownerId?: Uint8Array;
   page?: number;
 }) {
-  const pageSize = 100;
+  const pageSize = EXPLORE_PAGE_SIZE;
 
   const query_as_prefixes = sanitizeQuery(query);
 
@@ -210,7 +216,7 @@ export async function browseSharedContent({
   ownerId?: Uint8Array;
   page?: number;
 }) {
-  const pageSize = 100;
+  const pageSize = EXPLORE_PAGE_SIZE;
 
   const classificationsFilter = isUnclassified
     ? {
