@@ -74,22 +74,12 @@ export async function loader({
     isUnclassified = true;
   }
 
-  const {
-    data: { allCategories },
-  }: { data: { allCategories: CategoryGroup[] } } = await axios.get(
-    `/api/info/getAllCategories`,
-  );
-
   const url = new URL(request.url);
 
-  const categories: Set<string> = new Set();
-  for (const categoryGroup of allCategories) {
-    for (const category of categoryGroup.categories) {
-      if (url.searchParams.has(category.code)) {
-        categories.add(category.code);
-      }
-    }
-  }
+  // Category filters are URL search parameters named by category code. The
+  // server keeps the names that are category codes and returns all categories,
+  // so we don't need to fetch the categories first.
+  const paramNames = [...new Set(url.searchParams.keys())];
 
   const authorId = url.searchParams.get("author") ?? undefined;
 
@@ -101,7 +91,7 @@ export async function loader({
       `/api/explore/searchExplore`,
       {
         query: q,
-        categories: [...categories.keys()],
+        categories: paramNames,
         isUnclassified,
         systemId,
         categoryId,
@@ -115,14 +105,13 @@ export async function loader({
       q,
       ...searchData,
       searchedContent: searchData.content,
-      categories,
-      allCategories,
+      categories: selectedCategories(paramNames, searchData.allCategories),
     };
   } else {
     const { data: browseData } = await axios.post(
       "/api/explore/browseExplore",
       {
-        categories: [...categories.keys()],
+        categories: paramNames,
         isUnclassified,
         systemId,
         categoryId,
@@ -134,10 +123,28 @@ export async function loader({
 
     return {
       ...browseData,
-      categories,
-      allCategories,
+      categories: selectedCategories(paramNames, browseData.allCategories),
     };
   }
+}
+
+/**
+ * The codes of the categories among `paramNames`
+ */
+function selectedCategories(
+  paramNames: string[],
+  allCategories: CategoryGroup[],
+) {
+  const names = new Set(paramNames);
+  const categories: Set<string> = new Set();
+  for (const categoryGroup of allCategories) {
+    for (const category of categoryGroup.categories) {
+      if (names.has(category.code)) {
+        categories.add(category.code);
+      }
+    }
+  }
+  return categories;
 }
 
 export function Explore() {
