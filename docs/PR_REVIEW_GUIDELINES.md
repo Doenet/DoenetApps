@@ -2,7 +2,9 @@
 
 Review this PR. The first question is whether the code is **correct**: whether it does
 what the PR, its documentation, and its own comments say it does. Everything else in this
-document is secondary to that.
+document is secondary to that, with one exception: the Approach section asks whether the
+diff should exist in this shape at all, and a structural finding there outranks any
+correctness finding in code it would remove.
 
 Look for the case that breaks the change, not the case that confirms it: a review that
 sets out to agree will find agreement. Report only what you can substantiate, and say what
@@ -115,6 +117,32 @@ then paraphrased into each new place tends to get checked against the earlier wo
 rather than against the code, so one error propagates and every later reader finds it
 reassuringly consistent with everything around it. Go back to the code each time,
 including for the copy you have already read somewhere else.
+
+## Approach
+
+Before judging whether the code is right, ask whether it needs to exist in this shape:
+**what small change, inside or outside this PR, would make most of this diff
+unnecessary?** Two patterns to look for:
+
+- **A workaround for a missing prerequisite.** The PR contorts a query around a missing
+  index, duplicates logic around a missing shared helper, or patches several call sites
+  around one wrong default. The fix for the cause is usually small and outside the diff.
+- **Machinery where a simpler tool would do.** The PR builds a system (state tracking,
+  coordination, retries, a new table) for a problem that a much smaller change at a
+  different layer solves, such as sending the client version with every API request
+  instead of orchestrating client refreshes.
+
+The warning sign in both is complexity out of proportion to the problem. If the PR
+description has an `## Approach` section, test its claim; if it does not, and the change
+is non-trivial, that absence is itself a finding.
+
+A finding here is **structural** when it passes this size test: the fix would remove or
+replace a substantial part of the diff, or the diff exists mainly to work around the
+problem. Report a structural finding first, before any correctness findings, with the
+proposed fix and roughly how much of the diff it would remove. Do not restructure the PR
+yourself: whether to restructure, land a prerequisite PR first, or proceed as is, is the
+author's call. A smaller structural observation — a helper that could be shared, a layer
+that could be cleaner — falls under Scope below.
 
 ## Scope
 
