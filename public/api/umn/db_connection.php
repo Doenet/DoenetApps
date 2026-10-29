@@ -42,6 +42,10 @@ if ($_SERVER['HTTP_HOST'] == 'localhost:3000') {
 }
 
 
+// The legacy code relies on failed queries (e.g., duplicate-key inserts) returning
+// false rather than throwing, which became the default in PHP 8.1.
+mysqli_report(MYSQLI_REPORT_OFF);
+
 $conn = new mysqli();
 
 
