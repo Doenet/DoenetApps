@@ -2,6 +2,7 @@ import {
   Box,
   Heading,
   Icon,
+  Text,
   List,
   ListItem,
   Tooltip,
@@ -16,9 +17,11 @@ import { activityCategoryIcons } from "../utils/activity";
 export function GeneralContentInfo({
   contentData,
   allLicenses,
+  description = null,
 }: {
   contentData: Content;
   allLicenses: License[];
+  description?: string | null;
 }) {
   const license =
     allLicenses.find((l) => l.code === contentData.licenseCode) ?? null;
@@ -30,6 +33,20 @@ export function GeneralContentInfo({
 
   return (
     <Box>
+      {description ? (
+        <Box
+          borderBottom="2px"
+          marginBottom={4}
+          paddingBottom={4}
+          data-test="Content Description"
+        >
+          <Heading size="sm">Description</Heading>
+          <Text whiteSpace="pre-wrap" mt="0.5rem">
+            {description}
+          </Text>
+        </Box>
+      ) : null}
+
       {contentData.type !== "folder" && containsCategories ? (
         <Box borderBottom="2px" marginBottom={4} paddingBottom={4}>
           <Heading size="sm">Activity categories</Heading>
