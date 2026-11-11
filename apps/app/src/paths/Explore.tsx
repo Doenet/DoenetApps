@@ -365,6 +365,7 @@ export function Explore() {
           showPublicStatus={false}
           showBlurb={false}
           showActivityCategories={true}
+          showDescriptionButton={true}
           showOwnerName={true}
           cardContent={cardContent}
           emptyMessage={"No Matches Found!"}

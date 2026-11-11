@@ -12,6 +12,7 @@ import {
 } from "../../types";
 import { Category, CategoryGroup } from "@doenet-tools/shared";
 import axios from "axios";
+import { api } from "../../api/client";
 import { Box, Heading, VStack } from "@chakra-ui/react";
 import { BlueBanner } from "../../widgets/BlueBanner";
 import { processRemixes } from "../../utils/processRemixes";
@@ -20,6 +21,7 @@ import { EditAssignmentSettings } from "../../widgets/editor/EditAssignmentSetti
 import { EditCategories } from "../../widgets/editor/EditCategories";
 import { EditClassifications } from "../../widgets/editor/EditClassifications";
 import { EditLicense } from "../../widgets/editor/EditLicense";
+import { EditDescription } from "../../widgets/editor/EditDescription";
 import { AuthorLicenseBox } from "../../widgets/Licenses";
 import {
   DoenetMLSelectionBox,
@@ -41,6 +43,10 @@ export async function loader({ params }: { params: any }) {
     data: { remixSources },
   } = await axios.get(`/api/remix/getRemixSources/${params.contentId}`);
   const sources = processRemixes(remixSources);
+
+  const { description } = await api("getContentDetails", {
+    contentId: params.contentId,
+  });
   const remixSourceLicenseCode = sources[0]?.withLicenseCode || null;
 
   const baseData = {
@@ -53,6 +59,7 @@ export async function loader({ params }: { params: any }) {
     licenseCode: data.licenseCode,
     categories: data.categories,
     classifications: data.classifications,
+    description,
     remixSourceLicenseCode,
     allCategories,
     contentId: params.contentId,
@@ -82,6 +89,7 @@ export function EditorSettingsModeComponent({
   licenseCode,
   categories,
   classifications,
+  description,
   remixSourceLicenseCode,
   allCategories,
   doenetmlVersionId,
@@ -108,6 +116,7 @@ export function EditorSettingsModeComponent({
   licenseCode: LicenseCode | null;
   categories: Category[];
   classifications: ContentClassification[];
+  description: string | null;
   remixSourceLicenseCode: LicenseCode | null;
   allCategories: CategoryGroup[];
   doenetmlVersionId?: number;
@@ -150,10 +159,17 @@ export function EditorSettingsModeComponent({
   return (
     <BlueBanner headerHeight={headerHeight}>
       <VStack ml="10px" spacing="2rem" align="flex-start">
-        <Box>
-          <Heading size="md" pt="1rem">
-            Assignment
+        <Box width="100%">
+          <Heading size="md" pt="1rem" mb="0.5rem">
+            Description
           </Heading>
+          <Box ml="1rem" mr="2rem">
+            <EditDescription contentId={contentId} description={description} />
+          </Box>
+        </Box>
+
+        <Box>
+          <Heading size="md">Assignment</Heading>
           <EditAssignmentSettings
             contentId={contentId}
             maxAttempts={maxAttempts}
@@ -290,6 +306,7 @@ export function EditorSettingsMode() {
     licenseCode,
     categories,
     classifications,
+    description,
     remixSourceLicenseCode,
     allCategories,
     doenetmlVersionId,
@@ -304,6 +321,7 @@ export function EditorSettingsMode() {
     licenseCode: LicenseCode | null;
     categories: Category[];
     classifications: ContentClassification[];
+    description: string | null;
     remixSourceLicenseCode: LicenseCode | null;
     allCategories: CategoryGroup[];
     doenetmlVersionId?: number;
@@ -342,6 +360,7 @@ export function EditorSettingsMode() {
       licenseCode={licenseCode}
       categories={categories}
       classifications={classifications}
+      description={description}
       remixSourceLicenseCode={remixSourceLicenseCode}
       allCategories={allCategories}
       doenetmlVersionId={doenetmlVersionId}
