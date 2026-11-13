@@ -36,7 +36,12 @@ import {
   useRevalidator,
 } from "react-router";
 import axios from "axios";
-import { MdClose, MdContentCopy, MdOutlineSearch } from "react-icons/md";
+import {
+  MdClose,
+  MdContentCopy,
+  MdMenuBook,
+  MdOutlineSearch,
+} from "react-icons/md";
 import { FaPlus } from "react-icons/fa";
 import { LuDessert } from "react-icons/lu";
 
@@ -733,6 +738,16 @@ export function Activities() {
                 size="sm"
               >
                 Students
+              </Button>
+              <Button
+                as={ReactRouterLink}
+                to={`/book/${parentId}`}
+                colorScheme="blue"
+                size="sm"
+                leftIcon={<MdMenuBook />}
+                data-test="Read As Book Button"
+              >
+                Read as book
               </Button>
             </>
           )}
