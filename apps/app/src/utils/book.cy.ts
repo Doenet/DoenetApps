@@ -3,6 +3,7 @@ import {
   bookPages,
   bookTocTree,
   neighborPages,
+  numberingPrefixFromName,
   startingPage,
 } from "./book";
 import { sampleBookId, sampleEntries } from "./book.testData";
@@ -60,5 +61,17 @@ describe("book utilities", { tags: ["@group3"] }, () => {
     expect(startingPage(sampleEntries, "gone")?.contentId).to.equal("preface");
     expect(startingPage(sampleEntries, null)?.contentId).to.equal("preface");
     expect(startingPage([], null)).to.equal(null);
+  });
+
+  it("takes a page's numbering prefix from the section number in its name", () => {
+    expect(numberingPrefixFromName("3.2 Instantaneous Velocity")).to.equal(
+      "3.2",
+    );
+    expect(numberingPrefixFromName("12.10 Elasticity")).to.equal("12.10");
+    expect(numberingPrefixFromName("4 Newton's Laws")).to.equal("4");
+    expect(numberingPrefixFromName("Introduction")).to.equal(null);
+    expect(numberingPrefixFromName("Chapter Review")).to.equal(null);
+    expect(numberingPrefixFromName("Appendix A: Units")).to.equal(null);
+    expect(numberingPrefixFromName("3.2.")).to.equal(null);
   });
 });

@@ -96,6 +96,16 @@ export function setLastReadPage(bookId: string, pageId: string) {
   }
 }
 
+/**
+ * The section number a page's name starts with, as the prefix for the
+ * numbers on the page: "3.2 Instantaneous Velocity" gives "3.2", so its
+ * figures read "Figure 3.2.1". Null for a name without one ("Introduction").
+ */
+export function numberingPrefixFromName(name: string): string | null {
+  const match = /^(\d+(?:\.\d+)*)\s/.exec(name.trim());
+  return match ? match[1] : null;
+}
+
 /** The URL of a page in reading mode. */
 export function bookPageUrl(bookId: string, pageId?: string) {
   return pageId ? `/book/${bookId}/${pageId}` : `/book/${bookId}`;

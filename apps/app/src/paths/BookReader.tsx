@@ -40,6 +40,7 @@ import {
   bookPageUrl,
   getLastReadPage,
   neighborPages,
+  numberingPrefixFromName,
   setLastReadPage,
   startingPage,
   type BookTocEntry,
@@ -192,6 +193,7 @@ export function BookReader() {
                   <PageViewer
                     key={page.contentId}
                     bookId={bookId}
+                    numberingPrefix={numberingPrefixFromName(page.name)}
                     doenetML={page.doenetML}
                     doenetmlVersion={page.doenetmlVersion}
                     scrollingContainer={scrollingContainer}
@@ -247,12 +249,15 @@ export function BookReader() {
 
 function PageViewer({
   bookId,
+  numberingPrefix,
   doenetML,
   doenetmlVersion,
   scrollingContainer,
   viewerContainer,
 }: {
   bookId: string;
+  /** The page's section number, which DoenetML prefixes its numbers with. */
+  numberingPrefix: string | null;
   doenetML: string;
   doenetmlVersion: string;
   scrollingContainer: React.RefObject<HTMLDivElement | null>;
@@ -260,6 +265,22 @@ function PageViewer({
 }) {
   const { themeSetting } = useThemeSettingContext();
   const baseUrl = window.location.protocol + "//" + window.location.host;
+
+  // Kept in a variable, not written inline: `numberingPrefix` (Figure 3.2.1
+  // on page 3.2) is newer than the DoenetML types this app is built against,
+  // and DoenetML versions without it ignore it.
+  const flags = {
+    showCorrectness: true,
+    solutionDisplayMode: "button" as const,
+    showFeedback: true,
+    showHints: true,
+    autoSubmit: false,
+    allowLoadState: false,
+    allowSaveState: false,
+    allowLocalState: false,
+    allowSaveEvents: false,
+    numberingPrefix,
+  };
 
   function requestScrollTo(offset: number) {
     if (viewerContainer.current && scrollingContainer.current) {
@@ -279,17 +300,7 @@ function PageViewer({
       doenetML={doenetML}
       doenetmlVersion={doenetmlVersion}
       darkMode={effectiveDarkMode(themeSetting, doenetmlVersion)}
-      flags={{
-        showCorrectness: true,
-        solutionDisplayMode: "button",
-        showFeedback: true,
-        showHints: true,
-        autoSubmit: false,
-        allowLoadState: false,
-        allowSaveState: false,
-        allowLocalState: false,
-        allowSaveEvents: false,
-      }}
+      flags={flags}
       attemptNumber={1}
       // `doenet:<id>` links resolve to `${doenetViewerUrl}/<id>`, so links
       // between pages of this book stay in reading mode.
