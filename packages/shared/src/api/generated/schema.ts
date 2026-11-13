@@ -19,6 +19,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/book/getBookPage/{bookId}/{pageId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One page of a book, for reading mode */
+    get: operations["getBookPage"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/book/getBookToc/{bookId}": {
     parameters: {
       query?: never;
@@ -411,6 +428,73 @@ export interface operations {
       };
     };
   };
+  getBookPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bookId: string;
+        pageId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            /** Format: short-uuid */
+            contentId: string;
+            doenetML: string | null;
+            doenetmlVersion: string | null;
+            name: string;
+            /** @enum {string} */
+            type: "singleDoc" | "sequence" | "select";
+          };
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not signed in, or not permitted */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
   getBookToc: {
     parameters: {
       query?: never;
@@ -430,8 +514,10 @@ export interface operations {
         content: {
           "application/json": {
             book: {
+              canEdit: boolean;
               /** Format: short-uuid */
               contentId: string;
+              isBook: boolean;
               name: string;
               /** Format: short-uuid */
               ownerId: string;

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { createTestUser, doc, fold, pset, setupTestContent } from "./utils";
-import { getBookToc, setIsBook } from "../query/book";
+import { getBookPage, getBookToc, setIsBook } from "../query/book";
 import { deleteContent } from "../query/activity";
 import { moveContent } from "../query/copy_move";
 import { setContentIsPublic, shareContentWithEmail } from "../query/share";
@@ -38,7 +38,7 @@ async function setupBook(ownerId: Uint8Array) {
     s11,
     s12,
     problemSet,
-    _psProblem,
+    psProblem,
     appendix,
   ] = ids;
   return {
@@ -49,6 +49,7 @@ async function setupBook(ownerId: Uint8Array) {
     s11,
     s12,
     problemSet,
+    psProblem,
     appendix,
   };
 }
@@ -60,21 +61,24 @@ test("a folder is not a book until marked, and can be unmarked", async () => {
   const { userId: ownerId } = await createTestUser();
   const { book } = await setupBook(ownerId);
 
-  await expect(
-    getBookToc({ bookId: book, loggedInUserId: ownerId }),
-  ).rejects.toThrow();
+  let toc = await getBookToc({ bookId: book, loggedInUserId: ownerId });
+  expect(toc.book.isBook).eq(false);
+  expect(toc.book.canEdit).eq(true);
+  expect(toc.entries).toEqual([]);
 
   await setIsBook({ contentId: book, isBook: true, loggedInUserId: ownerId });
   // marking twice is harmless
   await setIsBook({ contentId: book, isBook: true, loggedInUserId: ownerId });
-  const toc = await getBookToc({ bookId: book, loggedInUserId: ownerId });
+  toc = await getBookToc({ bookId: book, loggedInUserId: ownerId });
   expect(fromUUID(toc.book.contentId)).eq(fromUUID(book));
   expect(toc.book.name).eq("Book");
+  expect(toc.book.isBook).eq(true);
+  expect(toc.entries).toHaveLength(7);
 
   await setIsBook({ contentId: book, isBook: false, loggedInUserId: ownerId });
-  await expect(
-    getBookToc({ bookId: book, loggedInUserId: ownerId }),
-  ).rejects.toThrow();
+  toc = await getBookToc({ bookId: book, loggedInUserId: ownerId });
+  expect(toc.book.isBook).eq(false);
+  expect(toc.entries).toEqual([]);
 });
 
 test("the table of contents lists folders and pages depth first, in the author's order", async () => {
@@ -194,7 +198,10 @@ test("others can read a book only when they can view it", async () => {
   expect(
     (await getBookToc({ bookId: ids.book, loggedInUserId: otherId })).entries,
   ).toHaveLength(7);
-  expect((await getBookToc({ bookId: ids.book })).entries).toHaveLength(7);
+  const guestToc = await getBookToc({ bookId: ids.book });
+  expect(guestToc.entries).toHaveLength(7);
+  expect(guestToc.book.canEdit).eq(false);
+  expect(shared.book.canEdit).eq(false);
 });
 
 test("only the owner can mark a book, and only a folder", async () => {
@@ -228,5 +235,90 @@ test("only the owner can mark a book, and only a folder", async () => {
     }),
   ).rejects.toThrow();
 
-  await expect(getBookToc({ bookId: ids.book })).rejects.toThrow();
+  // the folder stayed a plain folder
+  expect((await getBookToc({ bookId: ids.book })).book.isBook).eq(false);
+});
+
+test("getBookPage returns a page of the book, and nothing outside it", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const { userId: otherId } = await createTestUser();
+  const ids = await setupBook(ownerId);
+  await setIsBook({
+    contentId: ids.book,
+    isBook: true,
+    loggedInUserId: ownerId,
+  });
+
+  // a page nested in folders
+  const page = await getBookPage({
+    bookId: ids.book,
+    pageId: ids.s12,
+    loggedInUserId: ownerId,
+  });
+  expect(page.name).eq("1.2");
+  expect(page.type).eq("singleDoc");
+  expect(page.doenetML).eq("<p>1.2</p>");
+  expect(page.doenetmlVersion).toBeTypeOf("string");
+
+  // a problem set is a page, without DoenetML
+  const ps = await getBookPage({
+    bookId: ids.book,
+    pageId: ids.problemSet,
+    loggedInUserId: ownerId,
+  });
+  expect(ps.type).eq("sequence");
+  expect(ps.doenetML).toBeNull();
+
+  // not pages: a folder, the book itself, a document inside a problem set
+  for (const pageId of [ids.chapter1, ids.book, ids.psProblem]) {
+    await expect(
+      getBookPage({ bookId: ids.book, pageId, loggedInUserId: ownerId }),
+    ).rejects.toThrow();
+  }
+
+  // a document outside the book
+  const [outside] = await setupTestContent(ownerId, {
+    Elsewhere: doc("<p>x</p>"),
+  });
+  await expect(
+    getBookPage({ bookId: ids.book, pageId: outside, loggedInUserId: ownerId }),
+  ).rejects.toThrow();
+
+  // a page in a deleted folder
+  await deleteContent({ contentId: ids.chapter1, loggedInUserId: ownerId });
+  await expect(
+    getBookPage({ bookId: ids.book, pageId: ids.s11, loggedInUserId: ownerId }),
+  ).rejects.toThrow();
+
+  // someone who can't see the book
+  await expect(
+    getBookPage({
+      bookId: ids.book,
+      pageId: ids.preface,
+      loggedInUserId: otherId,
+    }),
+  ).rejects.toThrow();
+  await expect(
+    getBookPage({ bookId: ids.book, pageId: ids.preface }),
+  ).rejects.toThrow();
+
+  // once public, guests can read it
+  await setContentIsPublic({
+    contentId: ids.book,
+    loggedInUserId: ownerId,
+    isPublic: true,
+  });
+  expect(
+    (await getBookPage({ bookId: ids.book, pageId: ids.preface })).doenetML,
+  ).eq("<p>preface</p>");
+
+  // but not after it stops being a book
+  await setIsBook({
+    contentId: ids.book,
+    isBook: false,
+    loggedInUserId: ownerId,
+  });
+  await expect(
+    getBookPage({ bookId: ids.book, pageId: ids.preface }),
+  ).rejects.toThrow();
 });

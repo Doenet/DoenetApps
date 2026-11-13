@@ -44,6 +44,14 @@ export const getBookTocOperation = defineOperation({
       contentId: uuidWire,
       name: z.string(),
       ownerId: uuidWire,
+      /**
+       * Whether the folder is marked as a book. A folder the viewer can see
+       * that isn't a book comes back with `isBook: false` and no entries, so
+       * reading mode can offer to make it one.
+       */
+      isBook: z.boolean(),
+      /** Whether the viewer may edit the folder (and so mark or unmark it). */
+      canEdit: z.boolean(),
     }),
     /**
      * Every folder and page the viewer may see, depth first in the order the
@@ -51,5 +59,26 @@ export const getBookTocOperation = defineOperation({
      * Images and content in folders the viewer can't see are left out.
      */
     entries: z.array(bookTocEntrySchema),
+  }),
+});
+
+export const getBookPageOperation = defineOperation({
+  name: "getBookPage",
+  method: "get",
+  path: "/book/getBookPage/:bookId/:pageId",
+  auth: "optional",
+  summary: "One page of a book, for reading mode",
+  request: z.object({
+    bookId: uuidSchema,
+    pageId: uuidSchema,
+  }),
+  response: z.object({
+    contentId: uuidWire,
+    name: z.string(),
+    type: z.enum(["singleDoc", "sequence", "select"]),
+    /** The page's DoenetML; null for a problem set or question bank. */
+    doenetML: z.string().nullable(),
+    /** The DoenetML version to render it with; null when `doenetML` is. */
+    doenetmlVersion: z.string().nullable(),
   }),
 });

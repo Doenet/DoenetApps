@@ -1,6 +1,7 @@
 import { implement } from "../contract";
-import { getBookToc, setIsBook } from "../query/book";
+import { getBookPage, getBookToc, setIsBook } from "../query/book";
 import {
+  getBookPageOperation,
   getBookTocOperation,
   setIsBookOperation,
 } from "../schemas/bookContract";
@@ -8,4 +9,5 @@ import {
 export const bookOperations = [
   implement(setIsBookOperation, setIsBook),
   implement(getBookTocOperation, getBookToc),
+  implement(getBookPageOperation, getBookPage),
 ];
