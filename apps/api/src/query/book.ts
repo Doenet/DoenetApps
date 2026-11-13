@@ -56,6 +56,7 @@ export async function setIsBook({
   } else {
     await prisma.bookSettings.deleteMany({ where: { contentId } });
   }
+  return { isBook };
 }
 
 /**

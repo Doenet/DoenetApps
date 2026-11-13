@@ -248,7 +248,18 @@
         "tags": ["book"],
         "security": [{ "session": [] }],
         "responses": {
-          "200": { "description": "OK (no content)" },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "isBook": { "type": "boolean" } },
+                  "required": ["isBook"]
+                }
+              }
+            }
+          },
           "400": {
             "description": "Invalid request",
             "content": {

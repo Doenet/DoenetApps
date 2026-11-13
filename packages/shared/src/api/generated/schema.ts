@@ -581,12 +581,16 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK (no content) */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          "application/json": {
+            isBook: boolean;
+          };
+        };
       };
       /** @description Invalid request */
       400: {

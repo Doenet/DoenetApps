@@ -14,6 +14,10 @@ export const setIsBookOperation = defineOperation({
     contentId: uuidSchema,
     isBook: z.boolean(),
   }),
+  response: z.object({
+    /** Whether the folder is now a book. */
+    isBook: z.boolean(),
+  }),
 });
 
 const bookTocEntrySchema = z
