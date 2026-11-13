@@ -6,4 +6,12 @@ export const operationRoutes = {
     method: "get",
     path: "/assign/getAssigned",
   },
+  getBookToc: {
+    method: "get",
+    path: "/book/getBookToc/{bookId}",
+  },
+  setIsBook: {
+    method: "post",
+    path: "/book/setIsBook",
+  },
 } as const;
