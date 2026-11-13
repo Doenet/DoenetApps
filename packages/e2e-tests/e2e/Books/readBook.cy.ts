@@ -1,6 +1,10 @@
 describe("Reading a book", { tags: ["@group3"] }, function () {
   it("a guest reads a public book page by page", () => {
     cy.loginAsTestUser({ isAuthor: true });
+    let ownerId = "";
+    cy.getUserInfo().then((user) => {
+      ownerId = user.userId;
+    });
 
     cy.createContent({
       name: "Sample Book",
@@ -71,6 +75,27 @@ describe("Reading a book", { tags: ["@group3"] }, function () {
             // A chapter opens at its first page.
             cy.visit(`/book/${bookId}/${chapterId}`);
             cy.url().should("include", `/book/${bookId}/${firstId}`);
+
+            // From the activity viewer, a page of the book links into it.
+            cy.visit(`/activityViewer/${secondId}`);
+            cy.get("[data-test='Book Banner']").should(
+              "contain.text",
+              "Sample Book",
+            );
+            cy.get("[data-test='Read In Book Button']").click();
+            cy.url().should("include", `/book/${bookId}/${secondId}`);
+
+            // So does the book's shared folder page, where Explore leads.
+            cy.then(() => {
+              cy.visit(`/sharedActivities/${ownerId}/${bookId}`);
+            });
+            cy.get("[data-test='Book Banner']").should(
+              "contain.text",
+              "This folder is the book",
+            );
+            cy.get("[data-test='Read In Book Button']").click();
+            // (resuming at the page last read)
+            cy.url().should("include", `/book/${bookId}/${secondId}`);
           });
         });
       });

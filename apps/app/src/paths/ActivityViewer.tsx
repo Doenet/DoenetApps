@@ -88,13 +88,21 @@ import { IFRAME_MENU_IDS } from "../utils/iframeMenuIds";
 import { useControlledMenu } from "../utils/useControlledMenu";
 import { MenuDismissOverlay } from "../components/MenuDismissOverlay";
 import { editorUrl } from "../utils/url";
+import { type ContainingBook, findContainingBook } from "../utils/book";
+import { BookBanner } from "../widgets/BookBanner";
 
 export async function loader({ params }: { params: any }) {
-  const {
-    data: { activity: activityData, remixSources, libraryRelations },
-  } = await axios.get(
-    `/api/activityEditView/getActivityViewerData/${params.contentId}`,
-  );
+  const [
+    {
+      data: { activity: activityData, remixSources, libraryRelations },
+    },
+    containingBook,
+  ] = await Promise.all([
+    axios.get(
+      `/api/activityEditView/getActivityViewerData/${params.contentId}`,
+    ),
+    findContainingBook(params.contentId),
+  ]);
 
   const contentId = params.contentId;
 
@@ -112,6 +120,7 @@ export async function loader({ params }: { params: any }) {
       contentId,
       contributorHistory,
       libraryRelations,
+      containingBook,
     };
   } else {
     const activityJson = compileActivityFromContent(activityData);
@@ -123,6 +132,7 @@ export async function loader({ params }: { params: any }) {
       contentId,
       contributorHistory: [],
       libraryRelations,
+      containingBook,
     };
   }
 }
@@ -130,6 +140,7 @@ export async function loader({ params }: { params: any }) {
 export function ActivityViewer() {
   const data = useLoaderData() as {
     contentId: string;
+    containingBook: ContainingBook | null;
     libraryRelations: LibraryRelations;
     contributorHistory: ActivityRemixItem[];
   } & (
@@ -328,6 +339,14 @@ export function ActivityViewer() {
       </Flex>
     ) : null;
 
+  const bookBanner = data.containingBook ? (
+    <BookBanner
+      book={data.containingBook}
+      contentId={data.contentId}
+      label="This activity is a page of the book"
+    />
+  ) : null;
+
   const baseUrl = window.location.protocol + "//" + window.location.host;
   const doenetViewerUrl = `${baseUrl}/activityViewer`;
 
@@ -355,6 +374,7 @@ export function ActivityViewer() {
       mainContent = (
         <>
           {unlistedBanner}
+          {bookBanner}
           <DoenetEditor
             height={`calc(100vh - ${headerHeight})`}
             width="100%"
@@ -376,6 +396,7 @@ export function ActivityViewer() {
       mainContent = (
         <>
           {unlistedBanner}
+          {bookBanner}
           <Box ref={doenetViewerContainer}>
             <BlueBanner headerHeight={headerHeight}>
               <DoenetViewer
@@ -412,6 +433,7 @@ export function ActivityViewer() {
       mainContent = (
         <>
           {unlistedBanner}
+          {bookBanner}
           <CompoundActivityEditor
             activity={activityData}
             asViewer={true}
@@ -426,6 +448,7 @@ export function ActivityViewer() {
       mainContent = (
         <>
           {unlistedBanner}
+          {bookBanner}
           <BlueBanner headerHeight={headerHeight}>
             <DoenetActivityViewer
               source={data.activityJson}

@@ -1,3 +1,5 @@
+import { type ContainingBook, findContainingBook } from "../utils/book";
+import { BookBanner } from "../widgets/BookBanner";
 import {
   Box,
   Flex,
@@ -36,6 +38,12 @@ import { CopyContentAndReportFinish } from "../popups/CopyContentAndReportFinish
 import { useCardSelections } from "../hooks/cardSelections";
 
 export async function loader({ params }: { params: any }) {
+  // Looked up alongside the folder: if the folder is a book or in one, it can
+  // be read in reading mode.
+  const containingBookPromise = params.parentId
+    ? findContainingBook(params.parentId)
+    : Promise.resolve(null);
+
   const { data } = await axios.get(
     `/api/contentList/getSharedContent/${params.ownerId}/${params.parentId ?? ""}`,
   );
@@ -44,24 +52,29 @@ export async function loader({ params }: { params: any }) {
     `/api/user/getUser/${params.ownerId}`,
   );
 
+  const containingBook = await containingBookPromise;
+
   return {
     content: data.content,
     ownerId: params.ownerId,
     owner,
     parent: data.parent,
+    containingBook,
   };
 }
 
 export function SharedActivities() {
-  const { content, ownerId, owner, parent } = useLoaderData() as {
-    content: Content[];
-    ownerId: string;
-    owner: {
-      firstNames: string | null;
-      lastNames: string;
+  const { content, ownerId, owner, parent, containingBook } =
+    useLoaderData() as {
+      containingBook: ContainingBook | null;
+      content: Content[];
+      ownerId: string;
+      owner: {
+        firstNames: string | null;
+        lastNames: string;
+      };
+      parent: Content | null;
     };
-    parent: Content | null;
-  };
 
   const { user, addTo, setAddTo, allLicenses } =
     useOutletContext<SiteContext>();
@@ -313,6 +326,17 @@ export function SharedActivities() {
       {infoDrawer}
       {copyContentModal}
       {heading}
+      {containingBook && parent && (
+        <BookBanner
+          book={containingBook}
+          contentId={parent.contentId}
+          label={
+            containingBook.contentId === parent.contentId
+              ? "This folder is the book"
+              : "This folder is part of the book"
+          }
+        />
+      )}
       <Flex
         data-test="Shared Activities"
         padding=".5em 10px"

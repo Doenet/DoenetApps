@@ -1,4 +1,5 @@
 import type { OperationResponse } from "@doenet-tools/shared";
+import { api } from "../api/client";
 
 /** One folder or page in a book's table of contents, in reading order. */
 export type BookTocEntry = OperationResponse<"getBookToc">["entries"][number];
@@ -98,4 +99,23 @@ export function setLastReadPage(bookId: string, pageId: string) {
 /** The URL of a page in reading mode. */
 export function bookPageUrl(bookId: string, pageId?: string) {
   return pageId ? `/book/${bookId}/${pageId}` : `/book/${bookId}`;
+}
+
+/** A book that some content can be read in (see `findContainingBook`). */
+export type ContainingBook = NonNullable<
+  OperationResponse<"getContainingBook">["book"]
+>;
+
+/**
+ * The nearest book that `contentId` (a page or folder) can be read in, or
+ * null. Never throws: a failed lookup just means no link to reading mode.
+ */
+export async function findContainingBook(
+  contentId: string,
+): Promise<ContainingBook | null> {
+  try {
+    return (await api("getContainingBook", { contentId })).book;
+  } catch {
+    return null;
+  }
 }
