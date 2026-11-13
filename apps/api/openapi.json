@@ -66,6 +66,328 @@
           }
         }
       }
+    },
+    "/book/getBookPage/{bookId}/{pageId}": {
+      "get": {
+        "operationId": "getBookPage",
+        "summary": "One page of a book, for reading mode",
+        "tags": ["book"],
+        "security": [{}, { "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contentId": { "type": "string", "format": "short-uuid" },
+                    "name": { "type": "string" },
+                    "type": {
+                      "type": "string",
+                      "enum": ["singleDoc", "sequence", "select"]
+                    },
+                    "doenetML": {
+                      "anyOf": [{ "type": "string" }, { "type": "null" }]
+                    },
+                    "doenetmlVersion": {
+                      "anyOf": [{ "type": "string" }, { "type": "null" }]
+                    }
+                  },
+                  "required": [
+                    "contentId",
+                    "name",
+                    "type",
+                    "doenetML",
+                    "doenetmlVersion"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          },
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/book/getBookToc/{bookId}": {
+      "get": {
+        "operationId": "getBookToc",
+        "summary": "The table of contents of a book: its folders and pages in reading order",
+        "tags": ["book"],
+        "security": [{}, { "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "book": {
+                      "type": "object",
+                      "properties": {
+                        "contentId": {
+                          "type": "string",
+                          "format": "short-uuid"
+                        },
+                        "name": { "type": "string" },
+                        "ownerId": { "type": "string", "format": "short-uuid" },
+                        "isBook": { "type": "boolean" },
+                        "canEdit": { "type": "boolean" }
+                      },
+                      "required": [
+                        "contentId",
+                        "name",
+                        "ownerId",
+                        "isBook",
+                        "canEdit"
+                      ]
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/BookTocEntry" }
+                    }
+                  },
+                  "required": ["book", "entries"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/book/getContainingBook/{contentId}": {
+      "get": {
+        "operationId": "getContainingBook",
+        "summary": "The nearest book containing a page or folder (or the folder itself, if it is a book), for linking to reading mode",
+        "tags": ["book"],
+        "security": [{}, { "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "book": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "name": { "type": "string" }
+                          },
+                          "required": ["contentId", "name"]
+                        },
+                        { "type": "null" }
+                      ]
+                    }
+                  },
+                  "required": ["book"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
+    "/book/setIsBook": {
+      "post": {
+        "operationId": "setIsBook",
+        "summary": "Mark a folder as a book, which can then be read in reading mode, or unmark it",
+        "tags": ["book"],
+        "security": [{ "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "isBook": { "type": "boolean" } },
+                  "required": ["isBook"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentId": { "type": "string", "format": "short-uuid" },
+                  "isBook": { "type": "boolean" }
+                },
+                "required": ["contentId", "isBook"]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -97,6 +419,24 @@
       "AssignmentMode": {
         "type": "string",
         "enum": ["formative", "summative"]
+      },
+      "BookTocEntry": {
+        "type": "object",
+        "properties": {
+          "contentId": { "type": "string", "format": "short-uuid" },
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["folder", "singleDoc", "sequence", "select"]
+          },
+          "parentId": { "type": "string", "format": "short-uuid" },
+          "depth": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["contentId", "name", "type", "parentId", "depth"]
       },
       "Content": {
         "oneOf": [
