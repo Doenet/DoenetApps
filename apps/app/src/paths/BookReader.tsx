@@ -28,6 +28,7 @@ import {
   redirect,
   useFetcher,
   useLoaderData,
+  useLocation,
 } from "react-router";
 import { MdMenuBook, MdMoreVert } from "react-icons/md";
 import { DoenetViewer } from "@doenet/doenetml-iframe";
@@ -41,6 +42,7 @@ import {
   getLastReadPage,
   neighborPages,
   numberingPrefixFromName,
+  scrollToTargetProps,
   setLastReadPage,
   startingPage,
   type BookTocEntry,
@@ -265,6 +267,8 @@ function PageViewer({
 }) {
   const { themeSetting } = useThemeSettingContext();
   const baseUrl = window.location.protocol + "//" + window.location.host;
+  // A link to a figure or equation on this page arrives as `#name`.
+  const { hash } = useLocation();
 
   // Kept in a variable, not written inline: `numberingPrefix` (Figure 3.2.1
   // on page 3.2) is newer than the DoenetML types this app is built against,
@@ -297,6 +301,7 @@ function PageViewer({
 
   return (
     <DoenetViewer
+      {...scrollToTargetProps(hash)}
       doenetML={doenetML}
       doenetmlVersion={doenetmlVersion}
       darkMode={effectiveDarkMode(themeSetting, doenetmlVersion)}

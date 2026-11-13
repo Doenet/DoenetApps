@@ -106,6 +106,25 @@ export function numberingPrefixFromName(name: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Props asking DoenetML to scroll to the element named by a URL fragment
+ * (`…/page#fig3`), as a link to a figure on another page has. Spread onto a
+ * `DoenetViewer`: `scrollToTarget` is newer than the DoenetML types this
+ * app is built against (Doenet/DoenetML scroll-to-target), and DoenetML
+ * versions without it ignore it, opening the page at its top.
+ */
+export function scrollToTargetProps(hash: string): Record<string, string> {
+  const name = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (!name) {
+    return {};
+  }
+  try {
+    return { scrollToTarget: decodeURIComponent(name) };
+  } catch {
+    return { scrollToTarget: name };
+  }
+}
+
 /** The URL of a page in reading mode. */
 export function bookPageUrl(bookId: string, pageId?: string) {
   return pageId ? `/book/${bookId}/${pageId}` : `/book/${bookId}`;

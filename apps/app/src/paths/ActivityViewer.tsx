@@ -1,6 +1,7 @@
 import { ReactElement, useEffect, useRef, useState } from "react";
 import {
   useLoaderData,
+  useLocation,
   useNavigate,
   useOutletContext,
   Link as ReactRouterLink,
@@ -88,7 +89,11 @@ import { IFRAME_MENU_IDS } from "../utils/iframeMenuIds";
 import { useControlledMenu } from "../utils/useControlledMenu";
 import { MenuDismissOverlay } from "../components/MenuDismissOverlay";
 import { editorUrl } from "../utils/url";
-import { type ContainingBook, findContainingBook } from "../utils/book";
+import {
+  type ContainingBook,
+  findContainingBook,
+  scrollToTargetProps,
+} from "../utils/book";
 import { BookBanner } from "../widgets/BookBanner";
 
 export async function loader({ params }: { params: any }) {
@@ -339,6 +344,9 @@ export function ActivityViewer() {
       </Flex>
     ) : null;
 
+  // A link to a figure or equation in this document arrives as `#name`.
+  const { hash } = useLocation();
+
   const bookBanner = data.containingBook ? (
     <BookBanner
       book={data.containingBook}
@@ -400,6 +408,7 @@ export function ActivityViewer() {
           <Box ref={doenetViewerContainer}>
             <BlueBanner headerHeight={headerHeight}>
               <DoenetViewer
+                {...scrollToTargetProps(hash)}
                 doenetML={data.doenetML}
                 doenetmlVersion={data.doenetmlVersion.fullVersion}
                 darkMode={effectiveDarkMode(

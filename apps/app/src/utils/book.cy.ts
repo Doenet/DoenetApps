@@ -4,6 +4,7 @@ import {
   bookTocTree,
   neighborPages,
   numberingPrefixFromName,
+  scrollToTargetProps,
   startingPage,
 } from "./book";
 import { sampleBookId, sampleEntries } from "./book.testData";
@@ -73,5 +74,19 @@ describe("book utilities", { tags: ["@group3"] }, () => {
     expect(numberingPrefixFromName("Chapter Review")).to.equal(null);
     expect(numberingPrefixFromName("Appendix A: Units")).to.equal(null);
     expect(numberingPrefixFromName("3.2.")).to.equal(null);
+  });
+
+  it("asks the viewer to scroll to the element a URL fragment names", () => {
+    expect(scrollToTargetProps("#fig3")).to.deep.equal({
+      scrollToTarget: "fig3",
+    });
+    expect(scrollToTargetProps("#CNX_UPhysics_02_01_Vector")).to.deep.equal({
+      scrollToTarget: "CNX_UPhysics_02_01_Vector",
+    });
+    expect(scrollToTargetProps("#a%20b")).to.deep.equal({
+      scrollToTarget: "a b",
+    });
+    expect(scrollToTargetProps("")).to.deep.equal({});
+    expect(scrollToTargetProps("#")).to.deep.equal({});
   });
 });
