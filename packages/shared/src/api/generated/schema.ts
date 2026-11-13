@@ -53,6 +53,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/book/getContainingBook/{contentId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The nearest book containing a page or folder (or the folder itself, if it is a book), for linking to reading mode */
+    get: operations["getContainingBook"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/book/setIsBook": {
     parameters: {
       query?: never;
@@ -523,6 +540,70 @@ export interface operations {
               ownerId: string;
             };
             entries: components["schemas"]["BookTocEntry"][];
+          };
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not signed in, or not permitted */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  getContainingBook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        contentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            book: {
+              /** Format: short-uuid */
+              contentId: string;
+              name: string;
+            } | null;
           };
         };
       };

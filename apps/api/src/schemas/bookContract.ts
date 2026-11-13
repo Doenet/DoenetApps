@@ -86,3 +86,28 @@ export const getBookPageOperation = defineOperation({
     doenetmlVersion: z.string().nullable(),
   }),
 });
+
+export const getContainingBookOperation = defineOperation({
+  name: "getContainingBook",
+  method: "get",
+  path: "/book/getContainingBook/:contentId",
+  auth: "optional",
+  summary:
+    "The nearest book containing a page or folder (or the folder itself, if it is a book), for linking to reading mode",
+  request: z.object({
+    contentId: uuidSchema,
+  }),
+  response: z.object({
+    /**
+     * Null unless the content can be read in a book: it is a folder or page
+     * in a book's folder tree (or a book itself), and the viewer can see the
+     * book and every folder between them.
+     */
+    book: z
+      .object({
+        contentId: uuidWire,
+        name: z.string(),
+      })
+      .nullable(),
+  }),
+});

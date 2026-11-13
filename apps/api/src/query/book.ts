@@ -232,6 +232,65 @@ export async function getBookPage({
 }
 
 /**
+ * The nearest book that `contentId` can be read in: `contentId` itself if it
+ * is a book, else the closest folder above it that is one. Only content
+ * that appears in a book's table of contents counts (a document inside a
+ * problem set does not), and the viewer must be able to see everything from
+ * `contentId` up to the book. Null if there is no such book.
+ *
+ * Makes at most two queries: editor status, and one recursive query up the
+ * folders.
+ */
+export async function getContainingBook({
+  contentId,
+  loggedInUserId,
+}: {
+  contentId: Uint8Array;
+  loggedInUserId?: Uint8Array;
+}) {
+  const isEditor = loggedInUserId ? await getIsEditor(loggedInUserId) : false;
+  const viewable = viewableWhere(loggedInUserId, isEditor);
+
+  const [found] = await prisma.$queryRaw<{ id: Uint8Array; name: string }[]>(
+    Prisma.sql`
+    WITH RECURSIVE up(id, parentId, steps) AS (
+      SELECT content.id, content.parentId, 0 FROM content
+      WHERE content.id = ${contentId}
+        AND content.type IN (${Prisma.join([...TOC_TYPES])})
+        AND content.isAssignmentRoot = FALSE
+        AND ${viewable}
+      UNION ALL
+      SELECT content.id, content.parentId, up.steps + 1 FROM content
+      INNER JOIN up ON content.id = up.parentId
+      WHERE up.steps < 100
+        AND content.type = 'folder'
+        AND ${viewable}
+    )
+    SELECT content.id, content.name FROM up
+    INNER JOIN content ON content.id = up.id
+    INNER JOIN bookSettings ON bookSettings.contentId = up.id
+    WHERE content.type = 'folder'
+    ORDER BY up.steps
+    LIMIT 1
+  `,
+  );
+
+  return {
+    book: found ? { contentId: found.id, name: found.name } : null,
+  };
+}
+
+/** SQL condition for content that `loggedInUserId` (or a guest) may see. */
+function viewableWhere(
+  loggedInUserId: Uint8Array | undefined,
+  isEditor: boolean,
+) {
+  return loggedInUserId
+    ? viewableContentWhere(loggedInUserId, isEditor)
+    : Prisma.sql`content.isDeletedOn IS NULL AND content.visibility <> 'private'`;
+}
+
+/**
  * The folder `bookId` if `loggedInUserId` (or a guest) may view it, whether it
  * is marked as a book, and whether the viewer may edit it; plus the SQL
  * condition for content the viewer may see, for the tree queries.
@@ -267,9 +326,7 @@ async function findViewableBookFolder({
     (isEqualUUID(folder.ownerId, loggedInUserId) ||
       (isEditor && folder.owner.isLibrary));
 
-  const viewable = loggedInUserId
-    ? viewableContentWhere(loggedInUserId, isEditor)
-    : Prisma.sql`content.isDeletedOn IS NULL AND content.visibility <> 'private'`;
+  const viewable = viewableWhere(loggedInUserId, isEditor);
 
   return {
     book: {

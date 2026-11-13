@@ -241,6 +241,85 @@
         ]
       }
     },
+    "/book/getContainingBook/{contentId}": {
+      "get": {
+        "operationId": "getContainingBook",
+        "summary": "The nearest book containing a page or folder (or the folder itself, if it is a book), for linking to reading mode",
+        "tags": ["book"],
+        "security": [{}, { "session": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "book": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "contentId": {
+                              "type": "string",
+                              "format": "short-uuid"
+                            },
+                            "name": { "type": "string" }
+                          },
+                          "required": ["contentId", "name"]
+                        },
+                        { "type": "null" }
+                      ]
+                    }
+                  },
+                  "required": ["book"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Not signed in, or not permitted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "short-uuid" }
+          }
+        ]
+      }
+    },
     "/book/setIsBook": {
       "post": {
         "operationId": "setIsBook",

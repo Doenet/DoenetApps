@@ -1,6 +1,11 @@
 import { expect, test } from "vitest";
 import { createTestUser, doc, fold, pset, setupTestContent } from "./utils";
-import { getBookPage, getBookToc, setIsBook } from "../query/book";
+import {
+  getBookPage,
+  getBookToc,
+  getContainingBook,
+  setIsBook,
+} from "../query/book";
 import { deleteContent } from "../query/activity";
 import { moveContent } from "../query/copy_move";
 import { setContentIsPublic, shareContentWithEmail } from "../query/share";
@@ -321,4 +326,57 @@ test("getBookPage returns a page of the book, and nothing outside it", async () 
   await expect(
     getBookPage({ bookId: ids.book, pageId: ids.preface }),
   ).rejects.toThrow();
+});
+
+test("getContainingBook finds the nearest book a page or folder is in", async () => {
+  const { userId: ownerId } = await createTestUser();
+  const { userId: otherId } = await createTestUser();
+  const ids = await setupBook(ownerId);
+  const bookOf = async (contentId: Uint8Array, loggedInUserId?: Uint8Array) => {
+    const { book } = await getContainingBook({ contentId, loggedInUserId });
+    return book ? fromUUID(book.contentId) : null;
+  };
+
+  // not a book yet
+  expect(await bookOf(ids.s11, ownerId)).toBeNull();
+
+  await setIsBook({
+    contentId: ids.book,
+    isBook: true,
+    loggedInUserId: ownerId,
+  });
+  const book = fromUUID(ids.book);
+  expect(await bookOf(ids.s11, ownerId)).eq(book); // a nested page
+  expect(await bookOf(ids.chapter1, ownerId)).eq(book); // a folder in it
+  expect(await bookOf(ids.book, ownerId)).eq(book); // the book itself
+  expect(await bookOf(ids.problemSet, ownerId)).eq(book); // a problem set
+  expect(await bookOf(ids.psProblem, ownerId)).toBeNull(); // inside a problem set
+
+  const name = (
+    await getContainingBook({ contentId: ids.s11, loggedInUserId: ownerId })
+  ).book?.name;
+  expect(name).eq("Book");
+
+  // the nearest book wins
+  await setIsBook({
+    contentId: ids.part1,
+    isBook: true,
+    loggedInUserId: ownerId,
+  });
+  expect(await bookOf(ids.s11, ownerId)).eq(fromUUID(ids.part1));
+  expect(await bookOf(ids.preface, ownerId)).eq(book);
+
+  // only for readers who can see it
+  expect(await bookOf(ids.preface, otherId)).toBeNull();
+  expect(await bookOf(ids.preface)).toBeNull();
+  await setContentIsPublic({
+    contentId: ids.book,
+    loggedInUserId: ownerId,
+    isPublic: true,
+  });
+  expect(await bookOf(ids.preface)).eq(book);
+
+  // a page in a deleted folder is no longer in the book
+  await deleteContent({ contentId: ids.part1, loggedInUserId: ownerId });
+  expect(await bookOf(ids.s11, ownerId)).toBeNull();
 });
