@@ -299,43 +299,23 @@ export function Home() {
         <Card width="70%">
           <CardHeader>
             <Heading size="sm">
-              MathFest Minicourse
+              AMATYC Workshop
               <br />
-              Upgrading Online Assignments: Building Scaffolded Activities for
-              Conceptual Understanding
+              Building Blocks For Active Learning: Getting Started With Doenet
               <br />
-              August 6 and 7, 2026
+              November 20, 2026, 10:15 am – 12:15 pm
+              <br />
+              Philadelphia, PA
             </Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={"18px"} fontWeight="500">
-              Do your students get perfect scores on autograded homework only to
-              demonstrate poor learning on in-class assessments? What if, rather
-              than just seeing the correctness of their single answer, students
-              received feedback throughout the process, helping them discover
-              the solution and develop conceptual understanding? In this
-              minicourse, you will learn how to create interactive online
-              mathematics activities that guide students to discover how to
-              solve a problem. (See more details in the{" "}
-              <ChakraLink
-                href="https://maa.org/events/mathfest-program/minicourses/"
-                isExternal
-                textDecoration="underline"
-              >
-                MathFest program
-              </ChakraLink>
-              .)
-            </Text>
-            <Text fontSize={"18px"} fontWeight="500" mt="1em">
-              Register for the minicourse as part of your{" "}
-              <ChakraLink
-                href="https://web.cvent.com/event/ad822b5c-1850-4215-a691-11fd7c371828/summary"
-                isExternal
-                textDecoration="underline"
-              >
-                MathFest registration
-              </ChakraLink>
-              .
+              Want to create active learning experiences that engage students
+              and provide instant feedback? This session will get you started
+              with Doenet, a free and open-source platform for authoring and
+              sharing interactive activities. You'll learn to create activities
+              that give feedback to your students' responses, guiding them to
+              discover successful solutions.
             </Text>
           </CardBody>
         </Card>
