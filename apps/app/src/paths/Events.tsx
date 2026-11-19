@@ -91,7 +91,7 @@ export function Events() {
                     isExternal
                     textDecoration="underline"
                   >
-                    August Doenet Virtual Workshop
+                    November Doenet Virtual Workshop
                   </ChakraLink>
                 </Heading>
                 <Text fontSize="1.3rem" lineHeight="1.3">
@@ -103,16 +103,17 @@ export function Events() {
                   of developers and experienced instructors.
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Date:</strong> Monday August 10 and Wednesday August
-                  12, 2026
+                  <strong>Date:</strong> Monday November 23 and Tuesday November
+                  24, 2026
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Time:</strong> 3–6pm Eastern, noon–3pm Pacific
+                  <strong>Time:</strong> a TBD 2-hour block between 4–8pm
+                  Eastern (1–5pm Pacific); register to suggest a preferred time
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
                   <Button
                     as="a"
-                    href="https://docs.google.com/forms/d/e/1FAIpQLSdSWVecpISTxnIkFbM0PZ3wtQ-q_ObBWlzJvS1iPf7wFAd58g/viewform"
+                    href="https://forms.gle/fqbZ9J9SbxxoNp5d8"
                     colorScheme="blue"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -146,49 +147,26 @@ export function Events() {
                 borderLeft="3px solid"
                 borderColor="border"
               >
-                <Heading size="md">MathFest Minicourse</Heading>
+                <Heading size="md">AMATYC Workshop</Heading>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Title:</strong> Upgrading Online Assignments: Building
-                  Scaffolded Activities for Conceptual Understanding
+                  <strong>Title:</strong> Building Blocks For Active Learning:
+                  Getting Started With Doenet
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Part A:</strong> Thursday, August 6, 8:00 am – 9:50 am
+                  <strong>Time:</strong> Friday, November 20, 10:15 am – 12:15
+                  pm
                 </Text>
                 <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Part B:</strong> Friday, August 7, 10:00 am – 11:50 am
-                </Text>
-                <Text fontSize="1rem" lineHeight="1.4">
-                  <strong>Location:</strong> Boston, MA
+                  <strong>Location:</strong> Philadelphia, PA, Marriott
+                  Downtown, Franklin Hall 13
                 </Text>
                 <Text fontSize="1.3rem" lineHeight="1.3">
-                  Do your students get perfect scores on autograded homework
-                  only to demonstrate poor learning on in-class assessments?
-                  What if, rather than just seeing the correctness of their
-                  single answer, students received feedback throughout the
-                  process, helping them discover the solution and develop
-                  conceptual understanding? In this minicourse, you will learn
-                  how to create interactive online mathematics activities that
-                  guide students to discover how to solve a problem. (See more
-                  details in the{" "}
-                  <ChakraLink
-                    href="https://maa.org/events/mathfest-program/minicourses/"
-                    isExternal
-                    textDecoration="underline"
-                  >
-                    MathFest program
-                  </ChakraLink>
-                  .)
-                </Text>
-                <Text fontSize="1.3rem" lineHeight="1.3">
-                  Register for the minicourse as part of your{" "}
-                  <ChakraLink
-                    href="https://web.cvent.com/event/ad822b5c-1850-4215-a691-11fd7c371828/summary"
-                    isExternal
-                    textDecoration="underline"
-                  >
-                    MathFest registration
-                  </ChakraLink>
-                  .
+                  Want to create active learning experiences that engage
+                  students and provide instant feedback? This session will get
+                  you started with Doenet, a free and open-source platform for
+                  authoring and sharing interactive activities. You'll learn to
+                  create activities that give feedback to your students'
+                  responses, guiding them to discover successful solutions.
                 </Text>
               </VStack>
             </Box>
