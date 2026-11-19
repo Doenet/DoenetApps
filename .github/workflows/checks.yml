@@ -67,7 +67,7 @@ jobs:
         run: npm test --workspace @doenet-tools/shared
 
       # -----------------------------
-      # Start MySQL + Test server
+      # Migrate + seed database, test server
       # -----------------------------
       - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
       - run: npm run prisma:seed --workspace @doenet-tools/api
