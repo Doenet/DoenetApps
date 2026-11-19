@@ -11,6 +11,20 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
     env:
       PORT: 3306
       DATABASE_URL: mysql://root:root@localhost:3306/db
@@ -53,20 +67,15 @@ jobs:
         run: npm test --workspace @doenet-tools/shared
 
       # -----------------------------
-      # Start MySQL + Test server
+      # Migrate + seed database, test server
       # -----------------------------
-      - name: Start MySQL
-        run: |
-          sudo /etc/init.d/mysql start
-          mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
-
       - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
       - run: npm run prisma:seed --workspace @doenet-tools/api
 
       # Fails if a migration renamed or dropped a table or column that the
       # prod-shape queries read, so the script is fixed in the same PR.
       - name: Run prod-shape queries
-        run: mysql -uroot -proot --table db < packages/perf/prod-shape.sql > /dev/null
+        run: docker exec -i ${{ job.services.mysql.id }} mysql -uroot -proot --table db < packages/perf/prod-shape.sql > /dev/null
 
       - name: Test server
         run: npm test --workspace @doenet-tools/api
@@ -83,6 +92,18 @@ jobs:
         test-group: [group1, group2, group3, group4]
 
     services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
       # S3-compatible mock so the image upload e2e test can put bytes
       # somewhere. Mirrors the adobe/s3mock service in docker-compose.yml.
       s3mock:
@@ -128,12 +149,6 @@ jobs:
 
       # Install dependencies
       - run: npm ci
-
-      # Start MySQL
-      - name: Start MySQL
-        run: |
-          sudo /etc/init.d/mysql start
-          mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
 
       - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
       - run: npm run prisma:seed --workspace @doenet-tools/api
@@ -192,6 +207,20 @@ jobs:
   e2e-brittle-tests:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
     env:
       DATABASE_URL: mysql://root:root@localhost:3306/db
       GOOGLE_CLIENT_ID: ci-test-client-id
@@ -233,12 +262,6 @@ jobs:
 
       # Install dependencies
       - run: npm ci
-
-      # Start MySQL
-      - name: Start MySQL
-        run: |
-          sudo /etc/init.d/mysql start
-          mysql -e "CREATE DATABASE IF NOT EXISTS db;" -uroot -proot
 
       - run: npm run prisma:migrate-dev --workspace @doenet-tools/api
       - run: npm run prisma:seed --workspace @doenet-tools/api
