@@ -22,6 +22,7 @@ import graphicalAnswers from "../assets/graphicalAnswerExamples.doenet?raw";
 import accessibilityPointers from "../assets/accessibilityPointers.doenet?raw";
 import mathTags from "../assets/mathTags.doenet?raw";
 import pretzelDemo from "../assets/pretzelDemo.doenet?raw";
+import errorDocument from "../assets/errorDocument.doenet?raw";
 
 import {
   Alert,
@@ -303,6 +304,14 @@ export function ScratchPadComponent({
           }}
         >
           Pretzel Demo
+        </MenuItem>
+        <MenuItem
+          data-test="Add Error Document Button"
+          onClick={() => {
+            loadScratchPadSource(errorDocument);
+          }}
+        >
+          Document With Errors
         </MenuItem>
       </MenuList>
     </Menu>
