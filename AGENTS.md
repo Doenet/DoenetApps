@@ -45,7 +45,11 @@ Development uses a fork workflow. Push branches to `origin` (your fork), then op
 
 Database and API changes must follow the **expand-migrate-contract** pattern: each merged PR must be safe to deploy on its own, so add new columns/endpoints before removing old ones across separate PRs. CI flags breaking API changes and every migration change; see "Expand-Migrate-Contract" in `apps/api/AGENTS.md`. Domain terms are in `CONTEXT.md`.
 
-PR descriptions follow the `pr` skill's format (Summary, Evidence, Merge Danger), plus one rule specific to this repo:
+**Before writing code for a non-trivial change, name the simplest alternative.** Ask what small change, inside or outside the planned diff, would make most of it unnecessary: a missing database index, a shared helper, a field sent with every request, a change at a different layer. If one exists, either make that change instead (often as its own prerequisite PR) or say why it is not enough. A plan that needs new machinery to work around something is usually a plan to fix that something first. "This is already the simplest approach" is an answer only when it names what was considered.
+
+PR descriptions follow the `pr` skill's format (Summary, Evidence, Merge Danger), plus two rules specific to this repo:
+
+- **`## Approach`:** for a non-trivial change, one short paragraph: the simplest alternative considered (see above) and why this PR does not take it. Reviewers test this claim rather than reconstructing the intent. Leave it out for changes with no real alternative, such as a typo fix or a dependency bump.
 
 - **`## Infra Updates Before Merge`:** changes under `infra/` take effect only when someone runs `aws-deploy`, not on merge. If the PR's code needs an infra change to be live first (a new env var, secret, IAM permission, queue, bucket or other resource the new image reads), add this section. It names each stack to update, the command to run, and what fails if the image deploys first. Leave it out when infra changes are safe to deploy in either order, and mention them under Merge Danger instead.
 

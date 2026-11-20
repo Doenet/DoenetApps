@@ -21,6 +21,41 @@ Put these in every subagent's brief, not just the first:
 - **The ledger path**: `.review-ledger.md` at the root of the working directory
   (gitignored). Create it before the first cycle.
 
+## Cycle 0: approach
+
+Before the first review cycle, run one agent that asks only the question in the Approach
+section of `docs/PR_REVIEW_GUIDELINES.md`: what small change, inside or outside this PR,
+would make most of this diff unnecessary? It tests the PR description's `## Approach`
+claim, if there is one. It **does not commit**: it appends its result to the ledger and
+reports back either "no structural finding" or a structural finding (one that passes the
+size test in the guidelines), with the proposed fix and roughly how much of the diff it
+would remove.
+
+This cycle comes first because it is the only one whose finding can make the others
+wasted work: every correctness cycle run before it would harden code that may be deleted.
+
+## Halting on a structural finding
+
+When any cycle — cycle 0 or a later one — reports a structural finding, the orchestrator
+**halts the loop** and puts it to the user: the problem, the proposed fix, how much of the
+diff it would remove, and the options (restructure this PR, land a prerequisite PR first,
+or proceed as is). Do not spawn the next cycle until the user decides. A later cycle that
+finds a structural problem reports it instead of fixing it, and does not make other
+changes in that cycle that the restructure would discard.
+
+Record the user's answer in the ledger as a **decision**, so later cycles do not
+re-propose it.
+
+- **Proceed as is**: continue the loop from where it stopped.
+- **Restructure, or rebase onto a prerequisite PR**: the PR is now a different diff, and
+  earlier cycles reviewed code that no longer exists. Once the restructure is pushed,
+  **reset the cycle count** and start again from cycle 0. Keep the ledger, but mark where
+  the reset happened; entries above it describe the old diff.
+
+A structural observation that fails the size test is not a reason to halt. Report it in
+the ledger and the final report as a follow-up, as the Scope section of the guidelines
+describes.
+
 ## The review cycle
 
 Give the subagent these instructions:
@@ -52,11 +87,14 @@ between.
 ## Lenses
 
 Repeating one prompt has steep diminishing returns; asking a different question does not.
-Give each cycle a lens of its own. The first four lenses are different questions, not
-four attempts at the same one, and each covers a class of defect the others do not:
+Give each cycle a lens of its own. Cycle 0 asks whether the diff should exist in this
+shape; the four lenses after it take the approach as settled. Those four are different
+questions, not four attempts at the same one, and each covers a class of defect the others
+do not:
 
 | Cycle | Lens                                                                                                                                                                                                                                                                          |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | **Approach.** What small change, inside or outside this PR, would make most of the diff unnecessary? Report only; see "Cycle 0: approach" above.                                                                                                                              |
 | 1     | **Correctness, access control and edge cases.** Does it do what it claims, for every user who can reach it — the owner, another user, an anonymous visitor — at every visibility level, on empty, deleted and boundary input?                                                 |
 | 2     | **Security.** Read the diff as an attacker would, following the Security section of `docs/PR_REVIEW_GUIDELINES.md`: for each new input, who controls it and where does it end up? What do secrets, personal data, prod credentials, CI workflows and new dependencies expose? |
 | 3     | **Behavior delta.** What changed that is not visible in the diff — permission helpers, visibility rules, query wrappers, `packages/shared`? What regressed? Is it safe to deploy on its own?                                                                                  |
@@ -64,7 +102,8 @@ four attempts at the same one, and each covers a class of defect the others do n
 | 5+    | The reviewer's own judgment, informed by the ledger.                                                                                                                                                                                                                          |
 
 A lens is a starting point, not a restriction: a cycle that notices a bug outside its lens
-should still fix it, unless it is a vulnerability already on `main` (step 3).
+should still fix it, unless it is a vulnerability already on `main` (step 3) or a
+structural finding (see "Halting on a structural finding").
 
 ## The ledger
 
@@ -87,6 +126,7 @@ written as "fixed, verified" spends that for nothing.
 
 ## When to stop
 
+- Cycle 0 does not count toward these numbers.
 - Run at least **four** cycles, one for each lens. The minimum is four because there
   are four lenses, not because four passes are better than three: stopping at three skips the
   claims-against-code pass entirely, which is the one that catches a false statement
@@ -117,7 +157,9 @@ reconsidered — and that is a judgment for a person to make.
 
 After the last cycle, summarize for the user:
 
-- How many cycles ran and why they stopped.
+- How many cycles ran and why they stopped, including any halt for a structural finding,
+  what the user decided, and whether the count was reset.
 - The most important changes made across all cycles.
-- Anything reported but deliberately not fixed, and why.
+- Anything reported but deliberately not fixed, and why. This includes structural
+  observations below the size test, as candidate follow-up PRs.
 - A link to the PR.
