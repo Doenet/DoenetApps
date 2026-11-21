@@ -667,6 +667,11 @@ export async function getAllDoenetmlVersions() {
     where: {
       removed: false,
     },
+    // `trackingNpmTag` is internal wiring for version pinning, not part of the
+    // public version list.
+    omit: {
+      trackingNpmTag: true,
+    },
     orderBy: {
       displayedVersion: "asc",
     },
@@ -678,6 +683,7 @@ export async function getDefaultDoenetmlVersion() {
   const defaultDoenetmlVersion = await prisma.doenetmlVersions.findFirstOrThrow(
     {
       where: { default: true },
+      omit: { trackingNpmTag: true },
     },
   );
 
