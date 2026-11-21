@@ -19,6 +19,7 @@ import {
   moveContent,
 } from "../query/copy_move";
 import { setContentIsPublic } from "../query/share";
+import { updateVisibility } from "../access";
 import { getMyContent } from "../query/content_list";
 import { getContent } from "../query/activity_edit_view";
 import { isEqualUUID } from "../utils/uuid";
@@ -1630,5 +1631,105 @@ describe("moveContent() with courses", () => {
       loggedInUserId: ownerId,
     });
     expect(description.parent?.contentId).eqls(courseFolder2);
+  });
+});
+
+describe("visibility invariant: a child may not be less public than its parent", () => {
+  async function visibilityOf(
+    contentId: Uint8Array,
+    loggedInUserId: Uint8Array,
+  ) {
+    const content = await getContent({ contentId, loggedInUserId });
+    return content.visibility;
+  }
+
+  test("copying into an unlisted folder makes the copy unlisted, not private", async () => {
+    const { userId: ownerId } = await createTestUser();
+
+    const [unlistedFolderId, docId] = await setupTestContent(ownerId, {
+      "unlisted folder": fold({}),
+      "a doc": doc(""),
+    });
+
+    await updateVisibility({
+      contentId: unlistedFolderId,
+      loggedInUserId: ownerId,
+      visibility: "unlisted",
+    });
+
+    const { newContentIds } = await copyContent({
+      contentIds: [docId],
+      parentId: unlistedFolderId,
+      loggedInUserId: ownerId,
+    });
+
+    expect(await visibilityOf(newContentIds[0], ownerId)).eqls("unlisted");
+  });
+
+  test("moving private content into an unlisted folder makes it unlisted", async () => {
+    const { userId: ownerId } = await createTestUser();
+
+    const [unlistedFolderId, docId] = await setupTestContent(ownerId, {
+      "unlisted folder": fold({}),
+      "a doc": doc(""),
+    });
+
+    await updateVisibility({
+      contentId: unlistedFolderId,
+      loggedInUserId: ownerId,
+      visibility: "unlisted",
+    });
+
+    await moveContent({
+      contentId: docId,
+      changeParentIdTo: unlistedFolderId,
+      desiredPosition: 0,
+      loggedInUserId: ownerId,
+    });
+
+    expect(await visibilityOf(docId, ownerId)).eqls("unlisted");
+  });
+
+  test("moving into an unlisted folder does not demote public content", async () => {
+    const { userId: ownerId } = await createTestUser();
+
+    const [unlistedFolderId, folderId, publicDocId, privateDocId] =
+      await setupTestContent(ownerId, {
+        "unlisted folder": fold({}),
+        "a folder": fold({ "public doc": doc(""), "private doc": doc("") }),
+      });
+
+    await updateVisibility({
+      contentId: unlistedFolderId,
+      loggedInUserId: ownerId,
+      visibility: "unlisted",
+    });
+    await setContentIsPublic({
+      contentId: publicDocId,
+      loggedInUserId: ownerId,
+      isPublic: true,
+    });
+
+    await moveContent({
+      contentId: folderId,
+      changeParentIdTo: unlistedFolderId,
+      desiredPosition: 0,
+      loggedInUserId: ownerId,
+    });
+
+    // The private doc is raised to the parent's level; the public doc keeps its visibility.
+    const inUnlistedFolder = await getMyContent({
+      ownerId,
+      loggedInUserId: ownerId,
+      parentId: unlistedFolderId,
+    });
+    if (inUnlistedFolder.notMe) {
+      throw Error("shouldn't happen");
+    }
+    expect(inUnlistedFolder.content).toMatchObject([
+      { contentId: folderId, visibility: "unlisted" },
+    ]);
+    expect(await visibilityOf(privateDocId, ownerId)).eqls("unlisted");
+    expect(await visibilityOf(publicDocId, ownerId)).eqls("public");
   });
 });

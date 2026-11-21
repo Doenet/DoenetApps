@@ -1,6 +1,7 @@
 import { ContentType, Prisma } from "@prisma/client";
 import { prisma } from "../model";
-import { LicenseCode, UserInfo } from "../types";
+import { LicenseCode, UserInfo, Visibility } from "../types";
+import { raiseVisibility } from "../access";
 import {
   filterEditableContent,
   filterExcludeAssignments,
@@ -15,7 +16,7 @@ import {
   getNextSortIndexForParent,
   ShiftIndicesCallbackFunction,
 } from "../utils/sort";
-import { modifyContentSharedWith, setContentIsPublic } from "./share";
+import { modifyContentSharedWith } from "./share";
 import {
   createContentRevision,
   createContent,
@@ -75,7 +76,7 @@ export async function moveContent({
           isLibrary: true,
         },
       },
-      isPublic: true,
+      visibility: true,
       parent: {
         select: {
           isAssignmentRoot: true,
@@ -90,7 +91,7 @@ export async function moveContent({
     );
   }
 
-  let desiredParentIsPublic = false;
+  let desiredParentVisibility: Visibility = "private";
   let desiredParentLicenseCode: LicenseCode = "CCDUAL";
   let desiredParentShares: Uint8Array[] = [];
 
@@ -113,7 +114,7 @@ export async function moveContent({
       },
       select: {
         type: true,
-        isPublic: true,
+        visibility: true,
         licenseCode: true,
         courseRootId: true,
         sharedWith: { select: { userId: true } },
@@ -132,13 +133,19 @@ export async function moveContent({
     }
 
     // If the parent is shared, then we'll need to share the resulting content, as well.
-    if (parent.isPublic) {
-      if (content.owner.isLibrary && !content.isPublic) {
+    if (parent.visibility !== "private") {
+      // Moving into a public parent would publish an unpublished library draft,
+      // bypassing curation. Moving into an unlisted parent is not publishing.
+      if (
+        parent.visibility === "public" &&
+        content.owner.isLibrary &&
+        content.visibility !== "public"
+      ) {
         throw new InvalidRequestError(
           "Cannot move draft from library to published folder/activity",
         );
       }
-      desiredParentIsPublic = true;
+      desiredParentVisibility = parent.visibility;
       if (parent.licenseCode) {
         desiredParentLicenseCode = parent.licenseCode as LicenseCode;
       }
@@ -331,13 +338,13 @@ export async function moveContent({
     });
   }
 
-  if (desiredParentIsPublic) {
-    await setContentIsPublic({
-      contentId: content.id,
-      loggedInUserId,
-      isPublic: true,
-    });
-  }
+  // A child may not be less public than its parent, so raise the moved content
+  // to the parent's visibility. Never demote: content that is already more
+  // public than its new parent keeps its visibility.
+  await raiseVisibility({
+    contentId: content.id,
+    visibility: desiredParentVisibility,
+  });
 
   if (desiredParentShares.length > 0) {
     await modifyContentSharedWith({
@@ -402,7 +409,7 @@ export async function copyContent({
     throw new InvalidRequestError("Content not found or not visible");
   }
 
-  let desiredParentIsPublic = false;
+  let desiredParentVisibility: Visibility = "private";
   let desiredParentLicenseCode: LicenseCode = "CCDUAL";
   let desiredParentShares: Uint8Array[] = [];
   let desiredParentType: ContentType = "folder";
@@ -418,7 +425,7 @@ export async function copyContent({
         type: { not: "singleDoc" },
       },
       select: {
-        isPublic: true,
+        visibility: true,
         type: true,
         licenseCode: true,
         sharedWith: { select: { userId: true } },
@@ -436,8 +443,8 @@ export async function copyContent({
     desiredParentType = parent.type;
 
     // If the parent folder is public/shared, then we'll need to share the resulting content, as well
-    if (parent.isPublic) {
-      desiredParentIsPublic = true;
+    if (parent.visibility !== "private") {
+      desiredParentVisibility = parent.visibility;
       if (parent.licenseCode) {
         desiredParentLicenseCode = parent.licenseCode as LicenseCode;
       }
@@ -512,7 +519,7 @@ export async function copyContent({
         parentId,
         prependCopy,
         isEditor,
-        desiredParentIsPublic,
+        desiredParentVisibility,
         desiredParentLicenseCode,
         desiredParentShares,
         desiredParentType,
@@ -534,7 +541,7 @@ async function copySingleContent({
   parentId,
   prependCopy,
   isEditor,
-  desiredParentIsPublic,
+  desiredParentVisibility,
   desiredParentLicenseCode,
   desiredParentShares,
   desiredParentType,
@@ -545,7 +552,7 @@ async function copySingleContent({
   parentId: Uint8Array | null;
   prependCopy: boolean;
   isEditor: boolean;
-  desiredParentIsPublic: boolean;
+  desiredParentVisibility: Visibility;
   desiredParentLicenseCode: LicenseCode;
   desiredParentShares: Uint8Array[];
   desiredParentType: ContentType;
@@ -621,7 +628,7 @@ async function copySingleContent({
         parentId,
         prependCopy: false,
         isEditor,
-        desiredParentIsPublic,
+        desiredParentVisibility,
         desiredParentLicenseCode,
         desiredParentShares,
         desiredParentType,
@@ -654,8 +661,10 @@ async function copySingleContent({
         ownerId: loggedInUserId,
         parentId: parentId,
         sortIndex,
-        isPublic: desiredParentIsPublic,
-        visibility: desiredParentIsPublic ? "public" : "private",
+        // A child may not be less public than its parent, so the copy inherits
+        // the parent's visibility.
+        isPublic: desiredParentVisibility === "public",
+        visibility: desiredParentVisibility,
         licenseCode,
         courseRootId: desiredCourseId,
         classCode,
@@ -717,7 +726,7 @@ async function copySingleContent({
         parentId: newContent.id,
         prependCopy: false,
         isEditor,
-        desiredParentIsPublic,
+        desiredParentVisibility,
         desiredParentLicenseCode,
         desiredParentShares,
         desiredParentType,
