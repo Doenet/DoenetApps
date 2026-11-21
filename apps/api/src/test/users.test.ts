@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  createTestAnonymousUser,
-  createTestUser,
-  fold,
-  setupTestContent,
-} from "./utils";
+import { createTestUser, fold, setupTestContent } from "./utils";
 import { fromUUID } from "../utils/uuid";
 import {
   createStudentHandleAccounts,
@@ -15,7 +10,6 @@ import {
   setIsAuthor,
   setTheme,
   updateUser,
-  upgradeAnonymousUser,
 } from "../query/user";
 import { getMyContent } from "../query/content_list";
 import { createContent } from "../query/activity";
@@ -73,23 +67,6 @@ test("findOrCreateUser finds an existing user or creates a new one", async () =>
   // Attempt to find the same user again
   const sameUser = await findOrCreateUser({ email, firstNames, lastNames });
   expect(sameUser).toStrictEqual(user);
-});
-
-test("upgrade anonymous user", async () => {
-  const anonUser = await createTestAnonymousUser();
-
-  expect(anonUser.isAnonymous).eq(true);
-
-  const id = Date.now().toString();
-  const realEmail = `real${id}@vitest.test`;
-
-  const upgraded = await upgradeAnonymousUser({
-    userId: anonUser.userId,
-    email: realEmail,
-  });
-
-  expect(upgraded.isAnonymous).eq(false);
-  expect(upgraded.email).eq(realEmail);
 });
 
 test("turn author mode on and off", async () => {

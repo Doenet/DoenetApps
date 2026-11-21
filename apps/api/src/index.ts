@@ -32,7 +32,7 @@ import { generateHandle } from "./utils/names";
 import { loadMediaConfig } from "./media";
 import { mountApiRoutes } from "./apiRoutes";
 import { getEnvVar, isTestAuthBypassEnabled } from "./utils/env";
-import { asyncPassport, toGoogleAccount } from "./auth";
+import { asyncPassport, parseFromAnonymous, toGoogleAccount } from "./auth";
 import type { DoneCallback, SessionUser } from "./auth";
 import { installProcessErrorHandlers } from "./errors/processErrorHandlers";
 import { perfMiddleware, perfOptionsFromEnv } from "./perf";
@@ -267,29 +267,21 @@ passport.serializeUser(
     async (req: Request, user: SessionUser, done: DoneCallback) => {
       if (user.provider === "magiclink") {
         const email: string = user.email;
-        const fromAnonymous: string = user.fromAnonymous;
+        const anonymousUserId = parseFromAnonymous(user.fromAnonymous);
 
-        let u;
+        const upgraded = anonymousUserId
+          ? await upgradeAnonymousUser({ userId: anonymousUserId, email })
+          : null;
 
-        if (fromAnonymous !== " ") {
-          try {
-            u = await upgradeAnonymousUser({
-              userId: toUUID(fromAnonymous),
-              email,
-            });
-          } catch (_e) {
-            console.log("Error upgrading anonymous user", _e);
-            /// ignore any error
-          }
-        }
-
-        if (!u) {
-          u = await findOrCreateUser({
+        // `email` already has an account (or there was nothing to upgrade):
+        // log in to that account and leave the anonymous one alone.
+        const u =
+          upgraded ??
+          (await findOrCreateUser({
             email,
             firstNames: null,
             lastNames: "",
-          });
-        }
+          }));
 
         return done(undefined, fromUUID(u.userId));
       } else if (user.provider === "google") {
@@ -297,35 +289,28 @@ passport.serializeUser(
         // passport's reshape of Google's payload and is where two production
         // crashes came from. See `auth/googleProfile.ts`.
         const { email, firstNames, lastNames } = toGoogleAccount(user._json);
-        const fromAnonymous = user.fromAnonymous;
+        const anonymousUserId = parseFromAnonymous(user.fromAnonymous);
 
-        let u;
+        const upgraded = anonymousUserId
+          ? await upgradeAnonymousUser({ userId: anonymousUserId, email })
+          : null;
 
-        if (fromAnonymous) {
-          try {
-            u = await upgradeAnonymousUser({
-              userId: toUUID(fromAnonymous),
-              email,
-            });
-
-            // Use name from google account
-            await updateUser({
-              loggedInUserId: u.userId,
-              firstNames: firstNames ?? undefined,
-              lastNames,
-            });
-          } catch (_e) {
-            console.log("Error upgrading anonymous user", _e);
-            /// ignore any error
-          }
+        if (upgraded) {
+          // Use name from google account
+          await updateUser({
+            loggedInUserId: upgraded.userId,
+            firstNames: firstNames ?? undefined,
+            lastNames,
+          });
         }
 
-        if (!u) {
-          u = await findOrCreateUser({ email, firstNames, lastNames });
-        }
+        // `email` already has an account (or there was nothing to upgrade):
+        // log in to that account and leave the anonymous one alone.
+        const u =
+          upgraded ??
+          (await findOrCreateUser({ email, firstNames, lastNames }));
 
         return done(undefined, fromUUID(u.userId));
-        // TODO: upgrade from anonymous user?
       } else if (user.provider === "local") {
         const pause1000 = function () {
           return new Promise((resolve, _reject) => {

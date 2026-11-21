@@ -132,6 +132,21 @@ export async function getUserInfoFromEmail(
   return user;
 }
 
+/**
+ * Turn the anonymous account `userId` into a real account owned by `email`.
+ *
+ * Returns `null` when there is nothing to upgrade, which is an ordinary
+ * outcome rather than an error:
+ *
+ * - `email` already belongs to an account (P2002) — a returning user who
+ *   browsed anonymously before logging in.
+ * - `userId` is not an anonymous account, or does not exist (P2025) — e.g. a
+ *   second login carrying a stale `fromAnonymous` value.
+ *
+ * In both cases the caller falls back to `findOrCreateUser`, which logs them
+ * in to the account that owns `email`. The anonymous account is left as it is;
+ * any work done under it stays there and is not merged.
+ */
 export async function upgradeAnonymousUser({
   userId,
   email,
@@ -139,12 +154,20 @@ export async function upgradeAnonymousUser({
   userId: Uint8Array;
   email: string;
 }) {
-  const user = await prisma.users.update({
-    where: { userId, isAnonymous: true },
-    data: { isAnonymous: false, email },
-  });
-
-  return user;
+  try {
+    return await prisma.users.update({
+      where: { userId, isAnonymous: true },
+      data: { isAnonymous: false, email },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      (e.code === "P2002" || e.code === "P2025")
+    ) {
+      return null;
+    }
+    throw e;
+  }
 }
 
 export async function updateUser({
