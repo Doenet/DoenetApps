@@ -25,6 +25,7 @@ import {
   Link as ReactRouterLink,
   useOutletContext,
   useNavigate,
+  useFetcher,
 } from "react-router";
 import { MoveCopyContent } from "../popups/MoveCopyContent";
 import CardList from "../widgets/CardList";
@@ -81,6 +82,12 @@ export function CompoundActivityEditor({
   deleteContentFetcher: FetcherWithComponents<any>;
 }) {
   const contentTypeName = contentTypeToName[activity.type];
+
+  // Per-document settings get their own fetcher. `fetcher` is shared with the
+  // popups, and `CopyContentAndReportFinish` treats any 200 on it as its own
+  // copy result — a settings save landing there leaves it with no
+  // `newContentIds` to render.
+  const settingsFetcher = useFetcher();
 
   const isAssigned = activity.assignmentInfo
     ? activity.assignmentInfo.assignmentStatus !== "Unassigned"
@@ -272,7 +279,7 @@ export function CompoundActivityEditor({
         repeatInProblemSet:
           content.type === "singleDoc" ? content.repeatInProblemSet : undefined,
         updateRepeatInProblemSet: (copies) => {
-          fetcher.submit(
+          settingsFetcher.submit(
             {
               path: "updateContent/updateContentSettings",
               contentId: content.contentId,

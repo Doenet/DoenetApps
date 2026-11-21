@@ -106,6 +106,7 @@ export function MoveCopyContent({
     }
     setActionFinished(false);
     setErrMsg("");
+    awaitingOwnResult.current = false;
     // TODO: proper way to have functions and hooks
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentParentId]);
@@ -142,16 +143,23 @@ export function MoveCopyContent({
 
   const initialRef = useRef<HTMLButtonElement>(null);
 
+  // `fetcher` is shared with the rest of the page, so a response on it is not
+  // necessarily this modal's. A move returns no payload, so there is nothing in
+  // the response to recognize — track who started the submission instead.
+  const awaitingOwnResult = useRef(false);
+
   useEffect(() => {
-    if (fetcher.data && fetcher.data.status === 200) {
+    if (!fetcher.data || !awaitingOwnResult.current) {
+      return;
+    }
+    awaitingOwnResult.current = false;
+
+    if (fetcher.data.status === 200) {
       setActionFinished(true);
-      if (action === "Move") {
-        setNumItems(1);
-      } else {
-        const numItems: number = fetcher.data.data.newContentIds.length;
-        setNumItems(numItems);
-      }
-    } else if (fetcher.data && fetcher.data.success === false) {
+      setNumItems(
+        action === "Move" ? 1 : (fetcher.data.data?.newContentIds?.length ?? 0),
+      );
+    } else if (fetcher.data.success === false) {
       setErrMsg(fetcher.data.message);
     }
   }, [fetcher.data, action]);
@@ -456,6 +464,7 @@ export function MoveCopyContent({
 
     if (action === "Move") {
       if (contentIds.length === 1) {
+        awaitingOwnResult.current = true;
         fetcher.submit(
           {
             path: `copyMove/moveContent`,
@@ -469,6 +478,7 @@ export function MoveCopyContent({
         throw Error("Have not implemented moving more than one content");
       }
     } else if (action === "Copy" || action === "Add") {
+      awaitingOwnResult.current = true;
       fetcher.submit(
         {
           path: "copyMove/copyContent",
