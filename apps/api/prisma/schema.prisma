@@ -50,6 +50,9 @@ model content {
   accessibilityCheck     AuditState               @default(unchecked)
   // Specific to documents inside problem sets
   repeatInProblemSet     Int                      @default(1)
+  // A description is rendered like any other document but is not one of the
+  // scored items: no problem number, no credit, no item state of its own.
+  isDescription          Boolean                  @default(false)
   // 
   // ====== Problem Sets =========
   shuffle                Boolean                  @default(false)
