@@ -54,9 +54,7 @@ ends up. Access control is covered above; check these as well:
   parameters. `Prisma.raw` splices its text into the query, and `$queryRawUnsafe` and
   `$executeRawUnsafe` splice their query string while binding any further arguments as
   parameters. So the text given to `Prisma.raw`, and the query string given to the Unsafe
-  variants, must be built by the code, with request values passed as parameters (in
-  `apps/api/src/utils/classificationsCategories.ts`, `Prisma.raw` only ever sees generated
-  table aliases).
+  variants, must be built by the code, with request values passed as parameters.
 - **Other sinks.** Request data that reaches a shell command, a file path, an outgoing
   URL, a redirect target, or HTML rendered outside React's escaping
   (`dangerouslySetInnerHTML`).

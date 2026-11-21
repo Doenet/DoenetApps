@@ -8047,7 +8047,9 @@ describe("countMatchingContentByCategory", () => {
 
       for (const categoryGroup of allCategories) {
         for (const category of categoryGroup.categories) {
-          const categories = new Set(filters.categories);
+          const categories = new Set(
+            filters.categories as Set<string> | undefined,
+          );
           categories.add(category.code);
           const expected = await getSharedContentMatchCount({
             ...filters,
