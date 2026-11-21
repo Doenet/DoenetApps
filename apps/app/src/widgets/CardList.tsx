@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import { ReactElement, ReactNode } from "react";
 import { Text, Icon, Box, Flex } from "@chakra-ui/react";
 import Card, { CardContent } from "./Card";
 import { MdInfoOutline } from "react-icons/md";
@@ -33,7 +33,7 @@ export default function CardList({
   showActivityCategories?: boolean;
   showAddButton?: boolean;
   showLibraryEditor?: boolean;
-  emptyMessage: string;
+  emptyMessage: ReactNode;
   includeSelectionBox?: boolean;
   selectedCards?: Set<string>;
   onCardSelected?: (contentId: string) => void;
@@ -59,7 +59,11 @@ export default function CardList({
         borderTop="2px solid gray"
       >
         <Icon fontSize="48pt" as={MdInfoOutline} />
-        <Text fontSize="36pt">{emptyMessage}</Text>
+        {typeof emptyMessage === "string" ? (
+          <Text fontSize="36pt">{emptyMessage}</Text>
+        ) : (
+          emptyMessage
+        )}
       </Flex>
     );
   }
