@@ -83,6 +83,11 @@ export default function CardList({
   //     </Flex>
   //   );
 
+  const disableSelectSet = new Set(disableSelectFor);
+  const disableAsSelectedSet = new Set(disableAsSelectedFor);
+
+  // `Card` is memoized; pass it only props that keep their identity when
+  // unchanged, so changing one card (e.g., selecting it) re-renders just that card
   let cards: ReactElement<any> | ReactElement<any>[] = cardContent.map(
     (cardContent, idx) => {
       return (
@@ -100,14 +105,12 @@ export default function CardList({
           isSelected={
             selectedCards?.has(cardContent.content.contentId) || false
           }
-          onSelected={() => onCardSelected?.(cardContent.content.contentId)}
-          onDeselected={() => onCardDeselected?.(cardContent.content.contentId)}
+          onSelected={onCardSelected}
+          onDeselected={onCardDeselected}
           isAuthor={isAuthor}
           addDocumentCallback={addDocumentCallback}
-          disableSelect={disableSelectFor?.includes(
-            cardContent.content.contentId,
-          )}
-          disableAsSelected={disableAsSelectedFor?.includes(
+          disableSelect={disableSelectSet.has(cardContent.content.contentId)}
+          disableAsSelected={disableAsSelectedSet.has(
             cardContent.content.contentId,
           )}
           idx={idx}
