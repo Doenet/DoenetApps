@@ -9,6 +9,7 @@ export default function CardList({
   showBlurb = false,
   showPublicStatus = false,
   showActivityCategories = false,
+  showDescriptionButton = false,
   showAddButton = false,
   showLibraryEditor = false,
   emptyMessage,
@@ -31,6 +32,7 @@ export default function CardList({
   showBlurb?: boolean;
   showPublicStatus?: boolean;
   showActivityCategories?: boolean;
+  showDescriptionButton?: boolean;
   showAddButton?: boolean;
   showLibraryEditor?: boolean;
   emptyMessage: string;
@@ -93,6 +95,7 @@ export default function CardList({
           showBlurb={showBlurb}
           showPublicStatus={showPublicStatus}
           showActivityCategories={showActivityCategories}
+          showDescriptionButton={showDescriptionButton}
           showAddButton={showAddButton}
           showLibraryEditor={showLibraryEditor}
           indentLevel={cardContent.indentLevel}

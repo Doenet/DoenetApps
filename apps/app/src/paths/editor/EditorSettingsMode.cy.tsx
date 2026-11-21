@@ -91,6 +91,7 @@ describe("EditorSettingsModeComponent", { tags: ["@group1"] }, () => {
     licenseCode: "CCBYSA" as LicenseCode,
     categories: [] as Category[],
     classifications: [] as ContentClassification[],
+    description: null as string | null,
     remixSourceLicenseCode: null,
     allCategories: mockCategories,
     contentId: "test-content-123",
@@ -111,6 +112,7 @@ describe("EditorSettingsModeComponent", { tags: ["@group1"] }, () => {
     cy.mount(<EditorSettingsModeComponent {...getDefaultProps()} />);
 
     // Verify main sections are present
+    cy.contains("h2", "Description").should("be.visible");
     cy.contains("h2", "Assignment").should("be.visible");
     cy.contains("h2", "Classifications").should("be.visible");
     cy.contains("h2", "Licensing").should("be.visible");

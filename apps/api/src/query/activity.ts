@@ -556,6 +556,70 @@ export async function updateCategories({
 }
 
 /**
+ * Set the public description of `contentId`, which must be editable by
+ * `loggedInUserId`. Leading/trailing whitespace is trimmed; an empty
+ * description clears it.
+ *
+ * Unlike `updateContent`, this is allowed even when the content is assigned:
+ * the description is metadata about the content, not part of what students see.
+ */
+export async function updateDescription({
+  contentId,
+  description,
+  loggedInUserId,
+}: {
+  contentId: Uint8Array;
+  description: string;
+  loggedInUserId: Uint8Array;
+}) {
+  const isEditor = await getIsEditor(loggedInUserId);
+
+  // Throws (404) if the content doesn't exist or isn't editable by this user
+  await prisma.content.findUniqueOrThrow({
+    where: {
+      id: contentId,
+      ...filterEditableContent(loggedInUserId, isEditor),
+    },
+    select: { id: true },
+  });
+
+  const trimmed = description.trim();
+  const value = trimmed === "" ? null : trimmed;
+
+  await prisma.contentDetails.upsert({
+    where: { contentId },
+    update: { description: value },
+    create: { contentId, description: value },
+  });
+}
+
+/**
+ * Return the author-written details (currently just the `description`) of
+ * `contentId`, assuming it is viewable by `loggedInUserId`.
+ *
+ * Throws an error if not viewable by `loggedInUserId`.
+ */
+export async function getContentDetails({
+  contentId,
+  loggedInUserId = new Uint8Array(16),
+}: {
+  contentId: Uint8Array;
+  loggedInUserId?: Uint8Array;
+}): Promise<{ description: string | null }> {
+  const isEditor = await getIsEditor(loggedInUserId);
+
+  const content = await prisma.content.findUniqueOrThrow({
+    where: {
+      id: contentId,
+      ...filterViewableContent(loggedInUserId, isEditor),
+    },
+    select: { details: { select: { description: true } } },
+  });
+
+  return { description: content.details?.description ?? null };
+}
+
+/**
  * Return the contentId, name, and content type of the content with `contentId`,
  * assuming it is viewable by `loggedInUserId`.
  *

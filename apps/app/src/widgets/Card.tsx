@@ -22,6 +22,7 @@ import {
   NumberInput,
   NumberInputField,
   NumberInputStepper,
+  VisuallyHidden,
 } from "@chakra-ui/react";
 import { Link as ReactRouterLink, useOutletContext } from "react-router";
 import { ContentCard } from "../types";
@@ -36,6 +37,7 @@ import { SmallLicenseBadges } from "./Licenses";
 import { IoDiceOutline } from "react-icons/io5";
 import { SiteContext } from "../paths/SiteHeader";
 import { AccessibleAvatar } from "./AccessibleAvatar";
+import { DescriptionPopover } from "./DescriptionPopover";
 
 export type CardContent = {
   menuRef?: (arg: HTMLButtonElement) => void;
@@ -62,6 +64,7 @@ export default function Card({
   showBlurb = false,
   showPublicStatus = false,
   showActivityCategories = false,
+  showDescriptionButton = false,
   showAddButton = false,
   showLibraryEditor = false,
   indentLevel = 0,
@@ -80,6 +83,7 @@ export default function Card({
   showBlurb?: boolean;
   showPublicStatus?: boolean;
   showActivityCategories?: boolean;
+  showDescriptionButton?: boolean;
   showAddButton?: boolean;
   showLibraryEditor?: boolean;
   indentLevel?: number;
@@ -220,7 +224,12 @@ export default function Card({
   const titleBox = (
     <Tooltip openDelay={500} label={title} placement="bottom-start">
       <Flex alignItems="center" flexGrow={1} width={titleWidth}>
-        <Text paddingLeft={[".5rem", "1.5rem"]} noOfLines={1}>
+        <Text
+          paddingLeft={
+            showDescriptionButton ? [".25rem", ".5rem"] : [".5rem", "1.5rem"]
+          }
+          noOfLines={1}
+        >
           {title}
         </Text>
         {visibilityBadge}
@@ -424,6 +433,47 @@ export default function Card({
     )
   );
 
+  const contentTypeLabel = cardContent.content.assignmentInfo
+    ? "Assignment"
+    : contentTypeName;
+
+  const leadingIcons = (
+    <>
+      {contentTypeIcon}
+      <Hide below="md">{categoryIcons}</Hide>
+    </>
+  );
+
+  const rowAfterIcons = (
+    <>
+      {titleBox}
+      <Spacer />
+      {libraryEditorInfo}
+      <Spacer />
+      <Hide below="sm">{blurbDisplay}</Hide>
+      <Spacer />
+      {ownerInfo}
+      <Spacer />
+      <Show above="lg">{variantsDisplay}</Show>
+      {licenseBadges}
+      {showAddButton && <Spacer />}
+      {addMenu}
+    </>
+  );
+
+  // Shown immediately left of the title (outside the main link). Folders
+  // have no description, so they get an empty space of the same width to keep
+  // titles aligned.
+  const descriptionButton = showDescriptionButton &&
+    contentType !== "folder" && (
+      <Flex alignItems="center" marginLeft="0.25rem">
+        <DescriptionPopover contentId={contentId} title={title} />
+      </Flex>
+    );
+  const descriptionSpacer = showDescriptionButton && !descriptionButton && (
+    <Flex width="2rem" marginLeft="0.25rem" flexShrink={0} />
+  );
+
   return (
     <ChakraCard
       p="0"
@@ -443,7 +493,38 @@ export default function Card({
         <Flex height={itemHeight} alignItems="center">
           {/* Left-aligned, not main link */}
           {selectCheckbox}
-          {cardLink ? (
+          {cardLink && descriptionButton ? (
+            // The description button can't be inside the link, so the link is
+            // split around it: the leading icons are a mouse-only duplicate
+            // (hidden from keyboard and screen readers), and the main link
+            // starts at the title.
+            <Flex flexGrow={1}>
+              <ChakraLink
+                as={ReactRouterLink}
+                to={cardLink}
+                tabIndex={-1}
+                aria-hidden="true"
+                _hover={{ textDecoration: "none" }}
+                cursor="pointer"
+                display="flex"
+              >
+                {leadingIcons}
+              </ChakraLink>
+              {descriptionButton}
+              <ChakraLink
+                as={ReactRouterLink}
+                to={cardLink}
+                _hover={{ textDecoration: "none" }}
+                cursor="pointer"
+                flexGrow={1}
+              >
+                <Flex>
+                  <VisuallyHidden>{contentTypeLabel}: </VisuallyHidden>
+                  {rowAfterIcons}
+                </Flex>
+              </ChakraLink>
+            </Flex>
+          ) : cardLink ? (
             <ChakraLink
               as={ReactRouterLink}
               to={cardLink}
@@ -452,39 +533,17 @@ export default function Card({
               flexGrow={1}
             >
               <Flex>
-                {contentTypeIcon}
-                <Hide below="md">{categoryIcons}</Hide>
-                {titleBox}
-                <Spacer />
-                {libraryEditorInfo}
-                <Spacer />
-                <Hide below="sm">{blurbDisplay}</Hide>
-                <Spacer />
-                {ownerInfo}
-                <Spacer />
-                <Show above="lg">{variantsDisplay}</Show>
-                {licenseBadges}
-                {showAddButton && <Spacer />}
-                {addMenu}
+                {leadingIcons}
+                {descriptionSpacer}
+                {rowAfterIcons}
               </Flex>
             </ChakraLink>
           ) : (
             <Flex flexGrow={1} cursor="default">
-              {contentTypeIcon}
-              <Hide below="md">{categoryIcons}</Hide>
-              {/* <Hide below="lg">{categoryIcons}</Hide> */}
-              {titleBox}
-              <Spacer />
-              {libraryEditorInfo}
-              <Spacer />
-              <Hide below="sm">{blurbDisplay}</Hide>
-              <Spacer />
-              {ownerInfo}
-              <Spacer />
-              <Show above="lg">{variantsDisplay}</Show>
-              {licenseBadges}
-              {showAddButton && <Spacer />}
-              {addMenu}
+              {leadingIcons}
+              {descriptionButton}
+              {descriptionSpacer}
+              {rowAfterIcons}
             </Flex>
           )}
           {/* Right-aligned, not main link */}

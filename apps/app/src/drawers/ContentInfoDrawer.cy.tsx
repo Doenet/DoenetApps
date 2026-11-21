@@ -89,6 +89,11 @@ describe("ContentInfoDrawer", { tags: ["@group1"] }, () => {
       statusCode: 200,
       body: { remixes: [] },
     }).as("getRemixes");
+
+    cy.intercept("GET", "**/api/info/getContentDetails/**", {
+      statusCode: 200,
+      body: { description: null },
+    }).as("getContentDetails");
   });
 
   function mountActivityDrawer({
@@ -118,6 +123,29 @@ describe("ContentInfoDrawer", { tags: ["@group1"] }, () => {
     cy.contains("Activity Information").should("be.visible");
     cy.contains("Test Activity").should("be.visible");
     cy.checkAccessibility("body");
+  });
+
+  it("shows the description on the general tab when there is one", () => {
+    cy.intercept("GET", "**/api/info/getContentDetails/**", {
+      statusCode: 200,
+      body: { description: "Line one.\nLine two." },
+    }).as("getContentDetails");
+
+    mountActivityDrawer();
+    cy.wait("@getContentDetails");
+
+    cy.get('[data-test="Content Description"]')
+      .should("be.visible")
+      .and("contain.text", "Line one.")
+      .and("contain.text", "Line two.");
+    cy.checkAccessibility("body");
+  });
+
+  it("omits the description section when there is none", () => {
+    mountActivityDrawer();
+    cy.wait("@getContentDetails");
+
+    cy.get('[data-test="Content Description"]').should("not.exist");
   });
 
   it("renders drawer header with folder information", () => {

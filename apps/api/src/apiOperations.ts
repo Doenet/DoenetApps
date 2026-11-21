@@ -1,5 +1,6 @@
 import { buildOpenApiSpec, ImplementedOperation } from "./contract";
 import { assignOperations } from "./routes/assignRoutes";
+import { contentDetailsOperations } from "./routes/contentDetailsRoutes";
 
 /**
  * Every operation in the API contract. Add new endpoints here (via
@@ -9,6 +10,7 @@ import { assignOperations } from "./routes/assignRoutes";
  */
 export const apiOperations: readonly ImplementedOperation[] = [
   ...assignOperations,
+  ...contentDetailsOperations,
 ];
 
 export const apiSpec = buildOpenApiSpec(apiOperations.map((op) => op.contract));

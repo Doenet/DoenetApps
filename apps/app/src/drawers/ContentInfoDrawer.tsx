@@ -19,6 +19,7 @@ import { ActivityRemixItem, Content, License } from "../types";
 import { GeneralContentInfo } from "../drawerTabs/GeneralContentInfo";
 import { ClassificationInfo } from "../drawerTabs/ClassificationInfo";
 import axios from "axios";
+import { api } from "../api/client";
 import { processRemixes } from "../utils/processRemixes";
 import { RemixSources } from "../drawerTabs/RemixSources";
 import { Remixes } from "../drawerTabs/Remixes";
@@ -120,6 +121,31 @@ export function ContentInfoDrawer({
     };
   }, [isOpen, contentData.type, contentData.contentId]);
 
+  const [description, setDescription] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || contentData.type === "folder") {
+      return;
+    }
+
+    let isCancelled = false;
+
+    api("getContentDetails", { contentId: contentData.contentId })
+      .then(({ description }) => {
+        if (!isCancelled) {
+          setDescription(description);
+        }
+      })
+      .catch(() => {
+        // The description is optional; omit it if it can't be loaded.
+      });
+
+    return () => {
+      isCancelled = true;
+      setDescription(null);
+    };
+  }, [isOpen, contentData.type, contentData.contentId]);
+
   return (
     <Drawer
       isOpen={isOpen}
@@ -171,6 +197,7 @@ export function ContentInfoDrawer({
                   <GeneralContentInfo
                     contentData={contentData}
                     allLicenses={allLicenses}
+                    description={description}
                   />
                 </TabPanel>
                 {contentData.type !== "folder" ? (

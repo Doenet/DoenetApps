@@ -67,6 +67,12 @@ model content {
   // image can never exist unlicensed.
   imageData              imageContent?
   //
+  // ===== Details ==========
+  // Optional author-written metadata (e.g., a public description) lives in a
+  // 1:1 `contentDetails` row, so adding fields here never requires altering
+  // (and rebuilding) the large `content` table.
+  details                contentDetails?
+  //
   // ===== Code ==========
   // Course or assignment code
   // All courses have a code, and all one-off assignments have a code.
@@ -142,6 +148,13 @@ model imageContent {
   originalUrl    String? @db.Text
   licenseCodes   String  @db.VarChar(64)
   licenseVersion String? @db.VarChar(16)
+}
+
+model contentDetails {
+  contentId   Bytes   @id @db.Binary(16)
+  content     content @relation(fields: [contentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  // Public description of the content, written by its author.
+  description String? @db.Text
 }
 
 enum ContentType {

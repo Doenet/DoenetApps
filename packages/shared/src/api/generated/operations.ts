@@ -6,4 +6,12 @@ export const operationRoutes = {
     method: "get",
     path: "/assign/getAssigned",
   },
+  getContentDetails: {
+    method: "get",
+    path: "/info/getContentDetails/{contentId}",
+  },
+  updateDescription: {
+    method: "post",
+    path: "/updateContent/updateDescription",
+  },
 } as const;

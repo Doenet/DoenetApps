@@ -583,6 +583,8 @@ async function copySingleContent({
       // fresh row below so the copy is independently licensed; the `storageKey`
       // is shared, not duplicated, so both rows reference the same S3 object.
       imageData: true,
+      // Author-written details (e.g., the description) travel with the copy.
+      details: true,
       children: {
         where: { isDeletedOn: null },
         select: { id: true, type: true },
@@ -640,6 +642,7 @@ async function copySingleContent({
       categories,
       classifications,
       imageData,
+      details,
       licenseCode: originalLicenseCode,
       owner,
       ...originalFieldsToCopy
@@ -690,6 +693,9 @@ async function copySingleContent({
                 },
               },
             }
+          : {}),
+        ...(details
+          ? { details: { create: { description: details.description } } }
           : {}),
         ...originalFieldsToCopy,
       },
