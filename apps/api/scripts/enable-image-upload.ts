@@ -8,8 +8,9 @@
 // Production (inside the running ECS Fargate task, cwd is /DoenetTools/apps/api):
 //   node dist/scripts/enable-image-upload.js <email>
 //
-// To reach the prod container: run `infra/scripts/exec.sh -s prod` from the
-// repo root, pick the api service/task, then run the command above.
+// To reach the prod container: from the infra/ directory, run
+// `scripts/exec.sh -s prod`, pick the api service/task, then run the command
+// above.
 // -----
 import { PrismaClient } from "@prisma/client";
 
