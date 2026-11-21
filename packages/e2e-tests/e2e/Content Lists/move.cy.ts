@@ -113,6 +113,50 @@ describe("Move tests", { tags: ["@group3"] }, () => {
       .should("contain.text", "Document");
   });
 
+  it("Move document into folder and go to destination folder", () => {
+    cy.loginAsTestUser();
+
+    cy.createContent({ name: "Document", contentType: "singleDoc" });
+    cy.createContent({ name: "My Folder", contentType: "folder" });
+
+    cy.visit("/");
+
+    cy.get('[data-test="My Activities"]').click();
+
+    cy.get(`[data-test="Content Card"]`).should("have.length", 2);
+
+    cy.get('[data-test="Card Select"]').eq(0).click();
+    cy.get('[aria-label="Move to"]').click();
+
+    cy.get('[data-test="MoveCopy Heading 2"]').should("have.text", "Document");
+
+    cy.get('[data-test="Select Item Option"]').should("have.length", 2);
+    cy.get('[data-test="Select Item Option"]')
+      .eq(1)
+      .should("have.text", "My Folder")
+      .should("not.be.disabled");
+
+    cy.get('[data-test="Select Item Option"]').eq(1).click();
+    cy.get('[data-test="Current destination"]').should(
+      "have.text",
+      "My Folder",
+    );
+    cy.get('[data-test="Select Item Option"]').should("have.length", 0);
+
+    cy.get('[data-test="Execute MoveCopy Button"]').click();
+    cy.get('[data-test="MoveCopy Body"]').should(
+      "have.text",
+      "1 item moved to: My Folder",
+    );
+    cy.get('[data-test="Go to Destination"]').click();
+
+    cy.get('[data-test="Folder Title"]').should("have.text", "My Folder");
+    cy.get(`[data-test="Content Card"]`).should("have.length", 1);
+    cy.get(`[data-test="Content Card"]`)
+      .eq(0)
+      .should("contain.text", "Document");
+  });
+
   it("Move problem set into sub folder", () => {
     cy.loginAsTestUser();
 

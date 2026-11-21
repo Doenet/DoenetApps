@@ -924,7 +924,7 @@ export async function getMoveCopyContentData({
         type: true,
         isPublic: true,
         visibility: true,
-        sharedWith: true,
+        sharedWith: { select: { userId: true } },
         parent: {
           select: {
             id: true,
