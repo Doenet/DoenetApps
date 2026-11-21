@@ -138,6 +138,7 @@ import {
 } from "./paths/ImageDetails";
 import { GetInvolved } from "./paths/GetInvolved";
 import { Events } from "./paths/Events";
+import { BookReader, loader as bookReaderLoader } from "./paths/BookReader";
 import { QuickLinks } from "./paths/QuickLinks";
 
 // Before the router is created: it starts the first page's loaders at once.
@@ -261,6 +262,13 @@ const router = createBrowserRouter([
         action: genericAction,
         errorElement: <ErrorPage />,
         element: <ActivityViewer />,
+      },
+      {
+        path: "book/:bookId/:pageId?",
+        loader: bookReaderLoader,
+        action: genericAction,
+        errorElement: <ErrorPage />,
+        element: <BookReader />,
       },
       {
         path: "imageDetails/:contentId",
