@@ -2,7 +2,12 @@ import { defineConfig } from "cypress";
 import addAccessibilityTasks from "wick-a11y/accessibility-tasks";
 import { plugin as cypressGrepPlugin } from "@cypress/grep/plugin";
 
-import { appPort } from "../../scripts/worktree-env.js";
+import { fileURLToPath } from "node:url";
+import { loadEnv } from "vite";
+
+// Dev ports live in apps/api/.env (see .env.example); the environment wins.
+const apiDir = fileURLToPath(new URL("../../apps/api", import.meta.url));
+const appPort = Number(loadEnv("development", apiDir, "").APP_PORT) || 8000;
 
 // // This is for db data testing/checking (CANNOT GET DATA AND CHECK VIA CYPRESS)
 // //For connecting to SQL Server

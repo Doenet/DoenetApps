@@ -1,3 +1,10 @@
+# Backing services for development. Shared by the host toolchain (`npm run
+# setup`) and the dev container (.devcontainer/docker-compose.yml overlays this
+# file). No `name:` here on purpose: `npm run setup` starts this as project
+# `doenet`, shared by every host worktree, while each dev container gets a
+# project of its own (named after its checkout). A fixed name would put them all
+# in one project, where each would recreate the others' containers.
+
 services:
   mysql:
     image: mysql:8.0
@@ -26,6 +33,11 @@ services:
   s3mock:
     image: adobe/s3mock:latest
     restart: unless-stopped
+    # The image runs as a non-root user, but Docker creates the s3mock_data
+    # volume owned by root. Without this S3Mock cannot write its store, so the
+    # initial bucket is never created and every request (uploads, the
+    # healthcheck, `npm run setup`'s --wait) fails with a 500.
+    user: root
     environment:
       # Spring Boot properties on com.adobe.testing.s3mock.store.* — env-var
       # form uses underscores and uppercase per Spring's relaxed binding.

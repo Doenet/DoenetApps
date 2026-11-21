@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
-# Start the dev servers unless they are already running.
+# Starts the dev servers in the background unless they are already running.
+# Runs when the container starts and again when an editor attaches: Codespaces
+# can kill what the start-time run launched, and the attach-time run brings the
+# servers back. Run it by hand to restart them after stopping them.
 #
-# VS Code runs this every time it attaches to the container (postAttachCommand),
-# so the app is up without anyone typing a command; the guard keeps a window
-# reload from starting a second copy on the same ports. It is also the default
-# build task (Ctrl/Cmd+Shift+B) in .vscode/tasks.json.
+# Output, including the auto-login link, goes to /tmp/dev.log. setsid puts the
+# servers in a process group of their own, whose id goes to /tmp/dev.pid, so
+# `kill -- -$(cat /tmp/dev.pid)` stops them all.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "$0")/.."
 
-read -r api_port app_port <<<"$(node -e '
-import("./scripts/worktree-env.js").then((m) => console.log(m.apiPort, m.appPort))')"
-
-if (exec 3<>"/dev/tcp/127.0.0.1/$api_port") 2>/dev/null; then
-  echo "Dev servers are already running (API on :$api_port)."
-  echo "Open http://localhost:$app_port — or stop them and run this again."
+if [ -f /tmp/dev.pid ] && kill -0 -- "-$(cat /tmp/dev.pid)" 2>/dev/null; then
+  echo "Dev servers already running; tail -f /tmp/dev.log shows their output."
   exit 0
 fi
 
-exec npm run dev
+# The group leader writes its own id: from an interactive shell setsid forks,
+# so the $! seen here would be a process that has already exited.
+setsid bash -c 'echo $$ > /tmp/dev.pid; exec npm run dev' \
+  > /tmp/dev.log 2>&1 < /dev/null &
+echo "Dev servers starting; tail -f /tmp/dev.log shows their output and the auto-login link."
